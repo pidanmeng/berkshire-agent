@@ -83,6 +83,7 @@ berkshire-agent/
     ├── ai/                    #   ctx.ai seam + adapters(deepseek, ollama…)
     ├── notify/                #   ctx.notifier seam + providers(wecom, telegram, webhook, tray)
     ├── client/                #   client 插件图宿主 + slot 声明(sidecar→webview 转发)
+    ├── sidecar/               #   Bun sidecar 长驻进程 + stdio JSON-RPC（T1 物化；桥接协议 T0 契约见 packages/sidecar/README.md）
     └── bundle/                #   base / desktop-app / headless / sdk-minimal(profile 模板)
 ```
 
