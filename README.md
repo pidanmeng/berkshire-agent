@@ -56,7 +56,7 @@ bun run index.ts
 
 ## v1 现状
 
-已落地一个 **headless 可跑的最小核心脊**（Cordis 官方包底座，未接 Tauri/webview/Rust 桥）：
+已落地一个 **headless 可跑的最小核心脊**（Cordis 官方包底座）；并已接上 sidecar → Rust 宿主桥 → webview 的最小链路（T2/T3）：
 
 - `packages/core`（`@berkshire/core`）：`ctx.log`、`ctx.capabilities`、`ctx.notifier` 能力缝（Service Definition）+ `declare module 'cordis'` 类型化事件（`@mode emit`）。
 - `packages/boot`（`@berkshire/boot`）：`Boot` 装配器 + `composeEntries`（profile/bundle/patch 最小子集），`dispose()` 逆序清理。

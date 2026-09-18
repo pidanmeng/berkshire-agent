@@ -2,7 +2,7 @@
 
 > 本文是 **T0 定稿的桥接契约**：在 T1–T3 接线前，把「Bun sidecar ↔ Tauri Rust 宿主 ↔ React webview」三者的边界、消息格式与能力路由定死成一份可复现的协议，避免各方自造。
 >
-> **诚实标注**：本文件描述的是**目标协议契约**。其中 **T1（sidecar 长驻进程 + stdio JSON-RPC，即 `packages/sidecar/src`）已落地、可运行**——复现见下文「复现与验收」（`bun run packages/sidecar/examples/smoke.ts`）。**仍未落地并标「T#」的**：T2（Rust `bridge.rs` 拉起/restart + 事件转发为 Tauri event）、T3（webview 薄客户端）、以及持久化（DuckDB）、rspc/specta 迁移。不得把仍未落地部分当作可 import 的实现。
+> **诚实标注**：本文件描述的是**目标协议契约**。其中 **T1（sidecar 长驻进程 + stdio JSON-RPC，即 `packages/sidecar/src`）已落地、可运行**——复现见下文「复现与验收」（`bun run packages/sidecar/examples/smoke.ts`）；**T2（Rust `bridge.rs` 拉起/restart + 事件转发为 Tauri event）**与 **T3（webview 薄客户端，`apps/berkshire-agent/src/lib/api.ts` + `components/SidecarPanel.tsx`）**也已落地 v1。**仍未落地的**：持久化（DuckDB）、rspc/specta 迁移。不得把仍未落地部分当作可 import 的实现。
 
 ## 定位
 
@@ -146,7 +146,7 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 
 - **T0 契约**：本文含「一个请求 + 一个事件推送」两段原始 ndjson 字节样例（见上，与 T1 实测输出一致）。
 - **T1 落地复现**（已跑通）：`bun run packages/sidecar/examples/smoke.ts` —— 覆盖四方法 round-trip（`capabilities/list`、`notify/send`、`capabilities/usable`、`log/list`）+ 事件推送 `notify/request` + 未知方法 fail-closed（`-32601`）+ shutdown 退出码 0，并隐式校验 stdout 只承载协议。
-- **仍未落地**：**T2/T3**（Rust `bridge.rs` 拉起与事件转发、webview 薄客户端）及持久化。
+- **仍未落地**：持久化（DuckDB）。（T2 Rust 桥、T3 webview 薄客户端均已落地 v1，见 [architecture.md §11](../../docs/architecture.md#11-关键文件索引现状--目标)。）
 
 ## 交叉引用
 
@@ -154,4 +154,4 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 - v1 现状锚点： [secondary-development.md §8](../../docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)
 - 能力缝三角色 & 事件： [capability-seams.md §1/§5](../../docs/capability-seams.md)
 - 配置分层组合： [config.md §4](../../docs/config.md#4-怎么写一个-bundle-的-patch)（`composeEntries`/`applyEntryPatches` 见 [boot/src/entries.ts](../boot/src/entries.ts)）
-- 桥接代码落地： T1（`packages/sidecar`）→ T2（Rust `bridge.rs`）→ T3（webview）→ T4（端到端验证）
+- 桥接代码落地： T1（`packages/sidecar`）→ T2（Rust `bridge.rs`）→ T3（webview 薄客户端）均已完成；**T4（端到端验证）待办**。

@@ -95,6 +95,74 @@ button {
   margin-right: 5px;
 }
 
+/* ---- T3 demo 面板（最小证明面，非正式 slot）---- */
+.sidecar-panel {
+  margin-top: 2rem;
+  text-align: left;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.sidecar-panel fieldset {
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 8px;
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.9rem;
+}
+.sidecar-panel legend {
+  font-weight: 600;
+}
+.sidecar-panel label {
+  margin-right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sidecar-panel input,
+.sidecar-panel select {
+  border-radius: 6px;
+  padding: 0.3em 0.5em;
+}
+.sidecar-panel button {
+  padding: 0.4em 1em;
+}
+.hint {
+  color: #888;
+  font-style: italic;
+  margin: 0.25rem 0;
+}
+.bridge-banner {
+  border: 1px solid #c0392b;
+  background: rgba(192, 57, 43, 0.12);
+  color: #c0392b;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-weight: 600;
+}
+.boundary-fallback {
+  border: 1px dashed #b7950b;
+  color: #b7950b;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+}
+.sidecar-panel ul,
+.sidecar-panel ol {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}
+.sidecar-panel-cols {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.sidecar-panel-cols fieldset {
+  flex: 1 1 280px;
+}
+.log-data {
+  word-break: break-all;
+  color: #555;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f6f6f6;

@@ -179,11 +179,11 @@ export function apply(ctx: Context, config: Config) {
 | --- | --- | --- |
 | Tauri 装配 | [lib.rs](../apps/berkshire-agent/src-tauri/src/lib.rs) · [main.rs](../apps/berkshire-agent/src-tauri/src/main.rs) · [bridge.rs](../apps/berkshire-agent/src-tauri/src/bridge.rs) · [sidecar_client.rs](../apps/berkshire-agent/src-tauri/src/sidecar_client.rs)（T2 桥） | + `db.rs` / `ipc.rs` / `providers/` |
 | Tauri 配置/能力 | [tauri.conf.json](../apps/berkshire-agent/src-tauri/tauri.conf.json) · [capabilities/default.json](../apps/berkshire-agent/src-tauri/capabilities/default.json) | + sidecar/externalBin + 自定义协议 `bk://` |
-| 前端壳 | [src/main.tsx](../apps/berkshire-agent/src/main.tsx) · [src/App.tsx](../apps/berkshire-agent/src/App.tsx) | + router / lib/api / store / slots / client-plugins |
+| 前端壳 + T3 webview 接线（v1） | [src/main.tsx](../apps/berkshire-agent/src/main.tsx) · [src/App.tsx](../apps/berkshire-agent/src/App.tsx) · [src/lib/api.ts](../apps/berkshire-agent/src/lib/api.ts) · [src/lib/ExtensionBoundary.tsx](../apps/berkshire-agent/src/lib/ExtensionBoundary.tsx) · [src/components/SidecarPanel.tsx](../apps/berkshire-agent/src/components/SidecarPanel.tsx)（薄客户端 + 最小 demo 面板） | + router / store / slots / client-plugins |
 | 组件库依赖 | [package.json](../apps/berkshire-agent/package.json) | + zustand / echarts / rspc 客户端 |
-| 核心脊装配（v1 headless） | [core/src/core.ts](../packages/core/src/core.ts) · [boot/src/index.ts](../packages/boot/src/index.ts) | + Cordis vendor 重命名 / Tauri·webview 接线（v2） |
-| 桥接协议 sidecar（T1 落地） | [packages/sidecar/src](../packages/sidecar/src/index.ts) · [examples/smoke.ts](../packages/sidecar/examples/smoke.ts) | + Tauri/webview 接线（T3） |
-| T2 Rust 宿主桥（落地 v1） | [bridge.rs](../apps/berkshire-agent/src-tauri/src/bridge.rs) · [sidecar_client.rs](../apps/berkshire-agent/src-tauri/src/sidecar_client.rs)（拉起/restart + 事件转发到 Tauri events + 最小 `tauri` command 命令面） | + rspc/specta typed bridge / webview `invoke` 接线（T3） |
+| 核心脊装配（v1 headless） | [core/src/core.ts](../packages/core/src/core.ts) · [boot/src/index.ts](../packages/boot/src/index.ts) | + Cordis vendor 重命名（v2） |
+| 桥接协议 sidecar（T1 落地） | [packages/sidecar/src](../packages/sidecar/src/index.ts) · [examples/smoke.ts](../packages/sidecar/examples/smoke.ts) | （T3 webview 接线已落地，见上） |
+| T2 Rust 宿主桥（落地 v1） | [bridge.rs](../apps/berkshire-agent/src-tauri/src/bridge.rs) · [sidecar_client.rs](../apps/berkshire-agent/src-tauri/src/sidecar_client.rs)（拉起/restart + 事件转发到 Tauri events + 最小 `tauri` command 命令面） | + rspc/specta typed bridge |
 | `ctx.log`（v1 内存） | [core/src/services/log.ts](../packages/core/src/services/log.ts) | + DuckDB `sessions_log` 持久化 / 跨重载（v2） |
 | `ctx.capabilities`（v1） | [core/src/services/capabilities.ts](../packages/core/src/services/capabilities.ts) | + `CAPABILITY_REGISTRY` / `build_capability_matrix`（v2） |
 | `ctx.notifier` 能力缝（v1） | [core/src/seams/notify.ts](../packages/core/src/seams/notify.ts) · [plugins/notify-console/src/index.ts](../packages/plugins/notify-console/src/index.ts) | + per-channel 路由 / 并行 mode（v2） |
