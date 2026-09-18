@@ -29,10 +29,11 @@ export class ExtensionBoundary extends Component<Props, State> {
 
   override render(): ReactNode {
     if (this.state.error) {
+      // 显式区分「未提供 fallback」（undefined，走默认横幅）与「fallback 为 null」
+      // （调用方想要紧凑降级，彻底不留占位）——compact 场景需要后者。
+      if (this.props.fallback !== undefined) return this.props.fallback;
       return (
-        this.props.fallback ?? (
-          <div className="boundary-fallback">⚠ 面板已降级（详见控制台日志），宿主页仍可用。</div>
-        )
+        <div className="boundary-fallback">⚠ 面板已降级（详见控制台日志），宿主页仍可用。</div>
       );
     }
     return this.props.children;

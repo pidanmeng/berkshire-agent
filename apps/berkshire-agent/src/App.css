@@ -163,6 +163,24 @@ button {
   color: #555;
 }
 
+/* ---- slot 宿主（T0 最小落点，能力块 A）---- */
+.slot-demo {
+  margin-top: 2rem;
+  text-align: left;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.extension-slot-banner {
+  border-left: 3px solid #b7950b;
+  background: rgba(183, 149, 11, 0.1);
+  color: #8a6d0b;
+  border-radius: 4px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.9em;
+  margin: 0.25rem 0;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f6f6f6;

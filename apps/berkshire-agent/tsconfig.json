@@ -18,7 +18,10 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* bun:test 类型（registry.test.ts 用）；与仓库 tsconfig.base.json 约定一致 */
+    "types": ["bun"]
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
