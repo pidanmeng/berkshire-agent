@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Berkshire Agent 数据流（K 线 → 指标 → 选股/回测）",
+    "quality_profile": "showcase",
+    "output": "dataflow.html",
+    "viewBox": [1120, 600]
+  },
+  "stages": [
+    { "label": "数据源" },
+    { "label": "同步" },
+    { "label": "存储" },
+    { "label": "处理" },
+    { "label": "消费" }
+  ],
+  "nodes": [
+    { "id": "tickflow", "type": "external", "label": "TickFlow", "sublabel": "行情 · 除权 · 财务", "stage": 0, "row": 0, "tag": "provider" },
+    { "id": "fuyao", "type": "external", "label": "fuyao", "sublabel": "同花顺 REST", "stage": 0, "row": 1, "tag": "provider" },
+    { "id": "sync", "type": "backend", "label": "同步服务", "sublabel": "校验 · 归一化 · 交易日", "stage": 1, "row": 1, "tag": "ctx.scheduler" },
+    { "id": "duckdb", "type": "database", "label": "DuckDB", "sublabel": ".duckdb 单写者 · generation", "stage": 2, "row": 1, "tag": "ctx.database" },
+    { "id": "indicator", "type": "backend", "label": "指标现算", "sublabel": "needed 依赖闭包裁剪", "stage": 3, "row": 0, "tag": "ctx.indicators" },
+    { "id": "engines", "type": "backend", "label": "选股 / 策略 / 回测", "sublabel": "消费 enriched 派生列", "stage": 3, "row": 2, "tag": "domain" },
+    { "id": "webview", "type": "frontend", "label": "Webview 图表", "sublabel": "zustand · ECharts", "stage": 4, "row": 1, "tag": "消费" }
+  ],
+  "flows": [
+    { "from": "tickflow", "to": "sync", "label": "日K/分钟/实时", "classification": "归一化 schema", "variant": "default" },
+    { "from": "fuyao", "to": "sync", "label": "行情/财务", "classification": "归一化 schema", "variant": "default", "labelAt": [150, 318] },
+    { "from": "sync", "to": "duckdb", "label": "落库 · 发布 generation", "classification": "单写者", "variant": "emphasis", "labelAt": [470, 400] },
+    { "from": "duckdb", "to": "indicator", "label": "读 enriched 基点", "classification": "窄表", "variant": "default" },
+    { "from": "duckdb", "to": "engines", "label": "读数据 / 因子", "classification": "查询", "variant": "default" },
+    { "from": "indicator", "to": "webview", "label": "指标 / 分析", "classification": "现算派生", "variant": "default" },
+    { "from": "engines", "to": "webview", "label": "选股 / 回测结果", "classification": "结果", "variant": "default" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "数据进得来（可扩展数据）", "items": ["provider 声明 datasets，经 ctx.capabilities 门控", "YAML 自定义源走同一统一 provider", "输出统一 schema，存储/处理对数据源无感知"] },
+    { "dot": "cyan", "title": "窄表 + 现算", "items": ["只持久化基点列，派生指标现算", "needed 依赖闭包裁剪，只算用到列"] },
+    { "dot": "violet", "title": "消费与一致性", "items": ["单写者 + generation 原子发布", "实时行情批量/定节奏经 Tauri event 推送"] }
+  ]
+}

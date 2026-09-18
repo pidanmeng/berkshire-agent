@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Berkshire Agent 一次「刷新个股分析」的时序",
+    "quality_profile": "showcase",
+    "output": "sequence.html",
+    "column_fit": "spread",
+    "viewBox": [1300, 640]
+  },
+  "participants": [
+    { "id": "ui", "type": "frontend", "label": "React Webview", "sublabel": "zustand · ECharts" },
+    { "id": "host", "type": "backend", "label": "Rust 宿主", "sublabel": "rspc · DuckDB 单写者" },
+    { "id": "cordis", "type": "backend", "label": "Bun sidecar", "sublabel": "Cordis 插件树" },
+    { "id": "ds", "type": "external", "label": "数据源", "sublabel": "tickflow / fuyao" },
+    { "id": "db", "type": "database", "label": "DuckDB", "sublabel": ".duckdb 文件" }
+  ],
+  "messages": [
+    { "from": "ui", "to": "host", "y": 178, "label": "invoke 刷新个股分析", "note": "rspc 类型化调用" },
+    { "from": "host", "to": "cordis", "y": 226, "label": "stdio JSON-RPC: analysis/run", "variant": "emphasis" },
+    { "from": "cordis", "to": "ds", "y": 274, "label": "ctx.dataSources.getDaily / getRealtime", "note": "经 ctx.capabilities 门控" },
+    { "from": "ds", "to": "cordis", "y": 318, "label": "返回归一化数据", "variant": "return" },
+    { "from": "cordis", "to": "host", "y": 366, "label": "ctx.database.write 落库", "variant": "default", "note": "生成 generation" },
+    { "from": "host", "to": "db", "y": 414, "label": "spawn_blocking SQL", "variant": "default" },
+    { "from": "db", "to": "host", "y": 458, "label": "写入完成", "variant": "return" },
+    { "from": "host", "to": "cordis", "y": 502, "label": "generation 已发布", "variant": "return" },
+    { "from": "host", "to": "ui", "y": 542, "label": "Tauri event：数据失效", "variant": "emphasis", "note": "webview 重查/刷新" }
+  ],
+  "activations": [
+    { "participant": "host", "from": 178, "to": 502, "type": "backend" },
+    { "participant": "cordis", "from": 226, "to": 366, "type": "backend" },
+    { "participant": "ds", "from": 274, "to": 318, "type": "external" },
+    { "participant": "db", "from": 414, "to": 458, "type": "database" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "类型化与桥", "items": ["webview ↔ Rust 走 rspc invoke / Tauri events", "Rust ↔ Cordis 走 stdio JSON-RPC", "插件不经 UI 层，直接唤起能力缝"] },
+    { "dot": "cyan", "title": "单写者一致性", "items": ["只有 Rust 触达 DuckDB（spawn_blocking）", "落库后 generation 原子发布", "前端据 generation 失效并重查"] },
+    { "dot": "violet", "title": "可替换能力缝", "items": ["换数据源 provider 不必改上层", "能力经 ctx.dataSources / ctx.capabilities", "一次替换迁移整产品依赖者"] }
+  ]
+}

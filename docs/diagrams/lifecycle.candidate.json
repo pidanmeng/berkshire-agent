@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Berkshire Agent 插件生命周期（Cordis Fiber + 可逆效应）",
+    "quality_profile": "showcase",
+    "output": "lifecycle.html",
+    "viewBox": [1120, 600]
+  },
+  "lanes": [
+    { "id": "main", "label": "生命周期轨道（装载 · 运行 · 卸载）" },
+    { "id": "recovery", "label": "依赖 / 失败 Recovery" }
+  ],
+  "states": [
+    { "id": "installed", "type": "start", "label": "ctx.plugin() 已安装", "sublabel": "等待依赖满足", "lane": "main", "col": 0, "tag": "entry" },
+    { "id": "loading", "type": "waiting", "label": "LOADING", "sublabel": "apply(ctx, config)", "lane": "main", "col": 1, "tag": "装配" },
+    { "id": "active", "type": "active", "label": "ACTIVE", "sublabel": "服务就绪 · 注册生效", "lane": "main", "col": 2, "tag": "运行" },
+    { "id": "unloading", "type": "neutral", "label": "UNLOADING", "sublabel": "逆序执行 disposer", "lane": "main", "col": 3, "tag": "撤销" },
+    { "id": "disposed", "type": "success", "label": "DISPOSED", "sublabel": "效应全部撤销", "lane": "main", "col": 4, "tag": "终态" },
+    { "id": "pending", "type": "waiting", "label": "PENDING", "sublabel": "依赖缺失 · 挂起", "lane": "recovery", "col": 2, "tag": "挂起" },
+    { "id": "failed", "type": "failure", "label": "FAILED", "sublabel": "配置/回调抛错", "lane": "recovery", "col": 0, "tag": "可恢复" }
+  ],
+  "transitions": [
+    { "from": "installed", "to": "loading", "note": "依赖就绪后启动 apply", "route": "straight" },
+    { "from": "loading", "to": "active", "note": "apply 完成，注册即效应", "route": "straight" },
+    { "from": "active", "to": "unloading", "note": "dispose / restart / update", "route": "straight" },
+    { "from": "unloading", "to": "disposed", "note": "清理栈逆序跑完", "route": "straight", "variant": "emphasis" },
+    { "from": "loading", "to": "failed", "label": "抛错", "variant": "security", "labelAt": [256, 212] },
+    { "from": "failed", "to": "loading", "label": "修复后重试", "variant": "dashed", "labelAt": [350, 356] },
+    { "from": "active", "to": "pending", "label": "依赖消失（挂起）", "variant": "dashed", "labelAt": [478, 258] },
+    { "from": "pending", "to": "loading", "label": "依赖再现", "variant": "dashed", "labelAt": [545, 300] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "时间可组合（可逆效应）", "items": ["每个注册都是 ctx.effect，自带逆操作", "卸载时清理栈逆序执行，async disposer 会被 await", "单个 disposer 抛错不阻断其余清理"] },
+    { "dot": "emerald", "title": "空间可组合（响应式依赖）", "items": ["inject 声明依赖，缺失时停 PENDING", "依赖消失明确失败而非静默缺省", "依赖再现自动 relaunch"] },
+    { "dot": "violet", "title": "运行期热更新", "items": ["loader / HMR 原位 fiber restart/update", "进程不重启、无内存泄漏", "汇合性：不同路径最终收敛同一状态"] }
+  ]
+}

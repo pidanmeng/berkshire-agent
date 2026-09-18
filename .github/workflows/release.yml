@@ -1,0 +1,89 @@
+name: Release
+
+# 当代码合并到 main 分支（push to main）时自动打包并上传到 GitHub Release。
+# 同时支持打 tag（v*）和手动触发（workflow_dispatch），方便发布正式版本。
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies (webkit2gtk, etc.)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './apps/berkshire-agent/src-tauri -> target'
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache bun node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            bun.lock
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Sync dependencies (bun monorepo)
+        run: bun install --frozen-lockfile
+
+      # tauri-action: 构建本机安装包并上传到 GitHub Release。
+      # - 推送 main 分支: 创建/更新草稿 Release（releaseDraft: true）
+      # - 推送 v* tag:    发布正式 Release
+      - name: Build and publish Tauri release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__ # 自动使用 package.json / Cargo.toml 中的版本
+          releaseName: 'berkshire-agent v__VERSION__'
+          releaseBody: |
+            ## berkshire-agent v__VERSION__
+
+            自动生成于 main 分支合并后的 CI 流水线。
+            （由 .github/workflows/release.yml 构建并上传。）
+          releaseDraft: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          prerelease: false
+          projectPath: './apps/berkshire-agent'
+          args: ${{ matrix.args }}

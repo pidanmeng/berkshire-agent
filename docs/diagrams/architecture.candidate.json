@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Berkshire Agent 运行时拓扑",
+    "quality_profile": "showcase",
+    "output": "architecture.html"
+  },
+  "components": [
+    { "id": "webview", "type": "frontend", "label": "React Webview", "sublabel": "zustand · ECharts · slot · client 插件", "tag": "进程 C", "pos": [40, 150], "size": [190, 56] },
+    { "id": "rusthost", "type": "backend", "label": "Tauri 2 Rust 宿主", "sublabel": "窗口 · rspc 桥 · 原生 providers", "tag": "进程 A", "pos": [360, 150], "size": [190, 56] },
+    { "id": "sidecar", "type": "backend", "label": "Bun sidecar", "sublabel": "Cordis 运行时 · new Context()", "tag": "进程 B", "pos": [720, 150], "size": [190, 56] },
+    { "id": "duckdb", "type": "database", "label": "DuckDB", "sublabel": ".duckdb 单写者 · Parquet 视图", "tag": "持久化", "pos": [360, 320], "size": [190, 56] },
+    { "id": "plugintree", "type": "backend", "label": "插件树 ctx.*", "sublabel": "服务注册表 · 类型化事件 · 效应栈", "tag": "进程 B", "pos": [720, 320], "size": [190, 56] },
+    { "id": "datasrc", "type": "external", "label": "数据源 providers", "sublabel": "tickflow · fuyao · tushare · YAML", "tag": "外部（含 Python 源）", "pos": [40, 320], "size": [190, 56] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "进程 A · Tauri Rust 宿主", "wraps": ["rusthost", "duckdb"], "pad": 14 },
+    { "kind": "region", "label": "进程 B · Bun sidecar（插件 VM）", "wraps": ["sidecar", "plugintree"], "pad": 14 }
+  ],
+  "connections": [
+    { "from": "webview", "to": "rusthost", "label": "invoke · events", "variant": "default" },
+    { "from": "rusthost", "to": "sidecar", "label": "stdio JSON-RPC", "variant": "emphasis" },
+    { "from": "sidecar", "to": "plugintree", "label": "装配插件", "variant": "default", "labelAt": [820, 258] },
+    { "from": "plugintree", "to": "datasrc", "label": "拉取 · 归一化", "variant": "default", "fromSide": "bottom", "toSide": "bottom", "via": [[815, 412], [135, 412]], "labelAt": [452, 402] },
+    { "from": "datasrc", "to": "duckdb", "label": "落库（单写者）", "variant": "default" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "无特权核心", "items": ["一切业务部件都是插件，挂在已装载插件旁", "卸载即逆序撤销全部效应"] },
+    { "dot": "emerald", "title": "单写者", "items": ["仅 Rust 写 DuckDB（spawn_blocking）", "generation 原子发布保证一致性"] },
+    { "dot": "violet", "title": "能力缝三角色", "items": ["Service Definition / Provider / Consumer", "替换一个 provider 迁移整产品"] }
+  ]
+}
