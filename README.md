@@ -63,7 +63,7 @@ bun run index.ts
 - `packages/plugins/notify-console`：第一个插件（能力缝 Provider），`packages/bundle/{base,headless}` 承载 enable/disable。
 - 验证：`bun run packages/boot/examples/headless.ts`（端到端样例）；`bun test packages/boot/test/core.test.ts`（6 pass）。详见 [secondary-development.md §8](docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)。
 
-> Tauri 端与 React 端的接线、DuckDB 单写者、`@berkshire/cordis` vendor 仍为 **v2 目标态**。
+> Tauri 端与 React 端的最小接线（sidecar ⇄ Rust 桥 ⇄ webview）已落地（v1，见 [architecture.md §11](docs/architecture.md#11-关键文件索引现状--目标)）；DuckDB 单写者、rspc/specta typed bridge、`@berkshire/cordis` vendor、sidecar 打包 externalBin 仍为 **v2 目标态**。详见 [secondary-development.md §8](docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)。
 
 ---
 

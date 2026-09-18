@@ -61,6 +61,22 @@
 
 > 注：`ctx.analysis`/`ctx.market`/`ctx.datasets` 等标 core 的服务，其“外部数据/模型行为”仍应通过 seam 提供（如分析调用 `ctx.ai`、市场读取 `ctx.dataSources`），从而保持“核心脊柱只编排、不闷头实现某个厂商能力”。
 
+### 接口的权威定义在哪 import（单一事实源，勿复制签名）
+
+每条缝的**接口契约（签名/类型）只有一个家**：Owner 的 Definition 类型声明（`super(ctx, '…')` 的 Service 子类 + `declare module` 增强 + 导出的 provider/payload 类型）。文档与各级 README 一律**指向这个家并 `import`，绝不复制签名**——复制即制造第二事实源，正是跨边界类型漂移的根源。
+
+- **已实现（v1，可直接 import）**：接口权威定义在 `packages/core`——
+  - `ctx.notifier`：消费/供给方从 **`@berkshire/core`** import 共享类型（`NotifyService` 在 `packages/core/src/seams/notify.ts`；`NotifyProvider`/`NotifyPayload` 在 `packages/core/src/types.ts`），并经 `declare module 'cordis'` 读 `ctx.notifier`（`packages/core/src/events.ts`）。v1 直接增强 `cordis` 官方包；目标态 `@berkshire/cordis` vendor 落地后换模块名即可。
+- **目标态（未落地，不得 import 当已存在）**：`ctx.ai`/`ctx.dataSources`/`ctx.storage`/`ctx.backtest`/`ctx.chart` 等仍为设计承诺，未见上方归属表外的落地文件；落地后在此登记各自 Definition 的权威文件路径。
+
+依赖此单一家，**同类型图内**（sidecar 插件生态、同一 `tsc` 编译）改破坏性接口时，Consumer 与 Provider 两端即时静态报错；**跨图边界**或**单独构建/运行时加载**的插件不受此保证（见下「跨边界警示」）。
+
+### 跨边界警示（webview 与独立插件）
+
+- **webview（React）边界**：当前 `apps/berkshire-agent/src/lib/api.ts` **本地复刻** `NotifyPayload`/`Capability`/`CapabilityId`（刻意不 import `@berkshire/core`，以免把 core 拉进 webview 类型图）。因此 Owner 改接口，sidecar 端会报、**webview 端不会静态感知**——属已知缺口。补法是用 rspc/specta **typed bridge**（单一事实源生成两端类型），**仍为目标态**；落地前改接口需人工同步两处。
+- **独立构建 / 运行时加载插件**（`.js` 配置、单独打包 bundle、`any` 强转）：不在同一类型图，TS 摸不到，改接口靠运行时 fail-closed/fail-fast 兜底。
+- **结构性类型“放宽”不报错**：接口放宽（字段可选/类型加宽）不会触发两端报错，仅“破坏性变更”可静态拦截，靠评审纪律补。
+
 ## 4. 能力注册、能力矩阵与 fail-closed
 
 **能力 = 一个标准化数据集**（继承 TSP [capabilities.py 语义](reference/tick-stock-panel-contracts.md#3-capability-registry)）。每个能力独立路由（无“跟随日K”耦合）。

@@ -102,8 +102,16 @@
 ```bash
 bun install
 bun run packages/boot/examples/headless.ts   # 端到端样例：enable/disable 两场景
-bun test packages/boot/test/core.test.ts     # 自动化测试：6 pass / 0 fail
+bun test packages/boot/test/core.test.ts     # v1 自动化测试：6 pass / 0 fail
 bun run packages/sidecar/examples/smoke.ts   # sidecar 桥接协议冒烟（T1）：四方法 + 事件 + fail-closed + shutdown
+bun test packages/sidecar/test               # sidecar 自动化测试（T4）：协议层 + writer + 进程端到端，24 pass / 0 fail
+bun test                                     # 全仓：v1(6) + sidecar(24) = 30 pass / 0 fail
 ```
+
+### v1 接线已验证（T4 收口）
+
+- `packages/sidecar/test/*.test.ts`（bun test）：`protocol.test.ts`（协议层 19）、`writer.test.ts`（行缓冲 4）、`process.test.ts`（spawn 真实 sidecar 的端到端：四方法 round-trip + 事件推送 + shutdown 逆序销毁顺序 + 退出码 0）。
+- Rust 桥侧 `cargo test --offline`：`sidecar_client.rs` 单测 2 用例（含真实 spawn round-trip）。
+- 前端 `bun run build`（tsc + vite build）通过；`apps/berkshire-agent/src/lib/api.ts`、`components/SidecarPanel.tsx` 为最小证明面（正式 slot/router 仍目标态）。
 
 > 注：[architecture.md §11](architecture.md#11-关键文件索引现状--目标) 的“现状锚点”已把 v1 的 core/boot/plugin/bundle 更新为真实文件锚点（见上表对应行），`AGENTS.md` 的「已有 / 目标态」清单也已同步。
