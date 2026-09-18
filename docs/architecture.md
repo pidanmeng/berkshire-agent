@@ -2,7 +2,7 @@
 
 > 本文档是 **Berkshire Agent**（下称 **BK**，A 股投研桌面工作台）的**目标架构目录**：描述计划中的系统整体架构、运行时拓扑、模块地图、数据流、事件、存储、可扩展模型与生命周期。本文以 **Cordis 方法论**（时空可组合性）为内核，复用 [DeepSeek Harness (dsh)](../README.md) 的 Cordis 落地模式，并继承 [Tick Stock Panel (TSP)](reference/tick-stock-panel-contracts.md) 的投研领域模型与数据契约。
 >
-> - 本文描述的是**设计契约（目标态）**，不是当前已实现代码。仓库现有内容为 Tauri 2 + React 骨架（`apps/berkshire-agent`）+ headless 最小核心脊 v1（`packages/core`、`packages/boot`、`packages/plugins/notify-console`、`packages/bundle/{base,headless}`，见 [secondary-development.md §8](secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）+ 桥接协议 sidecar **T1**（`packages/sidecar`，stdio JSON-RPC 长驻进程，见 [packages/sidecar/README.md](../packages/sidecar/README.md)）；`packages/` 的其余布局仍为计划。**不得把本文示例当实现**；能力边界与二开契约见 [secondary-development.md](secondary-development.md)。
+> - 本文描述的是**设计契约（目标态）**，不是当前已实现代码。仓库现有内容为 Tauri 2 + React 骨架（`apps/berkshire-agent`）+ headless 最小核心脊 v1（`packages/core`、`packages/boot`、`packages/plugins/notify-console`、`packages/bundle/{base,headless}`，见 [secondary-development.md §8](secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）+ 桥接协议 sidecar **T1**（`packages/sidecar`，stdio JSON-RPC 长驻进程，见 [packages/sidecar/README.md](../packages/sidecar/README.md)）+ **T2 的 Rust 宿主桥**（`apps/berkshire-agent/src-tauri/src/bridge.rs`/`sidecar_client.rs`：拉起/restart sidecar + 把事件转发到 Tauri events）；`packages/` 的其余布局仍为计划。**不得把本文示例当实现**；能力边界与二开契约见 [secondary-development.md](secondary-development.md)。
 > - 证据与锚点：Cordis 方法论见 [reference/cordis-methodology.md](reference/cordis-methodology.md)（已随任务提供）；dsh 的模式审计见 [reference/cordis-pattern-report.md](reference/cordis-pattern-report.md)；TSP 契约审计见 [reference/tick-stock-panel-contracts.md](reference/tick-stock-panel-contracts.md)；Tauri/DuckDB/运行时选型研究见 [reference/tauri-duckdb-plugin-runtime.md](reference/tauri-duckdb-plugin-runtime.md)。
 
 ## 0. 文档目录
@@ -177,12 +177,13 @@ export function apply(ctx: Context, config: Config) {
 
 | 主题 | 现状锚点 | 目标位置（计划） |
 | --- | --- | --- |
-| Tauri 装配 | [apps/berkshire-agent/src-tauri/src/lib.rs](../apps/berkshire-agent/src-tauri/src/lib.rs) · [main.rs](../apps/berkshire-agent/src-tauri/src/main.rs) | + `db.rs` / `bridge.rs` / `ipc.rs` / `providers/` |
+| Tauri 装配 | [lib.rs](../apps/berkshire-agent/src-tauri/src/lib.rs) · [main.rs](../apps/berkshire-agent/src-tauri/src/main.rs) · [bridge.rs](../apps/berkshire-agent/src-tauri/src/bridge.rs) · [sidecar_client.rs](../apps/berkshire-agent/src-tauri/src/sidecar_client.rs)（T2 桥） | + `db.rs` / `ipc.rs` / `providers/` |
 | Tauri 配置/能力 | [tauri.conf.json](../apps/berkshire-agent/src-tauri/tauri.conf.json) · [capabilities/default.json](../apps/berkshire-agent/src-tauri/capabilities/default.json) | + sidecar/externalBin + 自定义协议 `bk://` |
 | 前端壳 | [src/main.tsx](../apps/berkshire-agent/src/main.tsx) · [src/App.tsx](../apps/berkshire-agent/src/App.tsx) | + router / lib/api / store / slots / client-plugins |
 | 组件库依赖 | [package.json](../apps/berkshire-agent/package.json) | + zustand / echarts / rspc 客户端 |
 | 核心脊装配（v1 headless） | [core/src/core.ts](../packages/core/src/core.ts) · [boot/src/index.ts](../packages/boot/src/index.ts) | + Cordis vendor 重命名 / Tauri·webview 接线（v2） |
-| 桥接协议 sidecar（T1 落地） | [packages/sidecar/src](../packages/sidecar/src/index.ts) · [examples/smoke.ts](../packages/sidecar/examples/smoke.ts) | + Rust `bridge.rs` / Tauri 拉起与事件转发 / webview 接线（T2/T3） |
+| 桥接协议 sidecar（T1 落地） | [packages/sidecar/src](../packages/sidecar/src/index.ts) · [examples/smoke.ts](../packages/sidecar/examples/smoke.ts) | + Tauri/webview 接线（T3） |
+| T2 Rust 宿主桥（落地 v1） | [bridge.rs](../apps/berkshire-agent/src-tauri/src/bridge.rs) · [sidecar_client.rs](../apps/berkshire-agent/src-tauri/src/sidecar_client.rs)（拉起/restart + 事件转发到 Tauri events + 最小 `tauri` command 命令面） | + rspc/specta typed bridge / webview `invoke` 接线（T3） |
 | `ctx.log`（v1 内存） | [core/src/services/log.ts](../packages/core/src/services/log.ts) | + DuckDB `sessions_log` 持久化 / 跨重载（v2） |
 | `ctx.capabilities`（v1） | [core/src/services/capabilities.ts](../packages/core/src/services/capabilities.ts) | + `CAPABILITY_REGISTRY` / `build_capability_matrix`（v2） |
 | `ctx.notifier` 能力缝（v1） | [core/src/seams/notify.ts](../packages/core/src/seams/notify.ts) · [plugins/notify-console/src/index.ts](../packages/plugins/notify-console/src/index.ts) | + per-channel 路由 / 并行 mode（v2） |

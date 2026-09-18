@@ -2,13 +2,16 @@
 
 > 这是 Berkshire Agent 的**能力缝目录（目标态）**：哪些服务是核心脊柱（不可换），哪些是可替换的能力缝（seam，三角色模型），以及各自的责任、实现与消费者。结构照抄 dsh 的 [capability-seams 文档](reference/cordis-pattern-report.md#9-printed-guidance) 与 TSP 的能力注册表模型（[tick-stock-panel-contracts.md §3](reference/tick-stock-panel-contracts.md#3-capability-registry))。
 >
-> **能力缝 = Service Definition（服务定义，声明接口）+ Service Provider（服务提供者，实现它）+ Consumer（消费者，使用它）**。单一角色不构成缝；新增一种能力意味着把三者一起设计，否则它只是一个未落地的接口。一个 provider 的替换改变整个依赖它的产品。
+> **能力缝 = Service Definition（服务定义，声明接口）+ Service Provider（服务提供者，实现它）+ Consumer（消费者，使用它）**。单一角色不构成缝；新增一种能力意味着把三者一起设计，否则它只是一个未落地的接口。一个 provider 的替换改变整个依赖它的产品。**Owner（=Service Definition，接口归谁声明）并不固定在中枢**：中枢只持有少量跨插件共享的产品级插口与 UI 挂点宿主，业务能力的 Definition 由对应插件端到端持有（见 §3「Definition 归属」）。
 
 ## 1. 服务角色速览
 
 - **core（核心脊柱）**：进程必须存在、通常不可热换的通用服务；它们本身也常是“编排中枢”，不提供可替换能力。
 - **seam（能力缝）**：可替换能力；通过 provider 注册（`ctx.<seam>.register(...)` 返回可撤销 disposer）。
+- **Owner / Service Definition（缝的持有者）**：接口契约归谁声明。并非所有缝的 Owner 都在中枢——中枢只拥有“跨插件共享的产品级插口”（如 `ctx.ai`/`ctx.notifier`/`ctx.dataSources`/`ctx.storage`）与 **UI 挂点宿主**；领域自主能力（选股/回测/行业分析/图表…）的 Definition 由对应插件持有，其他插件仅消费（见 §3「Definition 归属」）。
 - **bundle（组合点）**：只负责把一组行装进 profile 的组合插件。
+
+> **中枢最小能力集原则**：中枢的缝尽量收缩——只固定「数据契约层（core）+ UI 挂点/路由宿主 + 少量跨插件共享的能力缝 Definition」；一切业务能力、具体页面、具体设置项、具体数据源一律由插件定义。中枢拥有的是**挂点与契约**，不是**页面/设置/功能的内容**。
 
 ## 2. 核心脊柱服务（core）
 
@@ -43,6 +46,18 @@
 | `ctx.quotes` | seam | 实时行情摄入 + 扇出（批量/定节奏） | `quotes-poll`、`quotes-push` | 前端图表、`ctx.monitor` |
 | `ctx.python` / `ctx.subprocess` | seam | 拉起 Python/子进程 provider（AkShare、脚本） | `runner-local` | `ctx.dataSources`（python 源）、脚本型策略 |
 | `ctx.chart` | seam | 前端图表渲染器 | `chart-echarts`（默认）、`chart-lightweight`(K 线) | 前端图表组件 |
+
+### Definition（Owner）归属：中枢 vs 插件
+
+「Owner 归谁」按『是否跨插件共享的产品级插口 + 中枢编排是否要用』判定。中枢只持有**少量**缝的 Definition；业务能力由对应插件自行定义（仍是“无特权核心”——插件作 Owner 也只是普通插件，只是它拥有这条缝的接口，其他插件仅消费）。
+
+| Definition 归属 | 缝 | 理由 |
+| --- | --- | --- |
+| **中枢**（`packages/core`） | `ctx.ai`、`ctx.notifier`、`ctx.dataSources`、`ctx.storage` | 多方消费者共享（`ctx.market`/backtest/前端都要用）、中枢编排要路由它们；接口不可热换 |
+| **中枢（core，非缝）** | `ctx.market`、`ctx.datasets`、`ctx.capabilities`、`ctx.slots`/`ctx.clientModules`、`ctx.scheduler`、`ctx.log`、`ctx.analysis` | 必须在、不可热换、常是纯编排中枢 |
+| **插件** | `ctx.indicators`、`ctx.screener`、`ctx.strategy`、`ctx.backtest`、`ctx.monitor`、`ctx.jobs`、`ctx.quotes`、`ctx.python`、`ctx.chart` | 领域自主能力；Definition + 参考实现 + 约定由对应插件包端到端拥有，其他插件仅消费 |
+
+> 其中 `ctx.slots`/`ctx.clientModules` 的**挂点（壳）归中枢，挂载的 slot 组件内容归插件**：中枢定「东西挂在哪、叫什么、接口长什么样」，不实现任何业务 UI。
 
 > 注：`ctx.analysis`/`ctx.market`/`ctx.datasets` 等标 core 的服务，其“外部数据/模型行为”仍应通过 seam 提供（如分析调用 `ctx.ai`、市场读取 `ctx.dataSources`），从而保持“核心脊柱只编排、不闷头实现某个厂商能力”。
 
