@@ -8,8 +8,8 @@ Berkshire Agent（下称 **BK**，A 股投研桌面工作台）是一个**仅由
 
 本仓库的 `docs/` 描述的是**设计契约（目标态）**，不是当前已实现代码。**任何 AI 都不得把 docs 里的示例当实现、不得 import 尚不存在的 `ctx.*`/`@berkshire/cordis` 或未落地的 `packages/*` 服务**（已落地的 `packages/core`/`packages/boot`/`packages/plugins/notify-console` 除外，见下文「已有」）。当前真实状态：
 
-- **已有**：`apps/berkshire-agent` 的 Tauri 2 + React 19 + Vite 骨架（详见 [docs/architecture.md §11](docs/architecture.md#11-关键文件索引现状--目标)）；以及 **headless 最小核心脊 v1**（`packages/core` `@berkshire/core`、`packages/boot`、`packages/plugins/notify-console`、`packages/bundle/{base,headless}`），提供 `ctx.log`/`ctx.capabilities`/`ctx.notifier`（能力缝）+ `declare module 'cordis'` 类型化事件（`@mode emit`），可跑可测（见 [secondary-development.md §8](docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）。
-- **目标态/未实现**：Cordis sidecar 与 Tauri/webview 接线、DuckDB 写出、rspc 桥、`bk://` 协议、`@berkshire/cordis` vendor、以及 `database/datasets/market/slots/clientModules/scheduler` 诸核心服务。**这些仍处于文档计划阶段，未落地、未导入、未调用。**
+- **已有**：`apps/berkshire-agent` 的 Tauri 2 + React 19 + Vite 骨架（详见 [docs/architecture.md §11](docs/architecture.md#11-关键文件索引现状--目标)）；以及 **headless 最小核心脊 v1**（`packages/core` `@berkshire/core`、`packages/boot`、`packages/plugins/notify-console`、`packages/bundle/{base,headless}`），提供 `ctx.log`/`ctx.capabilities`/`ctx.notifier`（能力缝）+ `declare module 'cordis'` 类型化事件（`@mode emit`），可跑可测（见 [secondary-development.md §8](docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）；以及桥接协议 sidecar **T1**（`packages/sidecar`，stdio JSON-RPC 长驻进程，见 [packages/sidecar/README.md](packages/sidecar/README.md)）。
+- **目标态/未实现**：Cordis sidecar 接入 Tauri（T2：Rust `bridge.rs` 拉起/restart 与事件转发）、Tauri/webview 接线、DuckDB 写出、rspc 桥、`bk://` 协议、`@berkshire/cordis` vendor、以及 `database/datasets/market/slots/clientModules/scheduler` 诸核心服务。**这些仍处于文档计划阶段，未落地、未导入、未调用。**
 
 每一项能力是否落地，以 [docs/secondary-development.md §6](docs/secondary-development.md#6-已有-vs-目标诚实标注) 的诚实对照为准；落地后必须同步更新 [architecture.md §11](docs/architecture.md#11-关键文件索引现状--目标) 的「现状锚点」。
 
@@ -114,4 +114,4 @@ A 股数据源与 AI 适配器需要凭据（如 `FUYAO_API_KEY`、`TUSHARE_TOKE
 
 - 本文件是根级 AI 契约，改动需经评审（[skill: bk-code-review](.agents/skills/bk-code-review/SKILL.md)）。规则保持自洽且通过交叉链接指向 `docs/*.md` 或 `.agents/` 说明；不要在本文件重复展开大量实现细节。
 - 每个约定都浓缩为「一条可执行的精神 + 交叉引用出处」，读者点了链接即可拿到全文证据。
-- 保持「已实现 vs 目标态」诚实：**本文件当前可断言 `apps/berkshire-agent` 骨架 + `packages/` headless 核心脊 v1（`core`/`boot`/`plugins/notify-console`/`bundle`）为已实现**；Cordis sidecar、Tauri/webview 接线、`@berkshire/cordis` 等仍为目标态。能力一旦落地，同步把上文由「目标态」改为「已实现」并更新「现状锚点」（见 `docs/architecture.md §11`）。
+- 保持「已实现 vs 目标态」诚实：**本文件当前可断言 `apps/berkshire-agent` 骨架 + `packages/` headless 核心脊 v1（`core`/`boot`/`plugins/notify-console`/`bundle`）+ 桥接协议 sidecar **T1**（`packages/sidecar`）为已实现**；Cordis sidecar 接入 Tauri（T2 接线）、Tauri/webview 接线、`@berkshire/cordis` 等仍为目标态。能力一旦落地，同步把上文由「目标态」改为「已实现」并更新「现状锚点」（见 `docs/architecture.md §11`）。

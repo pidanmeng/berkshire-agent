@@ -2,7 +2,7 @@
 
 > 本文是 **T0 定稿的桥接契约**：在 T1–T3 接线前，把「Bun sidecar ↔ Tauri Rust 宿主 ↔ React webview」三者的边界、消息格式与能力路由定死成一份可复现的协议，避免各方自造。
 >
-> **诚实标注**：本文件描述的是**目标协议契约**，`packages/sidecar` 的代码（长驻进程 + stdio JSON-RPC）由 **T1 落地，当前尚未实现**——现在仓库里还没有任何 sidecar 可运行。凡未落地即标「目标态/T#」，不得把本文当作可 import 的实现。
+> **诚实标注**：本文件描述的是**目标协议契约**。其中 **T1（sidecar 长驻进程 + stdio JSON-RPC，即 `packages/sidecar/src`）已落地、可运行**——复现见下文「复现与验收」（`bun run packages/sidecar/examples/smoke.ts`）。**仍未落地并标「T#」的**：T2（Rust `bridge.rs` 拉起/restart + 事件转发为 Tauri event）、T3（webview 薄客户端）、以及持久化（DuckDB）、rspc/specta 迁移。不得把仍未落地部分当作可 import 的实现。
 
 ## 定位
 
@@ -30,7 +30,7 @@
 - **`stdout`**：仅供协议——sidecar → 宿主的**响应行**与**事件推送行**。**不得**混入其他输出。
 - **`stdin`**：仅供协议——宿主 → sidecar 的**请求行**。
 - **`stderr`**：仅供日志——启动/装配/dispose 顺序、错误、调试。**绝不**写协议。
-- **装配注意（T1）**：`notify-console` 插件默认 `echo: true` 会 `console.log` 到 **stdout**，直接污染协议流。sidecar 装配的 base bundle 里必须把 notify-console 的 `echo` 置 `false`（或把该插件的输出重定向到 `stderr`）——**stdout 独占给协议**。这是 T1 的一个装配点，此处先记入契约。
+- **装配注意（T1，已落地）**：`notify-console` 插件默认 `echo: true` 会 `console.log` 到 **stdout**，直接污染协议流。sidecar 装配时用 override patch 按 id **整体替换** notify-console 的 `echo` 为 `false`（见 [src/index.ts](src/index.ts)），保证 **stdout 独占给协议**——冒烟已隐式校验 stdout 无任何非协议行。
 - **行缓冲/flush**：事件推送要即时可见，写 `stdout` 后尽快 flush；禁止攒批直到进程退出。
 
 ## 报文格式
@@ -83,7 +83,7 @@
 
 参数/返回类型对齐 v1 类型（[core/src/types.ts](../core/src/types.ts)）：`message: string`、`level?: 'info'|'warn'|'error'`、`channel?: string`；`LogEntry = { id, event, data, at }`。
 
-> `notify/send` 的「记录进 `ctx.log`」由已挂载插件 notify-console 对 `notify/request` 事件完成（日志事件键为 `notify/request`，data 含 `provider`/`message`/`level`）；`ctx.notifier.send()` 本身**不写日志**——T1 实现勿在桥内重复记录。
+> `notify/send` 的「记录进 `ctx.log`」由已挂载插件 notify-console 对 `notify/request` 事件完成（日志事件键为 `notify/request`，data 含 `provider`/`message`/`level`）；`ctx.notifier.send()` 本身**不写日志**——T1 桥内未重复记录（见 [src/protocol.ts](src/protocol.ts)）。
 
 ### fail-closed 映射
 
@@ -106,7 +106,7 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 
 ## 生命周期
 
-- **启动**：sidecar 被 `bun run packages/sidecar/index.ts` 拉起后，先在**第一条消息前**完成装配（`boot.mountFromLayers([baseBundle], resolver)`，内部即 `composeEntries` → `installAll`，mount core + notify-console），再进入 ndjson 读循环。
+- **启动**：sidecar 被 `bun run packages/sidecar/src/index.ts` 拉起后，先在**第一条消息前**完成装配（`boot.mountFromLayers([baseBundle, override], resolver)`，内部即 `composeEntries` → `installAll`，mount core + notify-console，并覆盖 notify-console 的 `echo:false`），再进入 ndjson 读循环。
 - **shutdown**：宿主发一行请求 `{"id":N,"method":"shutdown","params":{}}` → sidecar 先 `boot.dispose()`（逆序清理，清理顺序写进 `stderr` 日志），再 `process.exit(0)`。
 - **restart**：`restart` 是**宿主侧行为（T2）**，非 sidecar 方法——宿主负责杀掉并重新 spawn 子进程。
 
@@ -144,9 +144,9 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 
 ## 复现与验收
 
-- 本任务（T0）为**纯文档**，无代码可跑。
-- 验收：本文含「一个请求 + 一个事件推送」两段原始 ndjson 字节样例（见上）；`git diff --check` 干净。
-- 实现与可执行复现见 **T1**（sidecar 进程 + stdio JSON-RPC）之后各任务书。
+- **T0 契约**：本文含「一个请求 + 一个事件推送」两段原始 ndjson 字节样例（见上，与 T1 实测输出一致）。
+- **T1 落地复现**（已跑通）：`bun run packages/sidecar/examples/smoke.ts` —— 覆盖四方法 round-trip（`capabilities/list`、`notify/send`、`capabilities/usable`、`log/list`）+ 事件推送 `notify/request` + 未知方法 fail-closed（`-32601`）+ shutdown 退出码 0，并隐式校验 stdout 只承载协议。
+- **仍未落地**：**T2/T3**（Rust `bridge.rs` 拉起与事件转发、webview 薄客户端）及持久化。
 
 ## 交叉引用
 
