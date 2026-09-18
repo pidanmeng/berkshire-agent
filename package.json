@@ -3,8 +3,24 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*",
+    "packages/*/*"
   ],
+  "scripts": {
+    "dev": "bun run --cwd apps/berkshire-agent dev",
+    "dev:docs": "bun run --cwd apps/docs dev",
+    "build": "bun run --cwd apps/berkshire-agent build",
+    "build:docs": "bun run --cwd apps/docs build",
+    "preview": "bun run --cwd apps/berkshire-agent preview",
+    "headless": "bun run --cwd packages/boot examples/headless.ts",
+    "tauri": "bun run --cwd apps/berkshire-agent tauri",
+    "tauri:dev": "bun run --cwd apps/berkshire-agent tauri:dev",
+    "bundle": "bun run --cwd apps/berkshire-agent bundle",
+    "bundle:dir": "bun run --cwd apps/berkshire-agent bundle:dir",
+    "test": "bun run --cwd packages/boot test",
+    "typecheck": "tsc -p packages/tsconfig.json --noEmit"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

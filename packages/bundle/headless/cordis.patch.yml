@@ -1,0 +1,4 @@
+# headless bundle 补丁：把 notify-console 这一行整行覆盖为 `disabled: true`。
+# 演示「按 id 整体替换行、而非深合并」的上层覆盖（docs/config.md §2、§4）。
+- id: notify-console
+  disabled: true

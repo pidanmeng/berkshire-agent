@@ -2,7 +2,7 @@
 
 > 本文档是 **Berkshire Agent**（下称 **BK**，A 股投研桌面工作台）的**目标架构目录**：描述计划中的系统整体架构、运行时拓扑、模块地图、数据流、事件、存储、可扩展模型与生命周期。本文以 **Cordis 方法论**（时空可组合性）为内核，复用 [DeepSeek Harness (dsh)](../README.md) 的 Cordis 落地模式，并继承 [Tick Stock Panel (TSP)](reference/tick-stock-panel-contracts.md) 的投研领域模型与数据契约。
 >
-> - 本文描述的是**设计契约（目标态）**，不是当前已实现代码。仓库现有内容仅为 Tauri 2 + React 骨架（`apps/berkshire-agent`），`packages/` 为计划布局。**不得把本文示例当实现**；能力边界与二开契约见 [secondary-development.md](secondary-development.md)。
+> - 本文描述的是**设计契约（目标态）**，不是当前已实现代码。仓库现有内容为 Tauri 2 + React 骨架（`apps/berkshire-agent`）+ headless 最小核心脊 v1（`packages/core`、`packages/boot`、`packages/plugins/notify-console`、`packages/bundle/{base,headless}`，见 [secondary-development.md §8](secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）；`packages/` 的其余布局仍为计划。**不得把本文示例当实现**；能力边界与二开契约见 [secondary-development.md](secondary-development.md)。
 > - 证据与锚点：Cordis 方法论见 [reference/cordis-methodology.md](reference/cordis-methodology.md)（已随任务提供）；dsh 的模式审计见 [reference/cordis-pattern-report.md](reference/cordis-pattern-report.md)；TSP 契约审计见 [reference/tick-stock-panel-contracts.md](reference/tick-stock-panel-contracts.md)；Tauri/DuckDB/运行时选型研究见 [reference/tauri-duckdb-plugin-runtime.md](reference/tauri-duckdb-plugin-runtime.md)。
 
 ## 0. 文档目录
@@ -74,7 +74,7 @@ berkshire-agent/
 │       ├── src-tauri/src/     #   main/lib.rs, db.rs, bridge.rs, ipc.rs, providers/
 │       ├── src-tauri/tauri.conf.json, capabilities/default.json
 │       └── src/               #   webview: main.tsx, router, lib/api(rspc), store(zustand), slots/, client-plugins/
-└── packages/                  # 计划：Cordis 插件包（scoped @berkshire/*）
+└── packages/                  # v1：headless 核心脊（core/boot/plugins/notify-console/bundle）已落地；其余仍为计划（scoped @berkshire/*）
     ├── boot/                  #   app-boot(profile/bundle/patch 组合 + dump-config)
     ├── core/                  #   database, datasets, capabilities, market, sessions/log, slots, clientModules, scheduler
     ├── datasource/            #   ctx.dataSources seam + providers(tickflow, fuyao, tushare, akshare…)
@@ -87,6 +87,8 @@ berkshire-agent/
 ```
 
 布局取舍照抄 dsh 的模式（[reference/cordis-pattern-report.md](reference/cordis-pattern-report.md#2-how-cordis-is-vendored--used)）：**Cordis 以 scoped 名 vendored**（`@berkshire/cordis`，绝不裸 `cordis`），并结合 `packages/*/*` 两级分类。
+
+> 注意：v1 为落地最小核心脊**暂以官方包 `cordis` 为底座**并对 `'cordis'` 做 `declare module`；`@berkshire/cordis` vendor 重命名属 v2，差异见 [secondary-development.md §8](secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)。
 
 ## 4. 端到端数据流（主路径）
 
@@ -178,7 +180,13 @@ export function apply(ctx: Context, config: Config) {
 | Tauri 配置/能力 | [tauri.conf.json](../apps/berkshire-agent/src-tauri/tauri.conf.json) · [capabilities/default.json](../apps/berkshire-agent/src-tauri/capabilities/default.json) | + sidecar/externalBin + 自定义协议 `bk://` |
 | 前端壳 | [src/main.tsx](../apps/berkshire-agent/src/main.tsx) · [src/App.tsx](../apps/berkshire-agent/src/App.tsx) | + router / lib/api / store / slots / client-plugins |
 | 组件库依赖 | [package.json](../apps/berkshire-agent/package.json) | + zustand / echarts / rspc 客户端 |
-| Cordis | — | `vendor/cordis`（scoped `@berkshire/cordis`） |
+| 核心脊装配（v1 headless） | [core/src/core.ts](../packages/core/src/core.ts) · [boot/src/index.ts](../packages/boot/src/index.ts) | + Cordis vendor 重命名 / Tauri·webview 接线 / sidecar（v2） |
+| `ctx.log`（v1 内存） | [core/src/services/log.ts](../packages/core/src/services/log.ts) | + DuckDB `sessions_log` 持久化 / 跨重载（v2） |
+| `ctx.capabilities`（v1） | [core/src/services/capabilities.ts](../packages/core/src/services/capabilities.ts) | + `CAPABILITY_REGISTRY` / `build_capability_matrix`（v2） |
+| `ctx.notifier` 能力缝（v1） | [core/src/seams/notify.ts](../packages/core/src/seams/notify.ts) · [plugins/notify-console/src/index.ts](../packages/plugins/notify-console/src/index.ts) | + per-channel 路由 / 并行 mode（v2） |
+| 类型化事件 / 服务增强 | [core/src/events.ts](../packages/core/src/events.ts)（`declare module 'cordis'`） | 迁到 scoped `@berkshire/cordis`（v2） |
+| bundle 配置层（v1） | [bundle/base/cordis.patch.yml](../packages/bundle/base/cordis.patch.yml) · [bundle/headless/cordis.patch.yml](../packages/bundle/headless/cordis.patch.yml) | + `!!js` / dump-config / isolate（v2） |
+| Cordis 底座 | 官方包 `cordis`（v1，见 §8 差异） | `vendor/cordis`（scoped `@berkshire/cordis`） |
 | 能力缝目录 | — | capability-seams.md |
 | 插件教程 | — | plugin-development.md |
 

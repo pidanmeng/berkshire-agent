@@ -33,6 +33,19 @@ To install dependencies:
 bun install
 ```
 
+根目录脚本可代理到重要子项目（真实存在，见各 `package.json`）：
+
+```bash
+bun run dev            # 代理 → apps/berkshire-agent dev（Vite，端口 1420）
+bun run build          # 代理 → apps/berkshire-agent build（tsc && vite build）
+bun run dev:docs       # 代理 → apps/docs dev
+bun run tauri:dev      # 代理 → Tauri dev 窗口
+bun run bundle         # 代理 → tauri build（安装包 + 可执行文件）
+bun run bundle:dir     # 代理 → tauri build --no-bundle（仅可执行文件）
+bun run test           # 代理 → packages/boot test
+bun run headless       # 代理 → packages/boot/examples/headless.ts
+```
+
 To run:
 
 ```bash
@@ -40,6 +53,17 @@ bun run index.ts
 ```
 
 > 现有可运行脚手架仅有 `apps/berkshire-agent`（Tauri 2 + React 19 + Vite）。上文「文档」描述的是**目标态设计**，尚未实现，secondary-development.md 会诚实标注每一分层当前状态。
+
+## v1 现状
+
+已落地一个 **headless 可跑的最小核心脊**（Cordis 官方包底座，未接 Tauri/webview/Rust 桥）：
+
+- `packages/core`（`@berkshire/core`）：`ctx.log`、`ctx.capabilities`、`ctx.notifier` 能力缝（Service Definition）+ `declare module 'cordis'` 类型化事件（`@mode emit`）。
+- `packages/boot`（`@berkshire/boot`）：`Boot` 装配器 + `composeEntries`（profile/bundle/patch 最小子集），`dispose()` 逆序清理。
+- `packages/plugins/notify-console`：第一个插件（能力缝 Provider），`packages/bundle/{base,headless}` 承载 enable/disable。
+- 验证：`bun run packages/boot/examples/headless.ts`（端到端样例）；`bun test packages/boot/test/core.test.ts`（6 pass）。详见 [secondary-development.md §8](docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)。
+
+> Tauri 端与 React 端的接线、DuckDB 单写者、`@berkshire/cordis` vendor 仍为 **v2 目标态**。
 
 ---
 

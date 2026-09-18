@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "bundle": "tauri build",
+    "bundle:dir": "tauri build --no-bundle",
+    "bundle:debug": "tauri build --debug"
   },
   "dependencies": {
     "react": "^19.1.0",

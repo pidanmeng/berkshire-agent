@@ -6,10 +6,10 @@ Berkshire Agent（下称 **BK**，A 股投研桌面工作台）是一个**仅由
 
 ## 目标态 vs 已实现（最重要的一条——诚实）
 
-本仓库的 `docs/` 描述的是**设计契约（目标态）**，不是当前已实现代码。**任何 AI 都不得把 docs 里的示例当实现、不得 import 尚不存在的 `ctx.*`/`@berkshire/cordis`/`packages/*` 模块**。当前真实状态：
+本仓库的 `docs/` 描述的是**设计契约（目标态）**，不是当前已实现代码。**任何 AI 都不得把 docs 里的示例当实现、不得 import 尚不存在的 `ctx.*`/`@berkshire/cordis` 或未落地的 `packages/*` 服务**（已落地的 `packages/core`/`packages/boot`/`packages/plugins/notify-console` 除外，见下文「已有」）。当前真实状态：
 
-- **已有**：`apps/berkshire-agent` 的 Tauri 2 + React 19 + Vite 骨架（详见 [docs/architecture.md §11](docs/architecture.md#11-关键文件索引现状--目标)）。
-- **目标态/未实现**：`packages/`、Cordis sidecar、DuckDB 写出、rspc 桥、`bk://` 协议、全部 `ctx.*` 能力缝、`@berkshire/cordis`。**这些均处于文档计划阶段，未落地、未导入、未调用。**
+- **已有**：`apps/berkshire-agent` 的 Tauri 2 + React 19 + Vite 骨架（详见 [docs/architecture.md §11](docs/architecture.md#11-关键文件索引现状--目标)）；以及 **headless 最小核心脊 v1**（`packages/core` `@berkshire/core`、`packages/boot`、`packages/plugins/notify-console`、`packages/bundle/{base,headless}`），提供 `ctx.log`/`ctx.capabilities`/`ctx.notifier`（能力缝）+ `declare module 'cordis'` 类型化事件（`@mode emit`），可跑可测（见 [secondary-development.md §8](docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）。
+- **目标态/未实现**：Cordis sidecar 与 Tauri/webview 接线、DuckDB 写出、rspc 桥、`bk://` 协议、`@berkshire/cordis` vendor、以及 `database/datasets/market/slots/clientModules/scheduler` 诸核心服务。**这些仍处于文档计划阶段，未落地、未导入、未调用。**
 
 每一项能力是否落地，以 [docs/secondary-development.md §6](docs/secondary-development.md#6-已有-vs-目标诚实标注) 的诚实对照为准；落地后必须同步更新 [architecture.md §11](docs/architecture.md#11-关键文件索引现状--目标) 的「现状锚点」。
 
@@ -27,7 +27,7 @@ berkshire-agent/
 │       ├── src-tauri/tauri.conf.json, capabilities/default.json
 │       └── src/             #   webview: main.tsx, App.tsx（router/store/slots/client-plugins 为计划）
 ├── docs/                    # 目标架构文档集（中文）+ diagrams(archify 图) + reference(审计/研究)
-└── packages/                # 计划：Cordis 插件包（scoped @berkshire/*）——尚未创建
+└── packages/                # v1：headless 核心脊（@berkshire/core、@berkshire/boot）+ 插件 notify-console + bundle/{base,headless}；其余服务仍计划
 ```
 
 `packages/` 的设计布局见 [docs/architecture.md §3](docs/architecture.md#3-模块地图monorepo计划布局)。
@@ -37,15 +37,28 @@ berkshire-agent/
 当前真实可用命令（在哪个目录执行、是否真实存在，已如实标注）：
 
 ```sh
-# 仓库根 / 任一 workspace
+# 仓库根——根脚本可代理到重要子项目（真实存在，见各 package.json #scripts）
 bun install                 # 安装依赖（bun workspaces: apps/*）
+bun run dev                 # 代理 → apps/berkshire-agent dev（Vite，端口 1420）
+bun run dev:docs            # 代理 → apps/docs dev
+bun run build               # 代理 → apps/berkshire-agent build（tsc && vite build）
+bun run build:docs          # 代理 → apps/docs build
+bun run tauri:dev           # 代理 → apps/berkshire-agent tauri:dev（Tauri dev 窗口）
+bun run bundle              # 代理 → apps/berkshire-agent bundle（tauri build：安装包 + 可执行文件）
+bun run bundle:dir          # 代理 → apps/berkshire-agent bundle:dir（tauri build --no-bundle：仅可执行文件）
+bun run test                # 代理 → packages/boot test（bun test）
+bun run typecheck           # tsc -p packages/tsconfig.json --noEmit
 
 # apps/berkshire-agent（前端 + Tauri）—— 真实存在
 cd apps/berkshire-agent
 bun run dev                 # 启动 Vite 开发服务器（Tauri 前端，端口 1420）
 bun run build               # tsc && vite build（前端类型检查 + 构建）——最常用的落地校验
 bun run preview             # vite preview
-bun run tauri               # Tauri CLI 入口（tauri dev / tauri build）
+bun run tauri               # Tauri CLI 直接入口（透传：tauri dev / tauri build / …）
+bun run tauri:dev           # tauri dev：调试窗口，改动前端/壳热更新
+bun run bundle              # tauri build：生产构建 + 打包安装程序（含可执行文件）
+bun run bundle:dir          # tauri build --no-bundle：仅产出原始可执行文件，不生成安装包
+bun run bundle:debug        # tauri build --debug：调试版可执行文件
 ```
 
 以下命令属于 docs 描述的目标能力，**当前不存在，不可当真实可用命令运行**（标注待实现）：
@@ -93,7 +106,7 @@ A 股数据源与 AI 适配器需要凭据（如 `FUYAO_API_KEY`、`TUSHARE_TOKE
 ## 类型安全与文档
 
 - 一切 TypeScript 在根 `tsconfig.json` 的 `strict: true` + `noUncheckedIndexedAccess` + `noImplicitOverride` 下编译；应用内另有 `apps/berkshire-agent/tsconfig*.json`。类型相关约定映射见 [secondary-development.md](docs/secondary-development.md)。
-- **跨边界 id 品牌化**、**事件类型化**、**服务经 `declare module` 增强到 `Context`** 均已在上文约定与对应 docs 中定义；落地时代码必须遵循（当前尚未落地，属目标态）。
+- **跨边界 id 品牌化**、**事件类型化**、**服务经 `declare module` 增强到 `Context`** 均已在上文约定与对应 docs 中定义；v1 已在 `packages/core` 落地（`CapabilityId` 品牌化、`@mode emit` 事件、`declare module 'cordis'` 服务增强）；其余业务侧 id（`AssetId`/`DatasetId`/`SymbolId`）落地时代码必须遵循（当前仍为类型占位）。
 - 文档以**中文为主**。文档必须诚实区分「目标态」与「已实现」，不得把示例当实现；写文档的运行/命令类声明必须可复现（[skill: bk-doc](.agents/skills/bk-doc/SKILL.md)、[skill: bk-prose-standard](.agents/skills/bk-prose-standard/SKILL.md)）。
 - 术语保持本项目统一：`能力缝 seam`、`三角色 (Service Definition/Provider/Consumer)`、`dispatch 模式 (@mode)`、`profile/bundle/patch`、`单写者`、`fail-closed` 等，见 [docs/quick-reference.md](docs/quick-reference.md) 与各 doc 首部术语表。
 
@@ -101,4 +114,4 @@ A 股数据源与 AI 适配器需要凭据（如 `FUYAO_API_KEY`、`TUSHARE_TOKE
 
 - 本文件是根级 AI 契约，改动需经评审（[skill: bk-code-review](.agents/skills/bk-code-review/SKILL.md)）。规则保持自洽且通过交叉链接指向 `docs/*.md` 或 `.agents/` 说明；不要在本文件重复展开大量实现细节。
 - 每个约定都浓缩为「一条可执行的精神 + 交叉引用出处」，读者点了链接即可拿到全文证据。
-- 保持「已实现 vs 目标态」诚实：**本文件当前只能断言 `apps/berkshire-agent` 骨架为已实现**；`packages/`、`ctx.*`、`@berkshire/cordis` 等一律表述为目标态。能力一旦落地，同步把上文由「目标态」改为「已实现」并更新「现状锚点」（见 `docs/architecture.md §11`）。
+- 保持「已实现 vs 目标态」诚实：**本文件当前可断言 `apps/berkshire-agent` 骨架 + `packages/` headless 核心脊 v1（`core`/`boot`/`plugins/notify-console`/`bundle`）为已实现**；Cordis sidecar、Tauri/webview 接线、`@berkshire/cordis` 等仍为目标态。能力一旦落地，同步把上文由「目标态」改为「已实现」并更新「现状锚点」（见 `docs/architecture.md §11`）。

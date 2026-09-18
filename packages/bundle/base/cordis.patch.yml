@@ -1,0 +1,10 @@
+# base bundle 补丁：在最简 headless 树干上装上 核心脊 + 第一个插件（notify-console）。
+# 语义见 docs/config.md §4：`insert` 追加行；上层可再用 `{ id, config }` 按 id 整体覆盖。
+- insert:
+    - id: core
+      name: '@berkshire/core'
+    - id: notify-console
+      name: '@berkshire/plugin-notify-console'
+      config:
+        channel: console
+        echo: true
