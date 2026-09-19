@@ -11,8 +11,12 @@ describe("isSidecarHalf（dev 态插件热更的过滤边界）", () => {
     expect(isSidecarHalf("C:/repo/packages/plugins/demo/src/index.ts")).toBe(true)
   })
 
-  test("插件 webview 半身里的样式单一来源（client/*.ts，如 styles.ts）→ 重装配", () => {
-    expect(isSidecarHalf("C:/repo/packages/plugins/demo/src/client/styles.ts")).toBe(true)
+  test("插件 webview 半身里的非组件源码：样式编译产物 styles.generated.ts（client/*.ts）→ 重装配", () => {
+    expect(isSidecarHalf("C:/repo/packages/plugins/demo/src/client/styles.generated.ts")).toBe(true)
+  })
+
+  test("样式作者源 *.module.css 不直配（改后经 compile:styles 重生成产物才驱动 reload）→ 不触发", () => {
+    expect(isSidecarHalf("C:/repo/packages/plugins/demo/src/client/fundFlow.module.css")).toBe(false)
   })
 
   test("core 编织定义 → 重装配", () => {

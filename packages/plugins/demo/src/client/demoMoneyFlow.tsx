@@ -1,11 +1,12 @@
 /**
  * demo 插件 webview 半身第 3 块（能力块 B + A + C）：`analysis.menu` 资金流向页内容。
  *
- * 类的 `.bk-demo-money-flow` 与同包 `./styles.ts` 的类名一致。表格为**静态占位数据，
- * 显式标注 demo，不冒充真实行情**（数据契约红线精神：见到即知道是假的）。
+ * 类名来自插件独立打包阶段编译产物 `./styles.generated.ts`（P3：lightningcss 哈希 CSS Modules）。
+ * 表格为**静态占位数据，显式标注 demo，不冒充真实行情**（数据契约红线精神：见到即知道是假的）。
  * 页面内容归插件、挂点归中枢——本组件是插件声明的资金流向页的内容。
  */
 import type { ReactNode } from "react"
+import { moneyFlow } from "./styles.generated"
 
 /** demo 静态占位数据（仅供演示页面结构，非真实行情，勿用于任何决策）。 */
 const PLACEHOLDER_ROWS = [
@@ -15,7 +16,7 @@ const PLACEHOLDER_ROWS = [
 ]
 
 export const DemoMoneyFlow = (_: { context: unknown }): ReactNode => (
-  <div className="bk-demo-money-flow">
+  <div className={moneyFlow.classNames.moneyFlow}>
     <strong>资金流向（demo）</strong> —— 下表为静态占位数据（demo），
     非真实行情，仅供 demo 插件验证「页面 + 组件 + scoped 样式」一体落地。
     <table>

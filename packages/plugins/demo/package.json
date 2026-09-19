@@ -22,7 +22,11 @@
     "@berkshire/theme": "workspace:*",
     "react": "^19.1.0"
   },
+  "scripts": {
+    "compile:styles": "bun scripts/compile-styles.ts"
+  },
   "devDependencies": {
-    "@types/react": "^19.1.8"
+    "@types/react": "^19.1.8",
+    "lightningcss": "^1.33.0"
   }
 }

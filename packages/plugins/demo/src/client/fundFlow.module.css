@@ -1,0 +1,15 @@
+/* demo 插件 webview 样式：fund-flow 组件（P3：CSS Modules，插件自主编译、host 只注入）。
+ * 只写 var(--bk-*)（别名层）与结构布局，禁魔法色值/间距/圆角；类名构建期哈希自动唯一。 */
+.fundFlow {
+  display: block;
+  margin: var(--bk-space-2) 0;
+  padding: var(--bk-space-2) var(--bk-space-3);
+  border: 1px dashed var(--bk-color-info);
+  border-radius: var(--bk-radius-lg);
+  color: var(--bk-color-info);
+  background: var(--bk-color-info-soft);
+  font-size: var(--bk-font-size-md);
+}
+.fundFlow code {
+  font-weight: 600;
+}

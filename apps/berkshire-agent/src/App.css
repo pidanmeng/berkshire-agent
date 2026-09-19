@@ -90,7 +90,7 @@ button:hover {
 }
 button:active {
   border-color: var(--bk-color-focus);
-  background-color: var(--bk-color-pressed-bg);
+  background-color: var(--bk-active);
 }
 
 input,
@@ -111,7 +111,7 @@ button {
   margin-right: auto;
 }
 .sidecar-panel fieldset {
-  border: 1px solid var(--bk-color-border-strong);
+  border: 1px solid var(--bk-border-strong);
   border-radius: var(--bk-radius-lg);
   margin: var(--bk-space-3) 0;
   padding: 0.6rem 0.9rem;
@@ -199,7 +199,7 @@ button {
   gap: var(--bk-space-3);
   align-items: center;
   padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--bk-color-border);
+  border-bottom: 1px solid var(--bk-border);
   background: var(--bk-color-bg-muted);
   position: sticky;
   top: 0;
@@ -234,7 +234,7 @@ button {
   text-align: left;
 }
 .theme-group h2 {
-  border-bottom: 1px solid var(--bk-color-border);
+  border-bottom: 1px solid var(--bk-border);
   padding-bottom: var(--bk-space-2);
 }
 .theme-grid {
@@ -244,7 +244,7 @@ button {
   margin-top: var(--bk-space-3);
 }
 .bk-theme-swatch {
-  border: 1px solid var(--bk-color-border);
+  border: 1px solid var(--bk-border);
   border-radius: var(--bk-radius-md);
   padding: var(--bk-space-2);
   background: var(--bk-color-bg-elevated);
@@ -253,7 +253,7 @@ button {
   display: flex;
   border-radius: var(--bk-radius-sm);
   overflow: hidden;
-  border: 1px solid var(--bk-color-border);
+  border: 1px solid var(--bk-border);
 }
 .bk-theme-swatch-stripe {
   flex: 1 1 0;

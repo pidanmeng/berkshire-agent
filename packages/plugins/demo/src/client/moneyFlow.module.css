@@ -1,0 +1,22 @@
+/* demo 插件 webview 样式：money-flow 页（P3：CSS Modules，插件自主编译、host 只注入）。
+ * 表格为静态占位（demo），样式只写令牌引用。 */
+.moneyFlow {
+  display: block;
+  margin: var(--bk-space-2) 0;
+  padding: var(--bk-space-3) var(--bk-space-4);
+  border: 1px solid var(--bk-color-success);
+  border-radius: var(--bk-radius-lg);
+  color: var(--bk-color-success);
+  background: var(--bk-color-success-soft);
+  font-size: var(--bk-font-size-md);
+}
+.moneyFlow table {
+  border-collapse: collapse;
+  margin-top: var(--bk-space-2);
+}
+.moneyFlow th,
+.moneyFlow td {
+  border: 1px solid var(--bk-color-success);
+  padding: var(--bk-space-1) var(--bk-space-3);
+  text-align: left;
+}

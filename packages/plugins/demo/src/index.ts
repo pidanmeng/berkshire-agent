@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import type { Context } from 'cordis'
 import type { ClientModuleId } from '@berkshire/core'
-import { fundFlowStyle, moneyFlowStyle, watchlistToolbarStyle } from './client/styles'
+// 插件独立打包阶段编译产物（P3：CSS Modules → 哈希类名 + 注入代码，lightningcss）。
+// 同一份文件也供 `.tsx` webview 半身拿哈希类名——sidecar 只取 `css` 作为注入代码交给 host。
+import { fundFlow, moneyFlow, watchlistToolbar } from './client/styles.generated'
 
 import '@berkshire/core'
 // 上方 `import '@berkshire/core'` 已把 `declare module 'cordis'` 的增强带入本模块，
@@ -17,8 +19,10 @@ import '@berkshire/core'
  *   - `watchlist.toolbar` 工具栏组件（`demo-watchlist-toolbar`，能力块 A）
  *   - `analysis.menu` 资金流向页 `money-flow`（`/analysis/money-flow`，能力块 B + A + C）
  * - **webview 半身随插件包走**：页面/组件 JSX 与前端 scoped 样式定义在 `./client/*`
- *   （组件经 `@berkshire/plugin-demo/client` 入口静态 import；样式单一来源 `./client/styles.ts`，
- *   本文件从这里取样式去注册）。这是走向 `bk://` 远程 bundle 之前的现实中间步（仍静态打包）。
+ *   （组件经 `@berkshire/plugin-demo/client` 入口静态 import；样式是 **CSS Modules**——作者源
+ *   `./client/*.module.css` 由插件独立打包阶段（`scripts/compile-styles.ts`，lightningcss）编译成
+ *   `styles.generated.ts`，本文件从这里取 `css` 注入代码去注册，`.tsx` 从同一份拿哈希类名）。
+ *   这是走向 `bk://` 远程 bundle 之前的现实中间步（仍静态打包）。
  * - 可逆：全部注册经 `ctx.effect` 包裹并逐一记录 disposer，卸载时**逆序**撤销——
  *   装上即出现、卸下即消失且 scoped 样式不残留（由 webview `ClientModuleHost` 接 `client/changed` 同步）。
  * - 诚实：无 database（仍目标态），后端只走 `ctx.log` + 静态占位数据；样式中不出现真实行情，
@@ -53,7 +57,7 @@ export function apply(ctx: Context, config: Config): () => void {
           id: 'demo-fund-flow' as ClientModuleId,
           slot: 'stock-preview.footer',
           bundle: 'client/demo-fund-flow.js',
-          style: fundFlowStyle,
+          style: fundFlow.css,
         }),
       )
     }
@@ -68,7 +72,7 @@ export function apply(ctx: Context, config: Config): () => void {
           id: 'demo-watchlist-toolbar' as ClientModuleId,
           slot: 'watchlist.toolbar',
           bundle: 'client/demo-watchlist-toolbar.js',
-          style: watchlistToolbarStyle,
+          style: watchlistToolbar.css,
         }),
       )
     }
@@ -88,7 +92,7 @@ export function apply(ctx: Context, config: Config): () => void {
           id: 'demo-money-flow' as ClientModuleId,
           slot: 'analysis.menu',
           bundle: 'client/demo-money-flow.js',
-          style: moneyFlowStyle,
+          style: moneyFlow.css,
         }),
       )
     }

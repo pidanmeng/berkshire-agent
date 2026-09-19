@@ -1,9 +1,12 @@
 /**
  * dev 态插件热更 watcher（`BK_DEV_HOTRELOAD=1` 时启用，仅 dev）。
  *
- * 监听 sidecar 半身所依赖的源码：core 编织、插件 sidecar 半身（`src/index.ts`）、样式单一来源
- * （`src/client/*.ts`，如 `styles.ts`）、bundle patch（`cordis.patch.yml`）。变化时回调通知宿主，
- * 由宿主重启 sidecar 以加载新声明/样式，并推 `client/changed` 让 webview 重拉快照。
+ * 监听 sidecar 半身所依赖的源码：core 编织、插件 sidecar 半身（`src/index.ts`）、样式编译产物
+ * （`src/client/*.ts`，含 P3 的 `styles.generated.ts`）、bundle patch（`cordis.patch.yml`）。变化时
+ * 回调通知宿主，由宿主重启 sidecar 以加载新声明/样式，并推 `client/changed` 让 webview 重拉快照。
+ *
+ * 样式作者源 `*.module.css` **不直接在此列**：改它后需先 `compile:styles` 重生成 `styles.generated.ts`，
+ * 该产物变更由下方 `client/*.ts` 规则驱动 reload——避免对「不改产物」的源码直配触发空重装配（假热更）。
  *
  * 诚实边界：**组件 `.tsx` 不在此列**——那是 webview 的 Vite Fast Refresh 负责（静态 import 插件包
  * 源码，本就实时）；本 watcher 只解决「样式字符串 / 路由/槽位/注册声明」这类随 sidecar 快照走的
@@ -29,8 +32,12 @@ export function isSidecarHalf(file: string): boolean {
   if (/\/packages\/core\/src\/.+\.ts$/.test(n)) return true
   // 插件 sidecar 半身：注册声明本身（src/index.ts）。
   if (/\/packages\/plugins\/[^/]+\/src\/index\.ts$/.test(n)) return true
-  // 插件 webview 半身里非组件源码（样式单一来源如 styles.ts）；.tsx 归 Vite Fast Refresh。
+  // 插件 webview 半身里非组件源码（含 P3 编译产物 styles.generated.ts，已被此 client/*.ts 覆盖）；
+  // 组件 `.tsx`（如 demo*.tsx）归 Vite Fast Refresh，不经这里。
   if (/\/packages\/plugins\/[^/]+\/src\/client\/.+\.ts$/.test(n)) return true
+
+  // 样式作者源 `*.module.css` 不直接在此列：改它需先 `compile:styles` 重生成 styles.generated.ts
+  // （上一条 client/*.ts 会兜住该产物变更），此处不直配，避免"改了却不生效"的假热更。
 
   return false
 }

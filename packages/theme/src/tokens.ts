@@ -1,23 +1,34 @@
 /**
  * 令牌注册表 —— 样式层的**单一事实源**（`@berkshire/theme`，第一优先、零破坏落地）。
  *
- * - **无 `@berkshire/core` 依赖**：纯令牌 + 类型 + CSS 变量名，故 webview 可安全 import；
- * - 中枢 `App.css` 与插件 `styles.ts` **都从这里取**，`:root`/`[data-theme]` 上只写 `var(…)` 的赋值；
- * - 每个令牌带亮/暗两套值、所属维度组与可读标签，供主题对照页渲染成色板。
- *
- * 令牌 id 一律用**连字符**（如 `color-bg`）：CSS 自定义属性名必须是合法 `<dashed-ident>`，`.` 非法。
+ * 对齐 dsh 的 **static → alias 两层令牌**（不多不少两层）：
+ * - **取值层 `--bk-static-*`**（`STATIC_TOKENS`）：唯一写**实值**的地方（色板/阴影等具体取值）；
+ * - **别名层 `--bk-*`**（`THEME_TOKENS`）：组件/插件**只引用**别名层，值为 `var(--bk-static-*)` 引用。
  *
  * 硬规则（见 `.agents/features/bk-style-governance.prompt.md`）：
- * 令牌优先（禁魔法值）；维度对齐（间距/圆角/字号落档位）；单一事实源（import 不抄）。
+ * 令牌优先（禁魔法值）；维度对齐（间距/圆角/字号落档位）；单一事实源（import 不抄）；
+ * **取值只在 static 层、引用走别名层**——`App.css` 与插件样式一律写 `var(--bk-*)`。
+ *
+ * 透明制（边框/交互态）：新增 `border`/`hover`/`active` 叠层 token 用 `rgba(…)` 叠加任意背景，
+ * 不新造实色灰；暗色只在 static 层的暗值里改（单表覆盖），组件零主题选择器。
+ *
+ * 去 token 化（对齐 dsh）：间距沿用 4 的倍数、圆角语义档位、字号成对行高；spacing/radius/font
+ * 仍以别名层暴露以兼容现状宿主，正式「组件写 4 倍数/行高、弃用这些令牌」标 v-next（见决策记录）。
+ *
+ * - **无 `@berkshire/core` 依赖**：纯令牌 + 类型 + CSS 变量名，故 webview 可安全 import。
+ *
+ * 令牌 id 一律用**连字符**（如 `color-bg`）：CSS 自定义属性名必须是合法 `<dashed-ident>`，`.` 非法。
  */
-export const BK_TOKEN_PREFIX = "--bk-"
+export const BK_ALIAS_PREFIX = "--bk-"
+/** 取值层前缀 `--bk-static-`（一种取值、一个前缀）。 */
+export const BK_STATIC_PREFIX = "--bk-static-"
 
 /** 令牌所属维度组。 */
 export type TokenGroup = "color" | "spacing" | "radius" | "font" | "shadow"
 
-/** 单一令牌：结构 + 亮/暗两套值 + 归属组 + 可读标签。 */
-export interface ThemeToken {
-  /** 令牌 id（不含前缀），如 `color-bg`。 */
+/** 取值层令牌（`--bk-static-*`）：唯一写实值的地方。亮/暗两套值 + 归属组 + 标签。 */
+export interface StaticToken {
+  /** 令牌 id（不含前缀），如 `color-bg` → `--bk-static-color-bg`。 */
   id: string
   /** 所属维度组（对照页按组分栏）。 */
   group: TokenGroup
@@ -31,8 +42,11 @@ export interface ThemeToken {
   description?: string
 }
 
-/** 全部令牌（单一事实源）。按组编排，禁止在 `App.css`/插件 `styles.ts` 里另造离散值。 */
-export const THEME_TOKENS = [
+/**
+ * 取值层注册表（单一事实源，**唯一写实值的地方**）。按组编排，禁止在 `App.css`/插件样式里另造离散值。
+ * 交互/边框用透明度叠层（`rgba(…)`）叠加任意背景，暗色值只在这里。
+ */
+export const STATIC_TOKENS = [
   // ── color ──────────────────────────────────────────────────────────────
   { id: "color-bg", group: "color", light: "#f6f6f6", dark: "#2f2f2f", label: "页面背景" },
   { id: "color-bg-elevated", group: "color", light: "#ffffff", dark: "#1e1e1e", label: "抬升面（卡片/输入）" },
@@ -40,13 +54,10 @@ export const THEME_TOKENS = [
   { id: "color-fg", group: "color", light: "#0f0f0f", dark: "#f6f6f6", label: "前景（正文）" },
   { id: "color-fg-muted", group: "color", light: "#555555", dark: "#b3b3b3", label: "弱化前景（次要）" },
   { id: "color-fg-subtle", group: "color", light: "#888888", dark: "#9a9a9a", label: "更弱前景（hint）" },
-  { id: "color-border", group: "color", light: "rgba(128,128,128,0.3)", dark: "rgba(200,200,200,0.3)", label: "边框" },
-  { id: "color-border-strong", group: "color", light: "rgba(128,128,128,0.4)", dark: "rgba(200,200,200,0.4)", label: "强化边框" },
   { id: "color-primary", group: "color", light: "#646cff", dark: "#8b93ff", label: "主色（链接/强调）" },
   { id: "color-primary-hover", group: "color", light: "#535bf2", dark: "#24c8db", label: "主色 hover" },
   { id: "color-primary-soft", group: "color", light: "rgba(100,108,255,0.12)", dark: "rgba(139,147,255,0.14)", label: "主色弱化底" },
   { id: "color-focus", group: "color", light: "#396cd8", dark: "#4aa3f5", label: "焦点边框" },
-  { id: "color-pressed-bg", group: "color", light: "#e8e8e8", dark: "rgba(15,15,15,0.69)", label: "按下底" },
   { id: "color-info", group: "color", light: "#2e86de", dark: "#4aa3f5", label: "信息（蓝）" },
   { id: "color-info-soft", group: "color", light: "rgba(46,134,222,0.08)", dark: "rgba(74,163,245,0.10)", label: "信息弱化底" },
   { id: "color-success", group: "color", light: "#27ae60", dark: "#3ccf7e", label: "成功（绿）" },
@@ -61,22 +72,28 @@ export const THEME_TOKENS = [
   { id: "color-brand-react", group: "color", light: "#61dafb", dark: "#61dafb", label: "品牌 React（logo 辉光）" },
   { id: "color-brand-tauri", group: "color", light: "#24c8db", dark: "#24c8db", label: "品牌 Tauri（logo 辉光）" },
 
-  // ── spacing ─────────────────────────────────────────────────────────────
-  { id: "space-1", group: "spacing", light: "0.25rem", dark: "0.25rem", label: "间距 1" },
-  { id: "space-2", group: "spacing", light: "0.5rem", dark: "0.5rem", label: "间距 2" },
-  { id: "space-3", group: "spacing", light: "0.75rem", dark: "0.75rem", label: "间距 3" },
-  { id: "space-4", group: "spacing", light: "1rem", dark: "1rem", label: "间距 4" },
-  { id: "space-5", group: "spacing", light: "1.5rem", dark: "1.5rem", label: "间距 5" },
-  { id: "space-6", group: "spacing", light: "2rem", dark: "2rem", label: "间距 6" },
+  // ── 边框/交互态（透明度叠层，叠加任意背景成立；不新造实色灰）──────────
+  { id: "border", group: "color", light: "rgba(15,15,15,0.10)", dark: "rgba(235,235,235,0.18)", label: "边框/分隔（透明度叠层）" },
+  { id: "border-strong", group: "color", light: "rgba(15,15,15,0.16)", dark: "rgba(235,235,235,0.26)", label: "强化边框（透明度叠层）" },
+  { id: "hover", group: "color", light: "rgba(15,15,15,0.06)", dark: "rgba(235,235,235,0.08)", label: "悬停叠层" },
+  { id: "active", group: "color", light: "rgba(15,15,15,0.10)", dark: "rgba(235,235,235,0.14)", label: "按下叠层" },
 
-  // ── radius ──────────────────────────────────────────────────────────────
+  // ── spacing（间距 4 的倍数：0.25/0.5/0.75/1/1.5/2rem）────────────────────
+  { id: "space-1", group: "spacing", light: "0.25rem", dark: "0.25rem", label: "间距 1 (4px)" },
+  { id: "space-2", group: "spacing", light: "0.5rem", dark: "0.5rem", label: "间距 2 (8px)" },
+  { id: "space-3", group: "spacing", light: "0.75rem", dark: "0.75rem", label: "间距 3 (12px)" },
+  { id: "space-4", group: "spacing", light: "1rem", dark: "1rem", label: "间距 4 (16px)" },
+  { id: "space-5", group: "spacing", light: "1.5rem", dark: "1.5rem", label: "间距 5 (24px)" },
+  { id: "space-6", group: "spacing", light: "2rem", dark: "2rem", label: "间距 6 (32px)" },
+
+  // ── radius（语义档位）──────────────────────────────────────────────────
   { id: "radius-sm", group: "radius", light: "4px", dark: "4px", label: "圆角 小" },
   { id: "radius-md", group: "radius", light: "6px", dark: "6px", label: "圆角 中" },
   { id: "radius-lg", group: "radius", light: "8px", dark: "8px", label: "圆角 大" },
   { id: "radius-xl", group: "radius", light: "14px", dark: "14px", label: "圆角 特大" },
   { id: "radius-pill", group: "radius", light: "999px", dark: "999px", label: "圆角 胶囊" },
 
-  // ── font ────────────────────────────────────────────────────────────────
+  // ── font（字号语义档位 + 成对行高；主字体 token）────────────────────────
   { id: "font-sans", group: "font", light: "Inter, Avenir, Helvetica, Arial, sans-serif", dark: "Inter, Avenir, Helvetica, Arial, sans-serif", label: "正文字体" },
   { id: "font-size-sm", group: "font", light: "0.85em", dark: "0.85em", label: "字号 小" },
   { id: "font-size-md", group: "font", light: "0.9em", dark: "0.9em", label: "字号 中" },
@@ -84,30 +101,118 @@ export const THEME_TOKENS = [
 
   // ── shadow ──────────────────────────────────────────────────────────────
   { id: "shadow-sm", group: "shadow", light: "0 2px 2px rgba(0,0,0,0.2)", dark: "0 2px 2px rgba(0,0,0,0.5)", label: "阴影 小" },
-] as const satisfies readonly ThemeToken[]
+] as const satisfies readonly StaticToken[]
 
-/** 令牌 id 联合（类型安全：`cssVar`/`Palette` 只接受已注册令牌）。 */
-export type ThemeTokenId = (typeof THEME_TOKENS)[number]["id"]
-
-/** 色板：`ThemeTokenId → 某套值`（亮或暗）。 */
-export type Palette = Record<ThemeTokenId, string>
-
-/** 亮色板（默认）。 */
-export const LIGHT_PALETTE: Palette = Object.fromEntries(
-  THEME_TOKENS.map((t) => [t.id, t.light]) as Array<[ThemeTokenId, string]>,
-) as Palette
-
-/** 暗色板。 */
-export const DARK_PALETTE: Palette = Object.fromEntries(
-  THEME_TOKENS.map((t) => [t.id, t.dark]) as Array<[ThemeTokenId, string]>,
-) as Palette
-
-/** 令牌在 CSS 中的**变量名**（含前缀），供 `App.css`/插件 `styles.ts` 引用。 */
-export function bkVarName(id: ThemeTokenId): string {
-  return `${BK_TOKEN_PREFIX}${id}`
+/** 别名层令牌（`--bk-*`）：组件/插件引用入口。`ref` 指向取值层的 static id。 */
+export interface AliasToken {
+  /** 别名 id（不含前缀），如 `color-bg` → `--bk-color-bg`。 */
+  id: string
+  /** 取值层 static id（`--bk-static-<ref>`），别名取 `var(--bk-static-<ref>)`。 */
+  ref: string
+  /** 所属维度组（对照页按组分栏）。 */
+  group: TokenGroup
+  /** 可读标签（主题对照页展示）。 */
+  label: string
+  /** 可选说明。 */
+  description?: string
 }
 
-/** 令牌的 `var(…)` 引用形式；**含 `var()` 包裹**，用于注入 CSS 值。 */
+/**
+ * 别名层注册表：组件/插件唯一引用入口（`--bk-*`）。每个别名取 `var(--bk-static-<ref>)`，
+ * **取值只在 static 层**、别名层不写实值。
+ */
+export const THEME_TOKENS = [
+  // ── color ──────────────────────────────────────────────────────────────
+  { id: "color-bg", ref: "color-bg", group: "color", label: "页面背景" },
+  { id: "color-bg-elevated", ref: "color-bg-elevated", group: "color", label: "抬升面（卡片/输入）" },
+  { id: "color-bg-muted", ref: "color-bg-muted", group: "color", label: "弱化底（顶栏/斑马）" },
+  { id: "color-fg", ref: "color-fg", group: "color", label: "前景（正文）" },
+  { id: "color-fg-muted", ref: "color-fg-muted", group: "color", label: "弱化前景（次要）" },
+  { id: "color-fg-subtle", ref: "color-fg-subtle", group: "color", label: "更弱前景（hint）" },
+  { id: "color-primary", ref: "color-primary", group: "color", label: "主色（链接/强调）" },
+  { id: "color-primary-hover", ref: "color-primary-hover", group: "color", label: "主色 hover" },
+  { id: "color-primary-soft", ref: "color-primary-soft", group: "color", label: "主色弱化底" },
+  { id: "color-focus", ref: "color-focus", group: "color", label: "焦点边框" },
+  { id: "color-info", ref: "color-info", group: "color", label: "信息（蓝）" },
+  { id: "color-info-soft", ref: "color-info-soft", group: "color", label: "信息弱化底" },
+  { id: "color-success", ref: "color-success", group: "color", label: "成功（绿）" },
+  { id: "color-success-soft", ref: "color-success-soft", group: "color", label: "成功弱化底" },
+  { id: "color-warning", ref: "color-warning", group: "color", label: "警告（金）" },
+  { id: "color-warning-soft", ref: "color-warning-soft", group: "color", label: "警告弱化底" },
+  { id: "color-danger", ref: "color-danger", group: "color", label: "危险（红）" },
+  { id: "color-danger-soft", ref: "color-danger-soft", group: "color", label: "危险弱化底" },
+  { id: "color-neutral", ref: "color-neutral", group: "color", label: "中性（灰青）" },
+  { id: "color-neutral-soft", ref: "color-neutral-soft", group: "color", label: "中性弱化底" },
+  { id: "color-brand-vite", ref: "color-brand-vite", group: "color", label: "品牌 Vite（logo 辉光）" },
+  { id: "color-brand-react", ref: "color-brand-react", group: "color", label: "品牌 React（logo 辉光）" },
+  { id: "color-brand-tauri", ref: "color-brand-tauri", group: "color", label: "品牌 Tauri（logo 辉光）" },
+
+  // ── 边框/交互态透明度叠层 ───────────────────────────────────────────────
+  { id: "border", ref: "border", group: "color", label: "边框/分隔（透明度叠层）" },
+  { id: "border-strong", ref: "border-strong", group: "color", label: "强化边框（透明度叠层）" },
+  { id: "hover", ref: "hover", group: "color", label: "悬停叠层" },
+  { id: "active", ref: "active", group: "color", label: "按下叠层" },
+
+  // ── spacing / radius / font / shadow（语义档位，兼容现状宿主）───────────
+  { id: "space-1", ref: "space-1", group: "spacing", label: "间距 1" },
+  { id: "space-2", ref: "space-2", group: "spacing", label: "间距 2" },
+  { id: "space-3", ref: "space-3", group: "spacing", label: "间距 3" },
+  { id: "space-4", ref: "space-4", group: "spacing", label: "间距 4" },
+  { id: "space-5", ref: "space-5", group: "spacing", label: "间距 5" },
+  { id: "space-6", ref: "space-6", group: "spacing", label: "间距 6" },
+  { id: "radius-sm", ref: "radius-sm", group: "radius", label: "圆角 小" },
+  { id: "radius-md", ref: "radius-md", group: "radius", label: "圆角 中" },
+  { id: "radius-lg", ref: "radius-lg", group: "radius", label: "圆角 大" },
+  { id: "radius-xl", ref: "radius-xl", group: "radius", label: "圆角 特大" },
+  { id: "radius-pill", ref: "radius-pill", group: "radius", label: "圆角 胶囊" },
+  { id: "font-sans", ref: "font-sans", group: "font", label: "正文字体" },
+  { id: "font-size-sm", ref: "font-size-sm", group: "font", label: "字号 小" },
+  { id: "font-size-md", ref: "font-size-md", group: "font", label: "字号 中" },
+  { id: "font-size-base", ref: "font-size-base", group: "font", label: "字号 基准" },
+  { id: "shadow-sm", ref: "shadow-sm", group: "shadow", label: "阴影 小" },
+] as const satisfies readonly AliasToken[]
+
+/** 别名层令牌 id 联合（类型安全：`cssVar`/组件引用只接受已注册别名）。 */
+export type ThemeTokenId = (typeof THEME_TOKENS)[number]["id"]
+
+/** 取值层令牌 id 联合。 */
+export type StaticTokenId = (typeof STATIC_TOKENS)[number]["id"]
+
+/** 色板：`ThemeTokenId → 某套解析后实值`（亮或暗；供对照页/测试读取，非 CSS 引用）。 */
+export type Palette = Record<ThemeTokenId, string>
+
+/** 亮色板（默认，别名 id → 解析后实值）：供对照页/测试读取实值（非 CSS 引用）。 */
+export const LIGHT_PALETTE = Object.fromEntries(
+  THEME_TOKENS.map((a) => {
+    const s = STATIC_TOKENS.find((t) => t.id === a.ref)
+    return [a.id, s?.light ?? `${BK_ALIAS_PREFIX}${a.id}`]
+  }),
+) as Record<ThemeTokenId, string>
+
+/** 暗色板。 */
+export const DARK_PALETTE = Object.fromEntries(
+  THEME_TOKENS.map((a) => {
+    const s = STATIC_TOKENS.find((t) => t.id === a.ref)
+    return [a.id, s?.dark ?? `${BK_ALIAS_PREFIX}${a.id}`]
+  }),
+) as Record<ThemeTokenId, string>
+
+/** 别名层令牌在 CSS 中的**变量名**（含前缀 `--bk-`），供 `App.css`/插件样式引用。 */
+export function bkVarName(id: ThemeTokenId): string {
+  return `${BK_ALIAS_PREFIX}${id}`
+}
+
+/** 别名层的 `var(…)` 引用形式。组件/插件一律用这个（别名层入口）。 */
 export function bkVar(id: ThemeTokenId): string {
-  return `var(${BK_TOKEN_PREFIX}${id})`
+  return `var(${BK_ALIAS_PREFIX}${id})`
+}
+
+/** 取值层令牌在 CSS 中的**变量名**（含前缀 `--bk-static-`）。 */
+export function bkStaticVarName(id: StaticTokenId): string {
+  return `${BK_STATIC_PREFIX}${id}`
+}
+
+/** 取值层的 `var(…)` 引用形式。 */
+export function bkStaticVar(id: StaticTokenId): string {
+  return `var(${BK_STATIC_PREFIX}${id})`
 }

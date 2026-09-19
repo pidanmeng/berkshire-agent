@@ -2,9 +2,13 @@
  * 样式魔法色值 lint（`@berkshire/theme` 的配套治理工具）。
  *
  * 扫描介入 webview 的样式源，举报**裸色值**（`#hex` / `rgb(…)` / `rgba(…)` / `hsl(…)` /
- * `hsla(…)` / `oklch(…)` / `oklab(…)` / `hwb(…)`）——凡是**不在令牌注册表 `THEME_TOKENS` 内定义**的色值一律判为魔法值，
- * 应改用 `var(--bk-*)` 引用。规则出自 `.agents/features/bk-style-governance.prompt.md`
+ * `hsla(…)` / `oklch(…)` / `oklab(…)` / `hwb(…)`）——凡是**不在取值层令牌注册表
+ * `STATIC_TOKENS` 内定义**的色值一律判为魔法值，应改用 `var(--bk-*)`（别名层）引用。
+ * 规则出自 `.agents/features/bk-style-governance.prompt.md`
  * §3.1 / §5（令牌优先、禁魔法值、强制 `var()`）。
+ *
+ * 对齐 dsh 两层令牌：**取值只在 static 层**——故只有 `STATIC_TOKENS` 的 light/dark 是「允许的
+ * 魔法值出处」；别名层（`THEME_TOKENS`）引用只见 `var(--bk-*)`，不产生裸值。
  *
  * 诚实边界：本 lint 只查**色值**（可自动判定的魔法值）；间距/圆角/字号档位对齐是评审层面的事，
  * 结构布局长度（max-width、border-width 等）不在机器可判范围内，不误报。
@@ -12,13 +16,13 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
-import { THEME_TOKENS } from "../src/tokens"
+import { STATIC_TOKENS } from "../src/tokens"
 
 const ROOT = join(import.meta.dir, "..", "..", "..")
 
-/** 令牌注册表里已声明的字面色值（亮/暗）——允许出现的「魔法值」。 */
+/** 取值层令牌里已声明的字面色值（亮/暗）——允许出现的「魔法值」。 */
 const ALLOWED_VALUES = new Set<string>()
-for (const t of THEME_TOKENS) {
+for (const t of STATIC_TOKENS) {
   ALLOWED_VALUES.add(t.light)
   ALLOWED_VALUES.add(t.dark)
 }
@@ -70,9 +74,11 @@ function lintFile(abs: string): Finding[] {
 }
 
 function main(): number {
-  const cssFiles = walkFiles(join(ROOT, "apps", "berkshire-agent", "src"), [".css"])
+  const cssFiles = walkFiles(join(ROOT, "apps", "berkshire-agent", "src"), [".css", ".module.css"])
   const clientTsFiles = walkFiles(join(ROOT, "packages", "plugins"), [".ts"])
-  const targets = [...cssFiles, ...clientTsFiles]
+  // 插件侧 `.module.css`（P3：插件独立打包 CSS Modules）也在扫描面内——同样只许 var(--bk-*)。
+  const pluginCssFiles = walkFiles(join(ROOT, "packages", "plugins"), [".module.css"])
+  const targets = [...cssFiles, ...clientTsFiles, ...pluginCssFiles]
 
   let allFindings: Finding[] = []
   for (const f of targets) allFindings = allFindings.concat(lintFile(f))
