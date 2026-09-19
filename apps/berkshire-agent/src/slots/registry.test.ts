@@ -18,7 +18,7 @@ describe("SlotRegistry（前端 slot 注册表，T0）", () => {
     const dY = reg.register("stock-preview.footer", { id: "y:footer", component: Dummy }) // order 缺省 → 100
     const dZ = reg.register("stock-preview.footer", { id: "z:footer", order: 10, component: Dummy })
 
-    expect(reg.list("stock-preview.footer").map((r) => r.id)).toEqual(["z:footer", "x:footer", "y:footer"])
+    expect(reg.getSnapshot("stock-preview.footer").map((r) => r.id)).toEqual(["z:footer", "x:footer", "y:footer"])
 
     dX()
     dY()
@@ -38,8 +38,8 @@ describe("SlotRegistry（前端 slot 注册表，T0）", () => {
     const reg = new SlotRegistry()
     const d1 = reg.register("stock-preview.footer", { id: "a:footer", component: Dummy })
     const d2 = reg.register("watchlist.toolbar", { id: "a:footer", component: Dummy })
-    expect(reg.list("stock-preview.footer")).toHaveLength(1)
-    expect(reg.list("watchlist.toolbar")).toHaveLength(1)
+    expect(reg.getSnapshot("stock-preview.footer")).toHaveLength(1)
+    expect(reg.getSnapshot("watchlist.toolbar")).toHaveLength(1)
     d1()
     d2()
   })
@@ -75,18 +75,18 @@ describe("SlotRegistry（前端 slot 注册表，T0）", () => {
     )
   })
 
-  test("disposer 可逆删除；list 快照不受后续突变影响", () => {
+  test("disposer 可逆删除；getSnapshot 快照不受后续突变影响", () => {
     const reg = new SlotRegistry()
     const dA = reg.register("stock-preview.footer", { id: "a:footer", component: Dummy })
     const dB = reg.register("stock-preview.footer", { id: "b:footer", component: Dummy })
-    expect(reg.list("stock-preview.footer")).toHaveLength(2)
+    expect(reg.getSnapshot("stock-preview.footer")).toHaveLength(2)
 
-    const snapshot = reg.list("stock-preview.footer")
+    const snapshot = reg.getSnapshot("stock-preview.footer")
     dA()
-    expect(reg.list("stock-preview.footer").map((r) => r.id)).toEqual(["b:footer"])
+    expect(reg.getSnapshot("stock-preview.footer").map((r) => r.id)).toEqual(["b:footer"])
     expect(snapshot).toHaveLength(2) // 快照是拷贝，不因内部删除而回退
 
     dB()
-    expect(reg.list("stock-preview.footer")).toHaveLength(0)
+    expect(reg.getSnapshot("stock-preview.footer")).toHaveLength(0)
   })
 })

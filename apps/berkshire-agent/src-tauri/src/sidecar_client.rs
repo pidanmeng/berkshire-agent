@@ -162,12 +162,6 @@ impl SidecarClient {
     pub fn wait(&self) -> std::io::Result<std::process::ExitStatus> {
         self.child.lock().unwrap().wait()
     }
-
-    /// 强制终止（供 host restart 前的硬停；protocol 的 shutdown 软停为主，此为兜底）。
-    #[allow(dead_code)]
-    pub fn kill_now(&self) -> std::io::Result<()> {
-        self.child.lock().unwrap().kill()
-    }
 }
 
 #[cfg(test)]

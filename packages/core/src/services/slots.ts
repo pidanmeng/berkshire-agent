@@ -15,7 +15,7 @@ export type SlotName = (typeof SLOT_NAMES)[number]
  * 与 webview 侧 `apps/berkshire-agent/src/App.tsx` 的核心 `<Route>` 集合保持同一契约；
  * 两端各有一份是 v2 共享类型层前的现状，改动必须同步。
  */
-export const CORE_ROUTE_PATHS = ['/', '/settings'] as const
+export const CORE_ROUTE_PATHS = ['/', '/theme', '/settings'] as const
 
 /**
  * 一条插件自声明的**路由**（能力块 B/页面，路由契约化）：插件在**任意 slot** 的占用声明上带
@@ -113,11 +113,6 @@ export class Slots extends Service {
   }
 
   /** 当前是否已有声明（供可用性门控/demo 开关）。 */
-  has(name: SlotName): boolean {
-    return (this.byName.get(name)?.size ?? 0) > 0
-  }
-
-  /** 某槽位已登记的声明快照。 */
   claims(name: SlotName): FrontendSlotRegistration[] {
     return [...(this.byName.get(name)?.values() ?? [])]
   }

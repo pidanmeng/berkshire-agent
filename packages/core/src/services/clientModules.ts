@@ -50,9 +50,4 @@ export class ClientModules extends Service {
   list(): ClientModuleRegistration[] {
     return [...this.byId.values()]
   }
-
-  /** 按 id 取单个声明；未注册返回 undefined。 */
-  get(id: ClientModuleId): ClientModuleRegistration | undefined {
-    return this.byId.get(id)
-  }
 }

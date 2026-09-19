@@ -125,11 +125,6 @@ export class SlotRegistry {
     }
   }
 
-  /** 该槽位按 `order`（同值稳定）排序的注册快照；无注册返回空数组。 */
-  list<K extends FrontendSlotName>(name: K): Array<SlotRegistration<FrontendSlotContextMap[K]>> {
-    return [...this.getSnapshot(name)] as Array<SlotRegistration<FrontendSlotContextMap[K]>>
-  }
-
   private assertSlotName(name: string): asserts name is FrontendSlotName {
     if (!FRONTEND_SLOT_NAMES.includes(name as FrontendSlotName)) {
       throw new Error(

@@ -2,6 +2,8 @@
 
 本目录是 Berkshire Agent（下称 **BK**）的 **AI 开发者约束与规范化工作流**：把 dsh（DeepSeek Harness）的技能形态**去敏、换型、翻译为中文**后，按 BK 的真实业务（A 股投研、能力缝三角色、DuckDB 单写者、Tauri Rust 宿主 + Bun sidecar 的 Cordis 插件、`apps/`+`packages/` 布局、bun 命令）重建。
 
+- **决策记录（Agent Notes）在 [`.agents/notes/`](notes/README.md)**（中文单语单文件，参照上游 dsh 生命周期模型移植，附 bun 校验门禁）；维护工作流见 [`bk-archive-agent-notes`](skills/bk-archive-agent-notes/SKILL.md)。
+
 - 装载形态（dsh 规则）：**dsh 只从仓库根 `.agents/skills/` 读取技能并加载其中的 `SKILL.md`**。因此这里**只有技能，不交付 Command 命令集，也不交付 Subagent 定义**——一切「原本想做成命令的校验」都封装进了对应技能的可执行步骤里。
 - 根 `AGENTS.md` 是项目全局约束，dsh 读取它；本文档是其「已强制 vs 仅文档/待实现」的诚实对照来源。
 
@@ -21,7 +23,7 @@
 | `dsh-speed-up-perf` | [`bk-speed-up-perf`](skills/bk-speed-up-perf/SKILL.md) | 性能调查/优化（测量优先、拒绝无据优化） | ⚠️ 部分待实现（前端骨架可测；DuckDB/sidecar/基准待落地） |
 | `dsh-translate-docs` | [`bk-translate-docs`](skills/bk-translate-docs/SKILL.md) | 中英对照文档翻译 | ⚠️ 待实现（仓库无双语配对设施；当前中文单语体） |
 | `dsh-merging-stacked-prs` | [`bk-merging-stacked-prs`](skills/bk-merging-stacked-prs/SKILL.md) | 落地 GitHub PR stack | ⚠️ 不适用/待实现（`gh stack` 未确认启用） |
-| `dsh-archive-agent-notes` | [`bk-archive-agent-notes`](skills/bk-archive-agent-notes/SKILL.md) | 决策记录生命周期维护 | ⚠️ 待实现（仓库无 `.agents/notes/` 体系） |
+| `dsh-archive-agent-notes` | [`bk-archive-agent-notes`](skills/bk-archive-agent-notes/SKILL.md) | 决策记录生命周期维护 | ✅ 已落地（`[.agents/notes/](notes/README.md)` 中文单语体系 + bun 门禁） |
 | `record-browser-gif` | —（不交付） | GUI 演示 GIF 录制/发布 | ❌ 取舍：不交付（见下方说明） |
 
 **不做对照、明确不交付的技能**：
@@ -41,7 +43,8 @@
 | 数据契约红线 + 显式转换 + 测试 | ⚠️ 测试未落地 | `bk-ci-test-reliability` 待实现；`bk-code-review` 阻塞项 |
 | 前端 `bun run build` / Rust `cargo check` | ✅ 能（骨架可跑） | `bk-pre-push-checks` 最小证据 |
 | CI 测试车道 / 基准设施 | ❌ 无设施 | `bk-ci-test-reliability`/`bk-speed-up-perf` 标「待实现」 |
-| 中英对照 / decision records / PR stack | ❌ 无设施/未启用 | 对应技能标「待实现/不适用」 |
+| decision records（`.agents/notes/`） | ✅ 已落地 | `bk-archive-agent-notes` 已落地；`bun run verify:agent-notes` + `verify:archived-agent-notes` |
+| 中英对照 / PR stack | ❌ 无设施/未启用 | `bk-translate-docs`/`bk-merging-stacked-prs` 标「待实现/不适用」 |
 
 > 本表必须与仓库实际同步更新：某项目标态一旦落地（出现真实代码/命令），把对应行从「待实现」改为「已强制」，并在 [architecture.md §11](../docs/architecture.md#11-关键文件索引现状--目标) 同步「现状锚点」。
 

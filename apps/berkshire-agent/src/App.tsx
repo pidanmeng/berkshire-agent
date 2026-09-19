@@ -9,6 +9,7 @@ import ClientModuleHost from "./client/ClientModuleHost";
 import RouteSync from "./routes/RouteSync";
 import { routesStore } from "./routes/routesStore";
 import ExtensionRoute from "./routes/ExtensionRoute";
+import { ThemePalettePage } from "./theme/ThemePalettePage";
 
 /** 核心路由 `/`：主界面（hero + slot 演示 + sidebar 面板）。 */
 function HomePage() {
@@ -108,6 +109,7 @@ function App() {
 
       <nav className="topbar">
         <Link to="/">首页</Link>
+        <Link to="/theme">主题</Link>
         <Link to="/settings">设置</Link>
         {routes.map((r) => (
           <Link key={r.path} to={r.path}>
@@ -118,6 +120,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/theme" element={<ThemePalettePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         {/* 插件自声明动态路由（静态路径、不覆盖核心、全局唯一）；每项按 route.slot 指向槽渲染器 + ExtensionBoundary。 */}
         {routes.map((r) => (

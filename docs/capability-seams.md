@@ -67,6 +67,7 @@
 
 - **已实现（v1，可直接 import）**：接口权威定义在 `packages/core`——
   - `ctx.notifier`：消费/供给方从 **`@berkshire/core`** import 共享类型（`NotifyService` 在 `packages/core/src/seams/notify.ts`；`NotifyProvider`/`NotifyPayload` 在 `packages/core/src/types.ts`），并经 `declare module 'cordis'` 读 `ctx.notifier`（`packages/core/src/events.ts`）。v1 直接增强 `cordis` 官方包；目标态 `@berkshire/cordis` vendor 落地后换模块名即可。
+  - `ctx.slots` / `ctx.clientModules`：定义在 `packages/core/src/services/{slots,clientModules}.ts`（`Slots`/`ClientModules`/`FrontendSlotRegistration`/`ClientModuleRegistration`），`ctx.slots`/`ctx.clientModules` 类型增强与 `client/changed` 事件见 `packages/core/src/events.ts`；`@berkshire/core` 导出全部服务类型，插件（如 `@berkshire/plugin-demo`）经 `inject: ['slots','clientModules']` 消费。跨边界 wire 类型（sidecar `client/list`/webview `api.ts` 的复刻）仍为 v2 共享类型层债务，勿复制签名。
 - **目标态（未落地，不得 import 当已存在）**：`ctx.ai`/`ctx.dataSources`/`ctx.storage`/`ctx.backtest`/`ctx.chart` 等仍为设计承诺，未见上方归属表外的落地文件；落地后在此登记各自 Definition 的权威文件路径。
 
 依赖此单一家，**同类型图内**（sidecar 插件生态、同一 `tsc` 编译）改破坏性接口时，Consumer 与 Provider 两端即时静态报错；**跨图边界**或**单独构建/运行时加载**的插件不受此保证（见下「跨边界警示」）。

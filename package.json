@@ -19,7 +19,12 @@
     "bundle": "bun run --cwd apps/berkshire-agent bundle",
     "bundle:dir": "bun run --cwd apps/berkshire-agent bundle:dir",
     "test": "bun run --cwd packages/boot test",
-    "typecheck": "tsc -p packages/tsconfig.json --noEmit"
+    "typecheck": "tsc -p packages/tsconfig.json --noEmit",
+    "verify:agent-note-format": "bun scripts/verify-agent-note-format.ts",
+    "verify:agent-note-classification": "bun scripts/verify-agent-note-classification.ts",
+    "verify:agent-notes": "bun scripts/verify-agent-note-classification.ts && bun scripts/verify-agent-note-format.ts",
+    "verify:archived-agent-notes": "bun scripts/verify-archived-agent-notes.ts",
+    "verify:archived-agent-notes:write": "bun scripts/verify-archived-agent-notes.ts --write"
   },
   "devDependencies": {
     "@types/bun": "latest"

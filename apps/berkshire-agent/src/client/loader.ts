@@ -35,11 +35,6 @@ export function loadClientModule(bundle: string): ClientModuleDef | undefined {
 }
 
 /** 构造一条 scoped 样式标签的 HTML（能力块 C；用 `data-bk-module={id}` 标记归属）。 */
-export function moduleStyleTag(id: string, css: string): string {
-  return `<style data-bk-module="${id}">${css}</style>`
-}
-
-/** 把一条 scoped 样式注入 `<head>`；返回移除函数（卸载/断链时调用带走样式）。 */
 export function injectModuleStyle(id: string, css: string): () => void {
   const tag = document.createElement("style")
   tag.setAttribute("data-bk-module", id)

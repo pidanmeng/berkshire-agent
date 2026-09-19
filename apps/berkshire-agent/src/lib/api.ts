@@ -1,9 +1,10 @@
 /**
- * webview ←→ Rust 桥的薄客户端：包装四条 Tauri command + 订阅 `sidecar://*` 事件。
+ * webview ←→ Rust 桥的薄客户端：包装有消费者的 Tauri command + 订阅 `sidecar://*` 事件。
  *
- * 对应 T2 的 bridge 命令面（`capabilities_list`/`capabilities_usable`/`notify_send`/
- * `log_list`）与 Rust 侧透传的 Tauri event（`sidecar://notify/request`、
- * `sidecar://capabilities/changed`）。
+ * 当前包装的命令为 `capabilities_list`/`notify_send`/`log_list`/`client_list`/`routes_list`；
+ * 订阅 Rust 侧透传的 Tauri event（`sidecar://notify/request`、`sidecar://capabilities/changed`、
+ * `sidecar://client/changed`）。T2 命令面中的 `capabilities_usable` 目前无 webview 消费者，
+ * 故薄客户端不包装（Rust 侧命令面保持完整，需用时再补包装）。
  *
  * 跨边界 payload 用品牌 id：`CapabilityId` 镜像 @berkshire/core 的 brand（为避免把 core
  * 拉进 webview 的类型图，这里本地复刻同样的 Branded 结构；真正的生态落地在 v2 共享类型层）。
@@ -86,10 +87,6 @@ function withTimeout<T>(p: Promise<T>, what: string, ms: number = DEFAULT_TIMEOU
 
 export function capabilitiesList(): Promise<Capability[]> {
   return withTimeout(invoke<Capability[]>("capabilities_list"), "capabilities_list");
-}
-
-export function capabilitiesUsable(id: string): Promise<boolean> {
-  return withTimeout(invoke<boolean>("capabilities_usable", { id }), "capabilities_usable");
 }
 
 export function notifySend(

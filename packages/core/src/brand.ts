@@ -11,11 +11,6 @@
 /** 把一个基础类型 T 加上一个名义（structural 之外的）品牌标记 S。 */
 export type Branded<T, S extends string> = T & { readonly __brand: S }
 
-/** 给一个值打上品牌标记的运行时辅助（仅为书写便捷，类型层面决定一切）。 */
-export function brand<T, S extends string>(value: T, _brand: S): Branded<T, S> {
-  return value as Branded<T, S>
-}
-
 /** 能力 id：一个可注册/门控的能力（如 'notify-console'）。 */
 export type CapabilityId = Branded<string, 'capability'>
 

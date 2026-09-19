@@ -360,6 +360,10 @@ describe('handleLine · routes/list（动态路由/导航，路由契约化）',
     expect(() =>
       boot.ctx.slots.register('analysis.menu', { id: 'x', title: 'X', route: { path: '/settings' } }),
     ).toThrow(/核心路由/)
+    // 覆盖核心路由 /theme（令牌对照页也预留为核心）
+    expect(() =>
+      boot.ctx.slots.register('analysis.menu', { id: 'x', title: 'X', route: { path: '/theme' } }),
+    ).toThrow(/核心路由/)
     // 重复 path（同槽）
     boot.ctx.slots.register('analysis.menu', { id: 'ok', title: 'OK', route: { path: '/ok' } })
     expect(() =>

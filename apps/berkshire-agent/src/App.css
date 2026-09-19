@@ -1,19 +1,18 @@
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
+/* ============================================================================
+ * 中枢全局样式（host）。令牌单一事实源是 `@berkshire/theme`：
+ * - `:root` / `[data-theme="dark"]` / `@media (prefers-color-scheme: dark)` 的变量赋值
+ *   由 webview 启动时以 `<style data-bk-theme>` 注入（`themeRootCss()`），本文件**不重复定义值**；
+ * - 本文件只写 `var(--bk-*)` 引用与结构规则，**禁止魔法色值/间距/圆角**（lint 强制）。
+ * 插件 scoped 样式同理走 `var(--bk-*)`，与中枢共用令牌。
+ * ========================================================================== */
 
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafb);
-}
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--bk-font-sans);
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
+  color: var(--bk-color-fg);
+  background-color: var(--bk-color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -37,8 +36,16 @@
   transition: 0.75s;
 }
 
+.logo.vite:hover {
+  filter: drop-shadow(0 0 2em var(--bk-color-brand-vite));
+}
+
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em var(--bk-color-brand-react));
+}
+
 .logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
+  filter: drop-shadow(0 0 2em var(--bk-color-brand-tauri));
 }
 
 .row {
@@ -48,12 +55,12 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--bk-color-primary);
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #535bf2;
+  color: var(--bk-color-primary-hover);
 }
 
 h1 {
@@ -62,16 +69,16 @@ h1 {
 
 input,
 button {
-  border-radius: 8px;
+  border-radius: var(--bk-radius-lg);
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
+  color: var(--bk-color-fg);
+  background-color: var(--bk-color-bg-elevated);
   transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--bk-shadow-sm);
 }
 
 button {
@@ -79,11 +86,11 @@ button {
 }
 
 button:hover {
-  border-color: #396cd8;
+  border-color: var(--bk-color-focus);
 }
 button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
+  border-color: var(--bk-color-focus);
+  background-color: var(--bk-color-pressed-bg);
 }
 
 input,
@@ -97,52 +104,52 @@ button {
 
 /* ---- T3 demo 面板（最小证明面，非正式 slot）---- */
 .sidecar-panel {
-  margin-top: 2rem;
+  margin-top: var(--bk-space-6);
   text-align: left;
   max-width: 640px;
   margin-left: auto;
   margin-right: auto;
 }
 .sidecar-panel fieldset {
-  border: 1px solid rgba(128, 128, 128, 0.4);
-  border-radius: 8px;
-  margin: 0.75rem 0;
+  border: 1px solid var(--bk-color-border-strong);
+  border-radius: var(--bk-radius-lg);
+  margin: var(--bk-space-3) 0;
   padding: 0.6rem 0.9rem;
 }
 .sidecar-panel legend {
   font-weight: 600;
 }
 .sidecar-panel label {
-  margin-right: 0.75rem;
+  margin-right: var(--bk-space-3);
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
 }
 .sidecar-panel input,
 .sidecar-panel select {
-  border-radius: 6px;
+  border-radius: var(--bk-radius-md);
   padding: 0.3em 0.5em;
 }
 .sidecar-panel button {
   padding: 0.4em 1em;
 }
 .hint {
-  color: #888;
+  color: var(--bk-color-fg-subtle);
   font-style: italic;
   margin: 0.25rem 0;
 }
 .bridge-banner {
-  border: 1px solid #c0392b;
-  background: rgba(192, 57, 43, 0.12);
-  color: #c0392b;
-  border-radius: 8px;
+  border: 1px solid var(--bk-color-danger);
+  background: var(--bk-color-danger-soft);
+  color: var(--bk-color-danger);
+  border-radius: var(--bk-radius-lg);
   padding: 0.5rem 0.8rem;
   font-weight: 600;
 }
 .boundary-fallback {
-  border: 1px dashed #b7950b;
-  color: #b7950b;
-  border-radius: 8px;
+  border: 1px dashed var(--bk-color-warning);
+  color: var(--bk-color-warning);
+  border-radius: var(--bk-radius-lg);
   padding: 0.6rem 0.8rem;
 }
 .sidecar-panel ul,
@@ -160,24 +167,24 @@ button {
 }
 .log-data {
   word-break: break-all;
-  color: #555;
+  color: var(--bk-color-fg-muted);
 }
 
 /* ---- slot 宿主（T0 最小落点，能力块 A）---- */
 .slot-demo {
-  margin-top: 2rem;
+  margin-top: var(--bk-space-6);
   text-align: left;
   max-width: 640px;
   margin-left: auto;
   margin-right: auto;
 }
 .extension-slot-banner {
-  border-left: 3px solid #b7950b;
-  background: rgba(183, 149, 11, 0.1);
-  color: #8a6d0b;
-  border-radius: 4px;
+  border-left: 3px solid var(--bk-color-warning);
+  background: var(--bk-color-warning-soft);
+  color: var(--bk-color-warning);
+  border-radius: var(--bk-radius-sm);
   padding: 0.4rem 0.7rem;
-  font-size: 0.9em;
+  font-size: var(--bk-font-size-sm);
   margin: 0.25rem 0;
 }
 
@@ -189,25 +196,25 @@ button {
 }
 .topbar {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--bk-space-3);
   align-items: center;
   padding: 0.6rem 1rem;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.3);
-  background: rgba(128, 128, 128, 0.08);
+  border-bottom: 1px solid var(--bk-color-border);
+  background: var(--bk-color-bg-muted);
   position: sticky;
   top: 0;
 }
 .topbar a {
   text-decoration: none;
   padding: 0.3rem 0.6rem;
-  border-radius: 6px;
+  border-radius: var(--bk-radius-md);
 }
 .topbar a:hover {
-  background: rgba(100, 108, 255, 0.12);
+  background: var(--bk-color-primary-soft);
 }
 .extension-page {
   max-width: 720px;
-  margin: 1.5rem auto;
+  margin: var(--bk-space-5) auto;
   padding: 0 1rem;
   text-align: left;
 }
@@ -218,22 +225,58 @@ button {
   margin-top: 0.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
+/* ---- 主题对照页（核心路由 /theme，令牌单一事实源 @berkshire/theme）---- */
+.theme-page {
+  padding-bottom: var(--bk-space-6);
+}
+.theme-group {
+  margin-top: var(--bk-space-4);
+  text-align: left;
+}
+.theme-group h2 {
+  border-bottom: 1px solid var(--bk-color-border);
+  padding-bottom: var(--bk-space-2);
+}
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--bk-space-3);
+  margin-top: var(--bk-space-3);
+}
+.bk-theme-swatch {
+  border: 1px solid var(--bk-color-border);
+  border-radius: var(--bk-radius-md);
+  padding: var(--bk-space-2);
+  background: var(--bk-color-bg-elevated);
+}
+.bk-theme-swatch-block {
+  display: flex;
+  border-radius: var(--bk-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--bk-color-border);
+}
+.bk-theme-swatch-stripe {
+  flex: 1 1 0;
+  height: 48px;
+}
+.bk-theme-swatch-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: var(--bk-space-2);
+  font-size: var(--bk-font-size-sm);
+}
+.bk-theme-swatch-var {
+  color: var(--bk-color-primary);
+  overflow-wrap: anywhere;
+}
+.bk-theme-swatch-label {
+  color: var(--bk-color-fg-muted);
+}
+.bk-theme-swatch-values {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  color: var(--bk-color-fg-subtle);
+  overflow-wrap: anywhere;
 }
