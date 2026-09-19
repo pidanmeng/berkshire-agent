@@ -5,10 +5,11 @@
  * （见 registry.ts 的 `SlotComponent<C>`）。本 map 约束 slot 名与其上下文的一一对应：
  * 写一个 slot 的组件，就等于吃死它的 context 形状——类型是下游插件的契约。
  *
- * 诚实标注（T0 边界）：这些 context 目前仅供 **webview 内直连注册的本地组件** 使用；
- * sidecar → webview 的 clientModules 链路（T1）与动态路由（T2）尚未接进来。届时
- * 跨 sidecar/Rust/webview 边界的 id（如 symbol）再品牌化为 `Branded<T>`，当前为
- * webview 本地域，暂用裸字符串。
+ * 诚实标注（边界）：这些 context 供 **webview 内注册的本地组件** 使用——sidecar 的
+ * clientModules 快照经 ClientModuleHost 汇入本表（T1），动态路由（能力块 B）按 `route.slot`
+ * 经 `ExtensionRoute` 触发渲染；插件包内组件跨包不 import 宿主，用**结构镜像**上下文
+ * 对齐（v2 共享类型层债务）。跨 sidecar/Rust/webview 边界的 id（如 symbol）仍为 webview
+ * 本地域裸字符串，品牌化为 `Branded<T>` 留 v2。
  */
 
 /** 个股查看视角（stock-preview.footer 上下文之一）。 */
@@ -42,7 +43,7 @@ export interface FrontendSlotContextMap {
     /** 触发宿主刷新列表。 */
     refresh: () => void
   }
-  /** 分析菜单（页面注入载体，能力块 B 的挂点）：宿主暂无上下文，占位给 T2 动态菜单用。 */
+  /** 分析菜单（页面注入载体，能力块 B/路由契约化的挂点）：插件自声明路由的页面内容经此槽渲染；宿主暂无上下文。 */
   "analysis.menu": Record<string, never>
 }
 

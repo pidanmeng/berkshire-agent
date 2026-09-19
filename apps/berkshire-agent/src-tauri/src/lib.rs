@@ -59,8 +59,8 @@ async fn client_list(state: BridgeState<'_>) -> Result<Vec<bridge::ClientModuleD
 }
 
 #[tauri::command]
-async fn menu_list(state: BridgeState<'_>) -> Result<Vec<bridge::MenuItemDto>, String> {
-    bridge_call(state, Bridge::menu_list).await
+async fn routes_list(state: BridgeState<'_>) -> Result<Vec<bridge::RouteDto>, String> {
+    bridge_call(state, Bridge::routes_list).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -68,8 +68,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // 启动即拉起 sidecar（T2：bridge 启动由 app.setup 触发）。
-            app.manage(Arc::new(Bridge::start(app.handle().clone())));
+            // 启动即拉起 sidecar（T2：bridge 启动由 app.setup 触发）；`start` 已返回 Arc，
+            // dev 态热更的后台 reload 循环由其内部线程承担。
+            app.manage(Bridge::start(app.handle().clone()));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -79,7 +80,7 @@ pub fn run() {
             notify_send,
             log_list,
             client_list,
-            menu_list
+            routes_list
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

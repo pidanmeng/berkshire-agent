@@ -10,7 +10,7 @@
 
 ## Summary
 
-协议用**换行分隔 JSON（`application/x-ndjson`）**跑在 sidecar 的 **stdio** 上：`stdout` 只承载协议（sidecar 发给宿主的响应 + 事件推送），`stdin` 只收宿主发来的请求，`stderr` 仅供日志、绝不混协议。报文是**简版 JSON-RPC 2.0 子集**（请求 `{id,method,params}`、响应 `{id,result|error}`、宿主主动事件 `{event,payload}`），第一批方法面只盖住 v1 能力（`capabilities/list`、`capabilities/usable`、`notify/send`、`log/list`、`client/list`、`menu/list` + 生命周期 `shutdown`），够证明「结构对」即可，不贪多。sidecar 上报一个内部事件就推一行事件，宿主再决定是否转成 Tauri event 给 webview。
+协议用**换行分隔 JSON（`application/x-ndjson`）**跑在 sidecar 的 **stdio** 上：`stdout` 只承载协议（sidecar 发给宿主的响应 + 事件推送），`stdin` 只收宿主发来的请求，`stderr` 仅供日志、绝不混协议。报文是**简版 JSON-RPC 2.0 子集**（请求 `{id,method,params}`、响应 `{id,result|error}`、宿主主动事件 `{event,payload}`），第一批方法面只盖住 v1 能力（`capabilities/list`、`capabilities/usable`、`notify/send`、`log/list`、`client/list`、`routes/list` + 生命周期 `shutdown`），够证明「结构对」即可，不贪多。sidecar 上报一个内部事件就推一行事件，宿主再决定是否转成 Tauri event 给 webview。
 
 主要代价：它是**一次性进程契约**，跨进程只传 JSON、无类型化编解码（rspc/specta typed bridge 标 v2，见 [secondary-development.md §8](../../docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）；持续高频行情不推荐逐 tick 走这条桥（见 [architecture.md §2](../../docs/architecture.md#2-运行时拓扑) 高吞吐路径）。
 
@@ -71,6 +71,11 @@
 - 与请求/响应**并行交错**出现在 `stdout`；以**无 `id` + 有 `event`** 判型，不与响应混淆。
 - 事件名保持域前缀（`notify` / `capabilities`），见下方事件推送节。
 
+> **dev 态插件热更（仅 dev）**：宿主 debug 构建注入 `BK_DEV_HOTRELOAD=1` 时，sidecar 额外推送
+> `{ "event": "dev/reload-requested", "payload": { "path": "<变更文件>" } }`——宿主收到后重启
+> sidecar 以加载新「样式字符串 / slot·route·bundle 声明」（组件 `.tsx` 归 webview 的 Vite Fast
+> Refresh，不经此）。release / 无此环境变量时不附加 watcher、不发此事件（惰性），行为不变。
+
 ## 方法面（v1 最小面）
 
 | method | params | result | 说明 |
@@ -80,7 +85,7 @@
 | `notify/send` | `{ message, level?, channel? }` | `string[]` | 触发 `notify/request` 事件 + 记录进 `ctx.log`；返回 `delivered[]`（实际投递成功的 provider id） |
 | `log/list` | `{ event? }` | `LogEntry[]` | 追加式只读快照；`event` 缺省返回全量，否则按事件名过滤 |
 | `client/list` | `{}` | `{ id, slot, bundle, style? }[]` | client 插件图快照（T1）：slot → bundle 清单，直接投 `ctx.clientModules` 注册表；`id` 品牌化 `ClientModuleId`、`slot` 为 `SlotName`、`style` 为 scoped 样式字符串 |
-| `menu/list` | `{}` | `{ id, order, title, path }[]` | 动态菜单快照（T2/能力块 B）：`analysis.menu` 的已排序导航项，直接投 `ctx.slots.menu()`（每个 path 均静态、不覆盖核心路由）；webview 据此生成导航 + 路由 |
+| `routes/list` | `{}` | `{ id, order, title, path, slot }[]` | 动态路由/导航快照（能力块 B，路由契约化）：**任意 slot** 上带 `route` 声明的已排序导航项（含 `slot` 归属），直接投 `ctx.slots.routes()`（每个 path 均静态、不覆盖核心路由、URL 空间全局唯一）；webview 据此生成导航 + 路由 |
 | `shutdown` | `{}` | `null` | 触发 boot 逆序销毁后 `process.exit(0)`（见生命周期） |
 
 参数/返回类型对齐 v1 类型（[core/src/types.ts](../core/src/types.ts)）：`message: string`、`level?: 'info'|'warn'|'error'`、`channel?: string`；`LogEntry = { id, event, data, at }`。
@@ -148,7 +153,7 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 ## 复现与验收
 
 - **T0 契约**：本文含「一个请求 + 一个事件推送」两段原始 ndjson 字节样例（见上，与 T1 实测输出一致）。
-- **T1 落地复现**（已跑通）：`bun run packages/sidecar/examples/smoke.ts` —— 覆盖六方法 round-trip（`capabilities/list`、`notify/send`、`capabilities/usable`、`log/list`、`client/list`、`menu/list`）+ 事件推送 `notify/request` + 未知方法 fail-closed（`-32601`）+ shutdown 退出码 0，并隐式校验 stdout 只承载协议。T1/T2 另在 `packages/sidecar/src/index.ts` 手写注册测试 client 模块（`client/demo-minimal.js` → `stock-preview.footer` + scoped 样式）与分析菜单项（`demo-analysis` → `/analysis/demo` + `client/demo-analysis.js` → `analysis.menu`），供 webview `ClientModuleHost` 挂载与动态路由/导航生成。
+- **T3 demo 插件落地复现**（已跑通）：`bun run packages/sidecar/examples/smoke.ts` —— 六方法 round-trip（`capabilities/list`、`notify/send`、`capabilities/usable`、`log/list`、`client/list`、`routes/list`）+ 事件推送 `notify/request` + 未知方法 fail-closed（`-32601`）+ shutdown 退出码 0，并隐式校验 stdout 只承载协议。sidecar 启动时经 bundle 层叠入 `@berkshire/plugin-demo`，`client/list` 给出 demo 插件 3 条注册（`demo-fund-flow` → `stock-preview.footer`、`demo-watchlist-toolbar` → `watchlist.toolbar`、`demo-money-flow` → `analysis.menu`，各带 scoped 样式），`routes/list` 给出 `demo-money-flow` → `/analysis/money-flow`（slot `analysis.menu`，路由契约化：任意 slot 的 `route` 声明）。boot 级 enable/disable 复现见 `bun run packages/plugins/demo/examples/smoke.ts`。
 - **仍未落地**：持久化（DuckDB）。（T2 Rust 桥、T3 webview 薄客户端均已落地 v1，见 [architecture.md §11](../../docs/architecture.md#11-关键文件索引现状--目标)。）
 
 ## 交叉引用

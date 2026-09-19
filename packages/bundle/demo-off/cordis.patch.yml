@@ -1,0 +1,4 @@
+# demo-off bundle 补丁：把 demo 那一行整行覆盖为 `disabled: true`（按 id 整体替换，见 docs/config.md §4）。
+# 叠加顺序 [base, demo, demo-off] → demo 被禁；[base, demo] → demo 启用。用来复现「装上即出现、卸下即消失」。
+- id: demo
+  disabled: true

@@ -109,7 +109,7 @@ export function apply(ctx: Context) {
     id: 'money-flow',
     order: 30,
     title: '资金流向',
-    route: { path: '/analysis/money-flow', staticOnly: true },
+    route: { path: '/analysis/money-flow' },
   })
   return ctx.analysis.registerHandler('money-flow', async (p: { symbol: SymbolId; range?: string }) => {
     const rows = await ctx.database.query(

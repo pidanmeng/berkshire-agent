@@ -7,14 +7,18 @@ import { loadClientModule, moduleStyleTag } from "./loader"
 
 describe("loadClientModule（client/list 快照 → 本地模块）", () => {
   test("已知 bundle → 返回本地模块定义", () => {
-    const def = loadClientModule("client/demo-minimal.js")
-    expect(def).toBeDefined()
-    expect(def?.bundle).toBe("client/demo-minimal.js")
-    expect(typeof def?.component).toBe("function")
+    const footer = loadClientModule("client/demo-fund-flow.js")
+    expect(footer).toBeDefined()
+    expect(footer?.bundle).toBe("client/demo-fund-flow.js")
+    expect(typeof footer?.component).toBe("function")
 
-    const analysis = loadClientModule("client/demo-analysis.js")
-    expect(analysis?.bundle).toBe("client/demo-analysis.js")
-    expect(typeof analysis?.component).toBe("function")
+    const toolbar = loadClientModule("client/demo-watchlist-toolbar.js")
+    expect(toolbar?.bundle).toBe("client/demo-watchlist-toolbar.js")
+    expect(typeof toolbar?.component).toBe("function")
+
+    const menu = loadClientModule("client/demo-money-flow.js")
+    expect(menu?.bundle).toBe("client/demo-money-flow.js")
+    expect(typeof menu?.component).toBe("function")
   })
 
   test("未知 bundle → undefined（调用方 fail-closed 降级）", () => {

@@ -130,8 +130,9 @@ describe('sidecar 进程端到端', () => {
       expect(sh.error).toBeUndefined()
       expect(await s.waitExit()).toBe(0)
 
-      // 逆序销毁顺序写入 stderr（waitExit 等待 close，末帧已送达）
-      expect(s.stderrLines().join('')).toContain('dispose order = notify-console -> core')
+      // 逆序销毁顺序写入 stderr（waitExit 等待 close，末帧已送达）。
+      // T3 起 base 里叠了 demo 插件行，故卸除顺序为 demo -> notify-console -> core（后装先卸）。
+      expect(s.stderrLines().join('')).toContain('dispose order = demo -> notify-console -> core')
     } finally {
       s.stop()
     }

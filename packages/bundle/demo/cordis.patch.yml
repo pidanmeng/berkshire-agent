@@ -1,0 +1,5 @@
+# demo bundle 补丁：装上 demo 插件（于是贡献 footer 组件 + toolbar 组件 + 资金流向页，含 scoped 样式）。
+# 与 base 叠加后 sidecar 启动即出现 demo 贡献；要验证「卸下即消失」，叠加 layers 里再加 demo-off。
+- insert:
+    - id: demo
+      name: '@berkshire/plugin-demo'

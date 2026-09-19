@@ -50,12 +50,13 @@ export interface ClientChangedEvent {
   kind: "slots" | "clientModules";
 }
 
-/** 动态菜单项（T2：analysis.menu → 导航 + 路由）。 */
-export interface MenuEntry {
+/** 动态路由/导航项（路由契约化：插件自声明，任意 slot 的 `route`；含 slot 归属 → 页面渲染槽）。 */
+export interface RouteEntry {
   id: string;
   order: number;
   title: string;
   path: string;
+  slot: string;
 }
 
 export interface LogEntry {
@@ -108,9 +109,9 @@ export function clientList(): Promise<ClientModule[]> {
   return withTimeout(invoke<ClientModule[]>("client_list"), "client_list");
 }
 
-/** 拉取动态菜单快照（T2：`menu/list` → 导航 + 路由）。 */
-export function menuList(): Promise<MenuEntry[]> {
-  return withTimeout(invoke<MenuEntry[]>("menu_list"), "menu_list");
+/** 拉取动态路由/导航快照（路由契约化：`routes/list` → 导航 + 路由）。 */
+export function routesList(): Promise<RouteEntry[]> {
+  return withTimeout(invoke<RouteEntry[]>("routes_list"), "routes_list");
 }
 
 /** 订阅 sidecar 透传的 `client/changed` 事件；返回退订函数。 */

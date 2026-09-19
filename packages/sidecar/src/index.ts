@@ -14,13 +14,14 @@ import { resolve } from 'node:path'
 import { parse } from 'yaml'
 import * as core from '@berkshire/core'
 import * as notify from '@berkshire/plugin-notify-console'
-import type { ClientModuleId } from '@berkshire/core'
+import * as demo from '@berkshire/plugin-demo'
 import { Boot } from '@berkshire/boot'
 import type { PatchOverlay } from '@berkshire/boot'
 import { createLineWriter } from './writer'
 import { handleLine } from './protocol'
 import type { HandleLineDeps } from './protocol'
 import { attachEventPusher } from './events'
+import { attachDevWatcher } from './dev_watch'
 
 /** 仓库根：packages/sidecar/src → ../../../（bun 的 import.meta.dir 即本文件目录）。 */
 const REPO = resolve(import.meta.dir, '../../..')
@@ -29,6 +30,7 @@ const resolver = (name: string) =>
   ({
     '@berkshire/core': core,
     '@berkshire/plugin-notify-console': notify,
+    '@berkshire/plugin-demo': demo,
   })[name]
 
 async function main(): Promise<void> {
@@ -36,11 +38,14 @@ async function main(): Promise<void> {
 
   // base bundle 显式引用真实 patch 文件（T0：BaseBundle 由 sidecar 显式引用）。
   const basePatch = parse(readFileSync(resolve(REPO, 'packages/bundle/base/cordis.patch.yml'), 'utf8')) as PatchOverlay
+  // T3：把 demo 插件 bundle 也叠进装配——装上即出现 footer/toolbar 组件 + 资金流向页 + scoped 样式。
+  // 要复现「卸下即消失」，把 demo-off bundle patch 叠进 layers（见 packages/plugins/demo/examples/smoke.ts）。
+  const demoPatch = parse(readFileSync(resolve(REPO, 'packages/bundle/demo/cordis.patch.yml'), 'utf8')) as PatchOverlay
   // T0 协议：stdout 独占协议流。notify-console 默认 echo:true 会 console.log 到 stdout，
   // 必须在装配时按 id 整体覆盖其 config 把 echo 关掉（composeEntries 的整行替换语义）。
   const override: PatchOverlay = [{ id: 'notify-console', config: { channel: 'console', echo: false } }]
 
-  await boot.mountFromLayers([basePatch, override], resolver, (msg) =>
+  await boot.mountFromLayers([basePatch, demoPatch, override], resolver, (msg) =>
     process.stderr.write(`[sidecar][patch] ${msg}\n`),
   )
   process.stderr.write(`[sidecar] booted; active=${boot.activeCount}\n`)
@@ -49,36 +54,22 @@ async function main(): Promise<void> {
   // 事件订阅在装配完成后挂上：装配期间的能力注册不推送，host 用 capabilities/list 拉首次快照。
   const detachEvents = attachEventPusher(boot.ctx, (line) => writer.write(line))
 
-  // T1 最小 client 插件（能力块 A+C 的最小证明面）：sidecar 侧「手写注册到 core 的测试 bundle」
-  // 声明要挂到 `stock-preview.footer` 的一个前端 bundle + scoped 样式。由 webview 的
-  // ClientModuleHost 经 `client/list` 拉取并挂载到本地模块。T3 会以正式 demo 插件替换它。
-  // 样式字符串里的 `.bk-demo-minimal` 类名在 webview 侧模块内使用，被 scoped 加载器隔离。
-  boot.ctx.slots.register('stock-preview.footer', { id: 'demo-minimal', order: 20 })
-  boot.ctx.clientModules.register({
-    id: 'demo-minimal' as ClientModuleId,
-    slot: 'stock-preview.footer',
-    bundle: 'client/demo-minimal.js',
-    style: '.bk-demo-minimal { display:block; margin:.35rem 0; padding:.5rem .8rem; border:1px dashed #2e86de; border-radius:8px; color:#1f618d; background:rgba(46,134,222,.08); font-size:.9em; }',
-  })
-
-  // T2 client 页面（能力块 B）：声明一个 `analysis.menu` 动态菜单项（静态、不覆盖核心路由）+
-  // 一个 analysis 分析页 client 模块，webview 据此生成导航 + 路由 + 页面内容。
-  boot.ctx.slots.register('analysis.menu', {
-    id: 'demo-analysis',
-    order: 30,
-    title: 'Demo 分析页',
-    route: { path: '/analysis/demo', staticOnly: true },
-  })
-  boot.ctx.clientModules.register({
-    id: 'demo-analysis' as ClientModuleId,
-    slot: 'analysis.menu',
-    bundle: 'client/demo-analysis.js',
-    style: '.bk-demo-analysis { display:block; margin:.5rem 0; padding:.8rem 1rem; border:1px solid #27ae60; border-radius:8px; color:#1e8449; background:rgba(39,174,96,.08); font-size:.95em; }',
-  })
+  // dev 态插件热更（宿主在 dev 启动时注入 BK_DEV_HOTRELOAD=1）：sidecar 半身文件变更 →
+  // 推 `dev/reload-requested`，宿主收到后重启本进程以加载新声明/样式，并推 `client/changed`
+  // 让 webview 重拉快照。组件 `.tsx` 不在 watcher 内（归 Vite Fast Refresh）。生产不附加。
+  let detachDevReload: (() => void) | undefined
+  if (process.env['BK_DEV_HOTRELOAD'] === '1') {
+    detachDevReload = attachDevWatcher(REPO, (path) => {
+      process.stderr.write(`[sidecar][dev] hot-reload requested (${path})\n`)
+      writer.write(JSON.stringify({ event: 'dev/reload-requested', payload: { path } }))
+      void writer.flush()
+    })
+  }
 
   const deps: HandleLineDeps = { ctx: boot.ctx }
 
   const teardown = async () => {
+    detachDevReload?.()
     detachEvents()
     const order = await boot.dispose() // 逆序清理：后装先卸（v1 §8 已验证语义）。
     process.stderr.write(`[sidecar] shutdown: dispose order = ${order.join(' -> ')}\n`)

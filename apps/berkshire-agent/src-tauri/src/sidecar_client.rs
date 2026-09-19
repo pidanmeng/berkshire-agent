@@ -71,6 +71,10 @@ impl SidecarClient {
     pub fn spawn(cmd_line: &[String], on_event: Option<Arc<EventFn>>) -> Result<Self, SidecarError> {
         let mut cmd = Command::new(&cmd_line[0]);
         cmd.args(&cmd_line[1..]);
+        // dev 态插件热更：debug 构建拉起 sidecar 时注入开关，sidecar 据此附加 watcher
+        //（插件 sidecar 半身/样式变更 → dev/reload-requested → 宿主重启 reify）。release 不加。
+        #[cfg(debug_assertions)]
+        cmd.env("BK_DEV_HOTRELOAD", "1");
         cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
         let mut child = cmd.spawn()?;
         let stdin = child.stdin.take().ok_or_else(|| SidecarError { message: "no stdin pipe".into() })?;

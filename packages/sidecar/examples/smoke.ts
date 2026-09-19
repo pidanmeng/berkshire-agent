@@ -122,20 +122,34 @@ async function main(): Promise<void> {
   const clients = await s.request('client/list')
   if (clients.error) fail(`client/list error: ${clients.error.message}`)
   const carr = clients.result as Array<{ id: string; slot: string; bundle: string }>
-  const demo = carr.find((c) => c.id === 'demo-minimal')
-  if (!demo || demo.slot !== 'stock-preview.footer' || demo.bundle !== 'client/demo-minimal.js') {
-    fail(`client/list 应含 demo-minimal → stock-preview.footer，got ${JSON.stringify(carr)}`)
+  const byId = new Map(carr.map((c) => [c.id, c]))
+  if (carr.length !== 3) fail(`T3 demo 插件应注册 3 个 client 模块，got ${JSON.stringify(carr)}`)
+  const footer = byId.get('demo-fund-flow')
+  if (!footer || footer.slot !== 'stock-preview.footer' || footer.bundle !== 'client/demo-fund-flow.js') {
+    fail(`client/list 应含 demo-fund-flow → stock-preview.footer，got ${JSON.stringify(carr)}`)
+  }
+  if (!byId.has('demo-watchlist-toolbar')) {
+    fail(`client/list 应含 demo-watchlist-toolbar，got ${JSON.stringify(carr)}`)
+  }
+  const menu = byId.get('demo-money-flow')
+  if (!menu || menu.slot !== 'analysis.menu' || menu.bundle !== 'client/demo-money-flow.js') {
+    fail(`client/list 应含 demo-money-flow → analysis.menu，got ${JSON.stringify(carr)}`)
   }
   console.log('✓ client/list →', JSON.stringify(carr))
 
-  const menus = await s.request('menu/list')
-  if (menus.error) fail(`menu/list error: ${menus.error.message}`)
-  const marr = menus.result as Array<{ id: string; title: string; path: string }>
-  const analysis = marr.find((m) => m.id === 'demo-analysis')
-  if (!analysis || analysis.title !== 'Demo 分析页' || analysis.path !== '/analysis/demo') {
-    fail(`menu/list 应含 demo-analysis → /analysis/demo，got ${JSON.stringify(marr)}`)
+  const routes = await s.request('routes/list')
+  if (routes.error) fail(`routes/list error: ${routes.error.message}`)
+  const rarr = routes.result as Array<{ id: string; title: string; path: string; slot: string }>
+  const analysis = rarr.find((r) => r.id === 'demo-money-flow')
+  if (
+    !analysis ||
+    analysis.title !== '资金流向（demo）' ||
+    analysis.path !== '/analysis/money-flow' ||
+    analysis.slot !== 'analysis.menu'
+  ) {
+    fail(`routes/list 应含 demo-money-flow → /analysis/money-flow（slot=analysis.menu），got ${JSON.stringify(rarr)}`)
   }
-  console.log('✓ menu/list →', JSON.stringify(marr))
+  console.log('✓ routes/list →', JSON.stringify(rarr))
 
   const bogus = await s.request('no/such/method')
   if (!bogus.error || bogus.error.code !== -32601) fail(`未知方法应返回 -32601，got ${JSON.stringify(bogus)}`)

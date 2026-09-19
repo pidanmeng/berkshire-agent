@@ -6,8 +6,9 @@
  * `compact` 态失败降级为 null（不留占位），否则显示 muted 横幅 + 控制台日志（由
  * `ExtensionBoundary.componentDidCatch` 负责打日志）。暂无注册也正常渲染空（返回 null）。
  *
- * 诚实标注（T0 边界）：这里只渲染「webview 内已本地注册」的组件（T0 证明渲染器本身）；
- * clientModules 快照驱动挂载（T1）、动态路由（T2）尚未接到本组件。
+ * 诚实标注（T0 → 已被 T1/路由接上）：这里渲染「webview 内已注册」的组件——sidecar 的
+ * clientModules 快照经 `ClientModuleHost` 汇入本注册表（T1）；插件自声明的动态路由页也经本组件按
+ * `route.slot` 渲染（见 `src/routes/ExtensionRoute.tsx`）。挂点/扩展点归宿主，页面内容仍归插件。
  */
 import { useSyncExternalStore, type ReactNode } from "react"
 import { ExtensionBoundary } from "../lib/ExtensionBoundary"

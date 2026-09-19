@@ -32,41 +32,92 @@ pub struct ClientModuleDto {
     pub style: Option<String>,
 }
 
-/// 动态菜单项（`menu/list` 结果，能力块 B/页面）：分析菜单的已排序导航项。
+/// 动态路由/导航项（`routes/list` 结果，能力块 B/页面，路由契约化）：所有带 `route` 声明的已排序导航项
+///（任意 slot，含 `slot` 归属——webview 按它渲染页面内容槽，不再写死 analysis.menu）。
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
-pub struct MenuItemDto {
+pub struct RouteDto {
     pub id: String,
     pub order: u64,
     pub title: String,
     pub path: String,
+    pub slot: String,
 }
 
 pub struct Bridge {
     client: RwLock<Option<Arc<SidecarClient>>>,
     app: Arc<AppHandle>,
     entry_cmd: Vec<String>,
+    /// dev 态插件热更：sidecar 推 `dev/reload-requested` 时由 on_event 转发到这里，
+    /// 后台线程收到后重启 sidecar 以重装配新声明/样式。生产 sidecar 不发此事件 → 惰性。
+    reload_tx: std::sync::mpsc::Sender<()>,
 }
 
 impl Bridge {
-    pub fn start(app: AppHandle) -> Self {
+    pub fn start(app: AppHandle) -> Arc<Self> {
         let app = Arc::new(app);
-        let bridge = Self {
+        let (reload_tx, reload_rx) = std::sync::mpsc::channel::<()>();
+        let bridge = Arc::new(Self {
             client: RwLock::new(None),
             entry_cmd: default_entry_command(),
             app,
-        };
+            reload_tx,
+        });
         bridge.spawn_client();
+        let reload_self = Arc::clone(&bridge);
+        reload_self.spawn_reload_loop(reload_rx);
         bridge
+    }
+
+    /// 后台 reload 循环（持有 `Arc<Self>` 以便重启+推事件）：收到 dev/reload-requested →
+    /// 重启 sidecar（新声明/样式生效），随后主动推 `sidecar://client/changed` 让 webview 的
+    /// ClientModuleHost + RouteSync 重拉 `client/list` + `routes/list` 快照（组件由 Vite
+    /// Fast Refresh 负责，不经本路径）。
+    fn spawn_reload_loop(self: Arc<Self>, rx: std::sync::mpsc::Receiver<()>) {
+        std::thread::spawn(move || {
+            while rx.recv().is_ok() {
+                self.restart();
+                // 就绪探测：`restart()` 的 spawn_client 只是拉起进程、无 booted 握手，直接推
+                // 脉冲会让 webview 抢在 mountFromLayers 完成前重拉，拿到中间态/超时。这里等新
+                // sidecar 能应答一次 `client/list`（其阻塞请求会在 boot 后被其读线程处理，故首次
+                // 成功即视为就绪）再推。有界重试，dev-only；探测失败也照样推（fail-open 保命）。
+                self.wait_ready_probe();
+                // 关键：脉冲必须带 `kind: clientModules`——webview 的 ClientModuleHost 只对
+                // `kind==='clientModules'` 重拉 client/list（见 ClientModuleHost.tsx）；RouteSync
+                // 无条件刷 `routes/list`，两种快照都随之刷新。
+                let _ = self
+                    .app
+                    .emit("sidecar://client/changed", serde_json::json!({ "kind": "clientModules" }));
+            }
+        });
+    }
+
+    /// dev 热更后等新 sidecar 就绪的探测。`client_list()` 是阻塞请求，内部会一直等到新 sidecar
+    /// boot 完并开始应答；仅当 boot 失败/崩溃时靠有界重试兜底（避免死等），仍不达则告警并放行。
+    fn wait_ready_probe(&self) {
+        const ATTEMPTS: u32 = 10;
+        const SLEEP_MS: u64 = 150;
+        for _attempt in 0..ATTEMPTS {
+            if self.client_list().is_ok() {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(SLEEP_MS));
+        }
+        eprintln!("[bridge] dev 热更就绪探测未达（新 sidecar 长期未应答 client/list），仍推送 client/changed");
     }
 
     /// spawn/start：拉起 sidecar。失败时不 panic（可靠降级为「bridge 不可用」，
     /// 命令返回显式错误，宿主页仍可交互——遵循 ExtensionBoundary 精神）。
     fn spawn_client(&self) {
         let app = Arc::clone(&self.app);
+        let reload_tx = self.reload_tx.clone();
         let on_event: Arc<EventFn> = Arc::new(move |ev: &str, payload: &Value| {
             // T0 规则：事件名保持域前缀 sidecar://<event>
             let event = format!("sidecar://{ev}");
             let _ = app.emit(event.as_str(), payload.clone());
+            // 仅 dev 态 sidecar 推送此事件；事务在后台 reload 循环处理（此处只投递，不阻塞读线程）。
+            if ev == "dev/reload-requested" {
+                let _ = reload_tx.send(());
+            }
         });
         *self.client.write().unwrap() = match SidecarClient::spawn(&self.entry_cmd, Some(on_event)) {
             Ok(client) => {
@@ -162,10 +213,10 @@ impl Bridge {
         Ok(out)
     }
 
-    /// 动态菜单快照（T2）：`analysis.menu` 的已排序导航项，供 webview 生成导航 + 路由。
-    pub fn menu_list(&self) -> Result<Vec<MenuItemDto>, String> {
-        let v = self.call("menu/list", Value::Object(Default::default()))?;
-        let arr = v.as_array().ok_or_else(|| "menu/list 返回非数组".to_string())?;
+    /// 动态路由/导航快照（路由契约化）：所有带 `route` 声明的导航项（含 `slot`），供 webview 生成导航 + 路由。
+    pub fn routes_list(&self) -> Result<Vec<RouteDto>, String> {
+        let v = self.call("routes/list", Value::Object(Default::default()))?;
+        let arr = v.as_array().ok_or_else(|| "routes/list 返回非数组".to_string())?;
         let mut out = Vec::with_capacity(arr.len());
         for item in arr {
             out.push(serde_json::from_value(item.clone()).map_err(|e| e.to_string())?);

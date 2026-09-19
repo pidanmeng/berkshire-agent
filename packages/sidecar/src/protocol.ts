@@ -126,9 +126,10 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
       // 跨边界 id 走品牌化 `ClientModuleId`，序列化为纯字符串给 Rust/webview。
       return ctx.clientModules.list()
 
-    case 'menu/list':
-      // 动态菜单快照（能力块 B/页面）：`analysis.menu` 的已排序导航项（静态路径、不覆盖核心）。
-      return ctx.slots.menu()
+    case 'routes/list':
+      // 动态路由/导航快照（能力块 B/页面，路由契约化）：所有带 `route` 声明的已排序导航项
+      // （任意 slot，含 slot 归属；静态路径、不覆盖核心、全局唯一）。
+      return ctx.slots.routes()
 
     default:
       throw new ProtocolError(ESC.METHOD, `unknown method "${method}"`)

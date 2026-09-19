@@ -6,9 +6,9 @@ import "./App.css";
 import SidecarPanel from "./components/SidecarPanel";
 import ExtensionSlot from "./slots/ExtensionSlot";
 import ClientModuleHost from "./client/ClientModuleHost";
-import MenuSync from "./menu/MenuSync";
-import { menuStore } from "./menu/menuStore";
-import ExtensionRoute from "./menu/ExtensionRoute";
+import RouteSync from "./routes/RouteSync";
+import { routesStore } from "./routes/routesStore";
+import ExtensionRoute from "./routes/ExtensionRoute";
 
 /** 核心路由 `/`：主界面（hero + slot 演示 + sidebar 面板）。 */
 function HomePage() {
@@ -58,7 +58,8 @@ function HomePage() {
       <section className="slot-demo">
         <h2>slot 宿主 demo（stock-preview.footer）</h2>
         <p className="hint">
-          bridge 可用时此处会出现 sidecar 声明的 client 模块及其 scoped 样式；不可用时为空（fail-closed）。
+          bridge 可用时此处会出现 <code>@berkshire/plugin-demo</code> 贡献的底部组件（fund-flow）及其
+          scoped 样式；不可用时为空（fail-closed），卸下插件后样式一并移除。
         </p>
         <ExtensionSlot
           name="stock-preview.footer"
@@ -92,25 +93,25 @@ function NotFound() {
 }
 
 function App() {
-  // 动态菜单（T2）：从 menuStore 反应式读取 sidecar 的 analysis.menu 已排序导航。
-  const menuItems = useSyncExternalStore(
-    menuStore.subscribe,
-    menuStore.getSnapshot,
-    menuStore.getSnapshot,
+  // 动态路由（路由契约化）：从 routesStore 反应式读取 sidecar 的插件自声明路由（含 slot）。
+  const routes = useSyncExternalStore(
+    routesStore.subscribe,
+    routesStore.getSnapshot,
+    routesStore.getSnapshot,
   );
 
   return (
     <div className="app">
-      {/* T2：拉取 sidecar menu/list 快照汇入 menuStore；T1：汇入 client 模块到 slotRegistry。均无 UI。 */}
-      <MenuSync />
+      {/* 路由契约化：RouteSync 拉取 sidecar routes/list 快照汇入 routesStore；ClientModuleHost 汇入 client 模块到 slotRegistry。均无 UI。 */}
+      <RouteSync />
       <ClientModuleHost />
 
       <nav className="topbar">
         <Link to="/">首页</Link>
         <Link to="/settings">设置</Link>
-        {menuItems.map((m) => (
-          <Link key={m.path} to={m.path}>
-            {m.title}
+        {routes.map((r) => (
+          <Link key={r.path} to={r.path}>
+            {r.title}
           </Link>
         ))}
       </nav>
@@ -118,9 +119,9 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        {/* 动态分析菜单路由：静态路径、不覆盖核心；每项指向 ExtensionRoute（slot 渲染器 + ExtensionBoundary）。 */}
-        {menuItems.map((m) => (
-          <Route key={m.path} path={m.path} element={<ExtensionRoute title={m.title} />} />
+        {/* 插件自声明动态路由（静态路径、不覆盖核心、全局唯一）；每项按 route.slot 指向槽渲染器 + ExtensionBoundary。 */}
+        {routes.map((r) => (
+          <Route key={r.path} path={r.path} element={<ExtensionRoute title={r.title} slot={r.slot} />} />
         ))}
         <Route path="*" element={<NotFound />} />
       </Routes>
