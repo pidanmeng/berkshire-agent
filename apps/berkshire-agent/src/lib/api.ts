@@ -16,6 +16,8 @@ import { listen } from "@tauri-apps/api/event";
 type Branded<T, S extends string> = T & { readonly __brand: S };
 /** 能力 id：跨边界 opaque，禁止凭字符串格式猜类型。 */
 export type CapabilityId = Branded<string, "capability">;
+/** client 模块 id：跨边界 opaque（镜像 @berkshire/core 的 ClientModuleId）。 */
+export type ClientModuleId = Branded<string, "client-module">;
 
 export interface Capability {
   id: CapabilityId;
@@ -34,6 +36,18 @@ export interface NotifyPayload {
 export interface CapabilitiesChangedEvent {
   capability: CapabilityId;
   usable: boolean;
+}
+
+/** client 插件图快照项（T1：slot → bundle 清单）。 */
+export interface ClientModule {
+  id: ClientModuleId;
+  slot: string;
+  bundle: string;
+  style?: string;
+}
+
+export interface ClientChangedEvent {
+  kind: "slots" | "clientModules";
 }
 
 export interface LogEntry {
@@ -79,6 +93,18 @@ export function notifySend(
 
 export function logList(event?: string): Promise<LogEntry[]> {
   return withTimeout(invoke<LogEntry[]>("log_list", { event }), "log_list");
+}
+
+/** 拉取 client 插件图快照（T1：`client/list` → ClientModuleHost 挂载）。 */
+export function clientList(): Promise<ClientModule[]> {
+  return withTimeout(invoke<ClientModule[]>("client_list"), "client_list");
+}
+
+/** 订阅 sidecar 透传的 `client/changed` 事件；返回退订函数。 */
+export function onClientChanged(cb: (payload: ClientChangedEvent) => void): Promise<() => void> {
+  return listen<ClientChangedEvent>("sidecar://client/changed", (e) =>
+    cb(e.payload),
+  ).then((unlisten) => unlisten);
 }
 
 /** 订阅 sidecar 透传的 `notify/request` 事件；返回退订函数。 */

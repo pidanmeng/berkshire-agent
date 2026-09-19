@@ -1,16 +1,24 @@
 /**
- * slot 注册表（T0 最小落点，能力块 A 的地基）。
+ * slot 注册表（T0 最小落点，能力块 A 的地基；T1 补上反应式订阅）。
  *
  * 宿主预挖固定槽位（见 types.ts 的 `FrontendSlotContextMap`），插件往槽里挂 React 组件。
  * 本模块负责：运行时校验（id 格式 / 重复 id / API 版本 / 未知槽位）、按 `order` 排序、
  * 返回「可逆 disposer」，并让 `ExtensionSlot` 按槽位取快照渲染。
  *
- * 诚实标注（T0 边界）：注册表只存 **webview 内直连注册的本地组件**，用于证明 slot 渲染器
- * 本身正确；sidecar 侧推向 webview 的 clientModules（T1）与动态路由（T2）尚未接到这里。
- * 路由、store 仍是目标态。
+ * T1：本表还提供 `subscribe` / `getSnapshot`（useSyncExternalStore 用的反应式契约），
+ * 使 sidecar 快照经 `ClientModuleHost` 注册进来的组件能被 `ExtensionSlot` 实时重渲染
+ * （注册/卸除即 bump + 通知，卸载后样式与组件一并移除）。
+ *
+ * 诚实标注（T0/T1 边界）：注册表只存 **webview 内直连注册的本地组件**，用于证明 slot 渲染器
+ * 本身正确；sidecar 侧 `ctx.slots`/`ctx.clientModules` 能力缝（T1 落地于 packages/core）
+ * 经 `client/list` 快照 + `ClientModuleHost` 汇入本表。远程 `bk://` bundle、HMR、store 仍目标态。
  */
 import type { ComponentType } from "react"
-import { FRONTEND_SLOT_NAMES, type FrontendSlotContextMap, type FrontendSlotName } from "./types"
+import {
+  FRONTEND_SLOT_NAMES,
+  type FrontendSlotContextMap,
+  type FrontendSlotName,
+} from "./types"
 
 /** 当前宿主约定的 slot API 版本（跨边界演进时的版本栅栏；现唯一值 1）。 */
 export const SLOT_API_VERSION = 1
@@ -26,7 +34,7 @@ export type SlotComponent<C extends object> = ComponentType<{ context: C }>
 
 /** 一次 slot 注册的声明。 */
 export interface SlotRegistration<C extends object> {
-  /** 插件稳定 id（`owner:段[:段…]`，owner 后接 1..4 段，冒号分隔，同一槽内须唯一）。 */
+  /** 插件稳定 id（`owner:name` 命名空间式，同一槽内须唯一）。 */
   id: string
   /** 渲染组件，接收该槽位的 `context`。 */
   component: SlotComponent<C>
@@ -41,10 +49,36 @@ type StoredSlotRegistration = SlotRegistration<object> & { order: number }
 
 /**
  * 前端 slot 注册表（宿主中枢，不实现业务 UI）。新增/修改/删除都经这里，返回 disposer，
- * 调用方可热卸不泄漏（注册即效应）。
+ * 调用方可热卸不泄漏（注册即效应）；带反应式订阅供 `ExtensionSlot` 实时重渲染。
  */
 export class SlotRegistry {
   private slots = new Map<FrontendSlotName, StoredSlotRegistration[]>()
+  private snapshotCache = new Map<FrontendSlotName, readonly StoredSlotRegistration[]>()
+  private listeners = new Set<() => void>()
+
+  /**
+   * 订阅注册表变化；返回退订函数。配合 {@link getSnapshot} 供 `useSyncExternalStore` 使用。
+   */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+
+  /** 某槽位注册表的稳定快照（仅在该槽注册/卸除后替换引用，满足 store 契约）。 */
+  getSnapshot<K extends FrontendSlotName>(name: K): readonly StoredSlotRegistration[] {
+    let snap = this.snapshotCache.get(name)
+    if (!snap) {
+      snap = []
+      this.snapshotCache.set(name, snap) // 稳定化空快照，避免每次返回新数组
+    }
+    return snap
+  }
+
+  private bump(name: FrontendSlotName): void {
+    const list = this.slots.get(name)
+    this.snapshotCache.set(name, list ? [...list].sort((a, b) => a.order - b.order) : [])
+    for (const l of this.listeners) l()
+  }
 
   /**
    * 校验并写入一条注册；不合法输入一律抛错（fail-closed），成功返回可逆 disposer。
@@ -80,22 +114,20 @@ export class SlotRegistry {
     } else {
       this.slots.set(name, [stored])
     }
+    this.bump(name)
 
     return () => {
       const current = this.slots.get(name)
       if (!current) return
       const idx = current.indexOf(stored)
       if (idx >= 0) current.splice(idx, 1)
+      this.bump(name)
     }
   }
 
   /** 该槽位按 `order`（同值稳定）排序的注册快照；无注册返回空数组。 */
   list<K extends FrontendSlotName>(name: K): Array<SlotRegistration<FrontendSlotContextMap[K]>> {
-    const list = this.slots.get(name)
-    if (!list) return []
-    return [...list].sort((a, b) => a.order - b.order) as Array<
-      SlotRegistration<FrontendSlotContextMap[K]>
-    >
+    return [...this.getSnapshot(name)] as Array<SlotRegistration<FrontendSlotContextMap[K]>>
   }
 
   private assertSlotName(name: string): asserts name is FrontendSlotName {
@@ -117,7 +149,7 @@ export class SlotRegistry {
     }
     if (typeof reg.id !== "string" || !REG_ID_RE.test(reg.id)) {
       throw new Error(
-        `[slots] 非法 id '${String(reg.id)}'：须为 'owner:段[:段…]'（owner 后接 1..4 段，小写字母/数字 + 连字符）`,
+        `[slots] 非法 id '${String(reg.id)}'：须为 'owner:name' 命名空间式（小写字母/数字 + 连字符）`,
       )
     }
     if (typeof reg.component !== "function") {

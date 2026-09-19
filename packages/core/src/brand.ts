@@ -27,3 +27,6 @@ export type AssetId = Branded<string, 'asset'>
 
 /** 证券代码 id（目标态）。 */
 export type SymbolId = Branded<string, 'symbol'>
+
+/** client 插件（前端 bundle）id：跨 sidecar/Rust/webview 的 client 模块标识（T1 落地）。 */
+export type ClientModuleId = Branded<string, 'client-module'>

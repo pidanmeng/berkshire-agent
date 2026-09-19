@@ -121,6 +121,11 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
       return event ? ctx.log.filter(event) : ctx.log.list()
     }
 
+    case 'client/list':
+      // client 插件图快照（slot → bundle 清单）：直接投 `ctx.clientModules` 注册表，
+      // 跨边界 id 走品牌化 `ClientModuleId`，序列化为纯字符串给 Rust/webview。
+      return ctx.clientModules.list()
+
     default:
       throw new ProtocolError(ESC.METHOD, `unknown method "${method}"`)
   }

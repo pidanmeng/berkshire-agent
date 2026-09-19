@@ -119,6 +119,15 @@ async function main(): Promise<void> {
   if (!logArr.some((e) => e.event === 'notify/request')) fail('log/list 未包含 notify/request 记录')
   console.log(`✓ log/list → ${logArr.length} 条（含 notify/request）`)
 
+  const clients = await s.request('client/list')
+  if (clients.error) fail(`client/list error: ${clients.error.message}`)
+  const carr = clients.result as Array<{ id: string; slot: string; bundle: string }>
+  const demo = carr.find((c) => c.id === 'demo-minimal')
+  if (!demo || demo.slot !== 'stock-preview.footer' || demo.bundle !== 'client/demo-minimal.js') {
+    fail(`client/list 应含 demo-minimal → stock-preview.footer，got ${JSON.stringify(carr)}`)
+  }
+  console.log('✓ client/list →', JSON.stringify(carr))
+
   const bogus = await s.request('no/such/method')
   if (!bogus.error || bogus.error.code !== -32601) fail(`未知方法应返回 -32601，got ${JSON.stringify(bogus)}`)
   console.log(`✓ 未知方法 fail-closed → -32601`)

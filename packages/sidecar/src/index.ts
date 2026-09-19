@@ -14,6 +14,7 @@ import { resolve } from 'node:path'
 import { parse } from 'yaml'
 import * as core from '@berkshire/core'
 import * as notify from '@berkshire/plugin-notify-console'
+import type { ClientModuleId } from '@berkshire/core'
 import { Boot } from '@berkshire/boot'
 import type { PatchOverlay } from '@berkshire/boot'
 import { createLineWriter } from './writer'
@@ -47,6 +48,18 @@ async function main(): Promise<void> {
   const writer = createLineWriter(process.stdout)
   // 事件订阅在装配完成后挂上：装配期间的能力注册不推送，host 用 capabilities/list 拉首次快照。
   const detachEvents = attachEventPusher(boot.ctx, (line) => writer.write(line))
+
+  // T1 最小 client 插件（能力块 A+C 的最小证明面）：sidecar 侧「手写注册到 core 的测试 bundle」
+  // 声明要挂到 `stock-preview.footer` 的一个前端 bundle + scoped 样式。由 webview 的
+  // ClientModuleHost 经 `client/list` 拉取并挂载到本地模块。T3 会以正式 demo 插件替换它。
+  // 样式字符串里的 `.bk-demo-minimal` 类名在 webview 侧模块内使用，被 scoped 加载器隔离。
+  boot.ctx.slots.register('stock-preview.footer', { id: 'demo-minimal', order: 20 })
+  boot.ctx.clientModules.register({
+    id: 'demo-minimal' as ClientModuleId,
+    slot: 'stock-preview.footer',
+    bundle: 'client/demo-minimal.js',
+    style: '.bk-demo-minimal { display:block; margin:.35rem 0; padding:.5rem .8rem; border:1px dashed #2e86de; border-radius:8px; color:#1f618d; background:rgba(46,134,222,.08); font-size:.9em; }',
+  })
 
   const deps: HandleLineDeps = { ctx: boot.ctx }
 

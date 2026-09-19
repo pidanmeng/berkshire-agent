@@ -9,7 +9,7 @@
  * 诚实标注（T0 边界）：这里只渲染「webview 内已本地注册」的组件（T0 证明渲染器本身）；
  * clientModules 快照驱动挂载（T1）、动态路由（T2）尚未接到本组件。
  */
-import type { ReactNode } from "react"
+import { useSyncExternalStore, type ReactNode } from "react"
 import { ExtensionBoundary } from "../lib/ExtensionBoundary"
 import { slotRegistry } from "./registry"
 import type { FrontendSlotContextMap, FrontendSlotName } from "./types"
@@ -28,7 +28,13 @@ export default function ExtensionSlot<K extends FrontendSlotName>({
   context,
   compact = false,
 }: Props<K>): ReactNode {
-  const registrations = slotRegistry.list(name)
+  // 反应式取该槽注册快照：sidecar 快照（T1）经 ClientModuleHost 注册进 slotRegistry 后，
+  // 本组件会自动重渲染；快照由 registry 稳定缓存（useSyncExternalStore 契约）。
+  const registrations = useSyncExternalStore(
+    (cb) => slotRegistry.subscribe(cb),
+    () => slotRegistry.getSnapshot(name),
+    () => slotRegistry.getSnapshot(name),
+  )
   if (registrations.length === 0) return null // 暂无注册也正常渲染空，不报错。
 
   return (

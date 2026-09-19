@@ -7,6 +7,8 @@ export * from './types'
 export * from './services/log'
 export * from './services/capabilities'
 export * from './seams/notify'
+export * from './services/slots'
+export * from './services/clientModules'
 
 // core 脊装配插件（装载即提供核心服务）
 export * from './core'

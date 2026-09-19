@@ -10,6 +10,7 @@
 import { describe, expect, test } from 'bun:test'
 import * as core from '@berkshire/core'
 import * as notify from '@berkshire/plugin-notify-console'
+import type { ClientModuleId } from '@berkshire/core'
 import { Boot } from '@berkshire/boot'
 import type { Resolver } from '@berkshire/boot'
 import {
@@ -214,6 +215,81 @@ describe('handleLine · 四方法 round-trip（真实 ctx）', () => {
     expect(res.shutdown).toBe(true)
     expect(JSON.parse(res.lines[0]!)).toEqual({ id: 1, result: null })
     // shutdown 只把标志交给宿主（宿主负责 boot.dispose 逆序清理）；这里确认可正常清理收尾。
+    await boot.dispose()
+  })
+})
+
+describe('handleLine · client/list（T1 client 插件图快照）', () => {
+  test('未注册 → 空数组；注册后返回快照；disposer 卸载后消失', async () => {
+    const boot = await mount(true)
+    const empty = await handleLine('{"id":1,"method":"client/list","params":{}}', { ctx: boot.ctx })
+    expect(JSON.parse(empty.lines[0]!)).toEqual({ id: 1, result: [] })
+
+    const offSlot = boot.ctx.slots.register('stock-preview.footer', { id: 'demo', order: 20 })
+    const offMod = boot.ctx.clientModules.register({
+      id: 'demo-minimal' as ClientModuleId,
+      slot: 'stock-preview.footer',
+      bundle: 'client/demo-minimal.js',
+      style: '.bk-demo-minimal{}',
+    })
+    const res = await handleLine('{"id":2,"method":"client/list","params":{}}', { ctx: boot.ctx })
+    const arr = (
+      JSON.parse(res.lines[0]!) as {
+        result: Array<{ id: string; slot: string; bundle: string; style?: string }>
+      }
+    ).result
+    expect(arr).toHaveLength(1)
+    expect(arr[0]).toMatchObject({
+      id: 'demo-minimal',
+      slot: 'stock-preview.footer',
+      bundle: 'client/demo-minimal.js',
+      style: '.bk-demo-minimal{}',
+    })
+
+    const offMod2 = boot.ctx.clientModules.register({
+      id: 'demo-b' as ClientModuleId,
+      slot: 'watchlist.toolbar',
+      bundle: 'client/b.js',
+    })
+    const res2 = await handleLine('{"id":3,"method":"client/list","params":{}}', { ctx: boot.ctx })
+    expect((JSON.parse(res2.lines[0]!) as { result: unknown[] }).result).toHaveLength(2)
+
+    // 卸载（disposer 可逆）后从快照消失。
+    offMod2()
+    const res3 = await handleLine('{"id":4,"method":"client/list","params":{}}', { ctx: boot.ctx })
+    expect((JSON.parse(res3.lines[0]!) as { result: unknown[] }).result).toHaveLength(1)
+
+    offMod()
+    offSlot()
+    await boot.dispose()
+  })
+
+  test('重复 id 注册 → 响亮拒绝（fail-closed）', async () => {
+    const boot = await mount(true)
+    boot.ctx.clientModules.register({
+      id: 'dup' as ClientModuleId,
+      slot: 'stock-preview.footer',
+      bundle: 'a.js',
+    })
+    expect(() =>
+      boot.ctx.clientModules.register({
+        id: 'dup' as ClientModuleId,
+        slot: 'watchlist.toolbar',
+        bundle: 'b.js',
+      }),
+    ).toThrow(/重复 id/)
+    await boot.dispose()
+  })
+
+  test('未知 slot 在 clientModules.register 时拒绝（fail-closed）', async () => {
+    const boot = await mount(true)
+    expect(() =>
+      boot.ctx.clientModules.register({
+        id: 'x' as ClientModuleId,
+        slot: 'no/such' as never,
+        bundle: 'a.js',
+      }),
+    ).toThrow(/未知 slot/)
     await boot.dispose()
   })
 })

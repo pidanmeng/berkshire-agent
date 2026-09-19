@@ -10,7 +10,7 @@
 
 ## Summary
 
-协议用**换行分隔 JSON（`application/x-ndjson`）**跑在 sidecar 的 **stdio** 上：`stdout` 只承载协议（sidecar 发给宿主的响应 + 事件推送），`stdin` 只收宿主发来的请求，`stderr` 仅供日志、绝不混协议。报文是**简版 JSON-RPC 2.0 子集**（请求 `{id,method,params}`、响应 `{id,result|error}`、宿主主动事件 `{event,payload}`），第一批方法面只盖住 v1 能力（`capabilities/list`、`capabilities/usable`、`notify/send`、`log/list` + 生命周期 `shutdown`），够证明「结构对」即可，不贪多。sidecar 上报一个内部事件就推一行事件，宿主再决定是否转成 Tauri event 给 webview。
+协议用**换行分隔 JSON（`application/x-ndjson`）**跑在 sidecar 的 **stdio** 上：`stdout` 只承载协议（sidecar 发给宿主的响应 + 事件推送），`stdin` 只收宿主发来的请求，`stderr` 仅供日志、绝不混协议。报文是**简版 JSON-RPC 2.0 子集**（请求 `{id,method,params}`、响应 `{id,result|error}`、宿主主动事件 `{event,payload}`），第一批方法面只盖住 v1 能力（`capabilities/list`、`capabilities/usable`、`notify/send`、`log/list`、`client/list` + 生命周期 `shutdown`），够证明「结构对」即可，不贪多。sidecar 上报一个内部事件就推一行事件，宿主再决定是否转成 Tauri event 给 webview。
 
 主要代价：它是**一次性进程契约**，跨进程只传 JSON、无类型化编解码（rspc/specta typed bridge 标 v2，见 [secondary-development.md §8](../../docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）；持续高频行情不推荐逐 tick 走这条桥（见 [architecture.md §2](../../docs/architecture.md#2-运行时拓扑) 高吞吐路径）。
 
@@ -79,6 +79,7 @@
 | `capabilities/usable` | `{ id }` | `boolean` | 门控查询；未知 id 返回 `false`（fail-closed，不抛） |
 | `notify/send` | `{ message, level?, channel? }` | `string[]` | 触发 `notify/request` 事件 + 记录进 `ctx.log`；返回 `delivered[]`（实际投递成功的 provider id） |
 | `log/list` | `{ event? }` | `LogEntry[]` | 追加式只读快照；`event` 缺省返回全量，否则按事件名过滤 |
+| `client/list` | `{}` | `{ id, slot, bundle, style? }[]` | client 插件图快照（T1）：slot → bundle 清单，直接投 `ctx.clientModules` 注册表；`id` 品牌化 `ClientModuleId`、`slot` 为 `SlotName`、`style` 为 scoped 样式字符串 |
 | `shutdown` | `{}` | `null` | 触发 boot 逆序销毁后 `process.exit(0)`（见生命周期） |
 
 参数/返回类型对齐 v1 类型（[core/src/types.ts](../core/src/types.ts)）：`message: string`、`level?: 'info'|'warn'|'error'`、`channel?: string`；`LogEntry = { id, event, data, at }`。
@@ -99,6 +100,7 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 | --- | --- | --- | --- |
 | `capabilities/changed` | `{ capability: CapabilityId, usable: boolean }` | emit | 能力注册（`usable:true`）/卸除（`usable:false`） |
 | `notify/request` | `NotifyPayload`（`{ message, level?, channel? }`） | emit | 每次 `notify/send` 广播 |
+| `client/changed` | `{ kind: 'slots' \| 'clientModules' }` | emit | `ctx.slots`/`ctx.clientModules` 注册或卸除时（T1；webview 收到后重拉 `client/list`） |
 
 事件定义见 [core/src/events.ts](../core/src/events.ts)，均标 `@mode emit`。
 
@@ -145,7 +147,7 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 ## 复现与验收
 
 - **T0 契约**：本文含「一个请求 + 一个事件推送」两段原始 ndjson 字节样例（见上，与 T1 实测输出一致）。
-- **T1 落地复现**（已跑通）：`bun run packages/sidecar/examples/smoke.ts` —— 覆盖四方法 round-trip（`capabilities/list`、`notify/send`、`capabilities/usable`、`log/list`）+ 事件推送 `notify/request` + 未知方法 fail-closed（`-32601`）+ shutdown 退出码 0，并隐式校验 stdout 只承载协议。
+- **T1 落地复现**（已跑通）：`bun run packages/sidecar/examples/smoke.ts` —— 覆盖五方法 round-trip（`capabilities/list`、`notify/send`、`capabilities/usable`、`log/list`、`client/list`）+ 事件推送 `notify/request` + 未知方法 fail-closed（`-32601`）+ shutdown 退出码 0，并隐式校验 stdout 只承载协议。T1 另在 `packages/sidecar/src/index.ts` 手写注册一个测试 client 模块（`client/demo-minimal.js` → `stock-preview.footer` + scoped 样式），供 webview `ClientModuleHost` 挂载。
 - **仍未落地**：持久化（DuckDB）。（T2 Rust 桥、T3 webview 薄客户端均已落地 v1，见 [architecture.md §11](../../docs/architecture.md#11-关键文件索引现状--目标)。）
 
 ## 交叉引用

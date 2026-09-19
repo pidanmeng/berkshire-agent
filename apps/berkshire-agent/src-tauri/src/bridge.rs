@@ -22,6 +22,16 @@ pub struct CapabilityDto {
     pub usable: bool,
 }
 
+/// client 插件图快照（`client/list` 结果）：slot → bundle 清单，随 bundle 的可选 scoped 样式。
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+pub struct ClientModuleDto {
+    pub id: String,
+    pub slot: String,
+    pub bundle: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub style: Option<String>,
+}
+
 pub struct Bridge {
     client: RwLock<Option<Arc<SidecarClient>>>,
     app: Arc<AppHandle>,
@@ -130,5 +140,16 @@ impl Bridge {
         v.as_array()
             .cloned()
             .ok_or_else(|| "log/list 返回非数组".to_string())
+    }
+
+    /// client 插件图快照（T1）：`ctx.clientModules` 的 slot → bundle 清单，供 webview 挂载。
+    pub fn client_list(&self) -> Result<Vec<ClientModuleDto>, String> {
+        let v = self.call("client/list", Value::Object(Default::default()))?;
+        let arr = v.as_array().ok_or_else(|| "client/list 返回非数组".to_string())?;
+        let mut out = Vec::with_capacity(arr.len());
+        for item in arr {
+            out.push(serde_json::from_value(item.clone()).map_err(|e| e.to_string())?);
+        }
+        Ok(out)
     }
 }

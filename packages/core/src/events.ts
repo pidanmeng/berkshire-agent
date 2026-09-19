@@ -11,6 +11,8 @@
 import type { LogService } from './services/log'
 import type { CapabilityRegistry } from './services/capabilities'
 import type { NotifyService } from './seams/notify'
+import type { Slots } from './services/slots'
+import type { ClientModules } from './services/clientModules'
 import type { CapabilityId } from './brand'
 import type { NotifyPayload } from './types'
 
@@ -19,6 +21,8 @@ declare module 'cordis' {
     log: LogService
     capabilities: CapabilityRegistry
     notifier: NotifyService
+    slots: Slots
+    clientModules: ClientModules
   }
 
   interface Events {
@@ -36,5 +40,11 @@ declare module 'cordis' {
      * @param payload 通道路由无关的通知负载
      */
     'notify/request'(payload: NotifyPayload): void
+    /**
+     * client 插件图变化（slot 占用 或 clientModules 注册变更），供 owner 推给宿主/webview。
+     * @mode emit
+     * @param payload.kind 变化来源：'slots'（slot 占用变）或 'clientModules'（bundle 变）
+     */
+    'client/changed'(payload: { kind: 'slots' | 'clientModules' }): void
   }
 }
