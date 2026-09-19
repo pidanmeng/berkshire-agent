@@ -9,7 +9,6 @@
  * 一旦有第二个 `analysis.menu` 项，两个页面都会互相显示彼此的内容，且菜单项 id 与内容模块 id
  * 只靠命名约定对应、无强制。此限制在 v-next 前不修复，先登记在此。
  */
-export default function ExtensionRoute({ title }: { title: string }) {
 import { ExtensionBoundary } from "../lib/ExtensionBoundary"
 import ExtensionSlot from "../slots/ExtensionSlot"
 
