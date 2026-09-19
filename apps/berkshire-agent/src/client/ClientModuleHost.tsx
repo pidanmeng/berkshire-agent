@@ -11,12 +11,13 @@
 import { useEffect } from "react"
 import { clientList, onClientChanged, type ClientModule } from "../lib/api"
 import { injectModuleStyle, loadClientModule } from "./loader"
-import { slotRegistry, type SlotComponent } from "../slots/registry"
 import {
+  slotRegistry,
+  type SlotComponent,
   FRONTEND_SLOT_NAMES,
   type FrontendSlotContextMap,
   type FrontendSlotName,
-} from "../slots/types"
+} from "@berkshire/ui-slots"
 
 export default function ClientModuleHost() {
   useEffect(() => {

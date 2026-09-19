@@ -1,17 +1,18 @@
 /**
  * slot 注册表（T0 最小落点，能力块 A 的地基；T1 补上反应式订阅）。
  *
- * 宿主预挖固定槽位（见 types.ts 的 `FrontendSlotContextMap`），插件往槽里挂 React 组件。
+ * 宿主/插件预挖固定槽位（见 types.ts 的 `FrontendSlotContextMap`），插件往槽里挂 React 组件。
  * 本模块负责：运行时校验（id 格式 / 重复 id / API 版本 / 未知槽位）、按 `order` 排序、
  * 返回「可逆 disposer」，并让 `ExtensionSlot` 按槽位取快照渲染。
  *
  * T1：本表还提供 `subscribe` / `getSnapshot`（useSyncExternalStore 用的反应式契约），
- * 使 sidecar 快照经 `ClientModuleHost` 注册进来的组件能被 `ExtensionSlot` 实时重渲染
+ * 使 sidecar 快照经宿主 `ClientModuleHost` 注册进来的组件能被 `ExtensionSlot` 实时重渲染
  * （注册/卸除即 bump + 通知，卸载后样式与组件一并移除）。
  *
- * 诚实标注（T0/T1 边界）：注册表只存 **webview 内直连注册的本地组件**，用于证明 slot 渲染器
- * 本身正确；sidecar 侧 `ctx.slots`/`ctx.clientModules` 能力缝（T1 落地于 packages/core）
- * 经 `client/list` 快照 + `ClientModuleHost` 汇入本表。远程 `bk://` bundle、HMR、store 仍目标态。
+ * 诚实标注：本包是**共享 UI 缝引擎**（对齐 dsh `@dsh-client-ui-slots` 的 `SlotCore`），
+ * 从宿主 `apps/berkshire-agent/src/slots/registry.ts` 迁出；注册表只存 webview 内直连注册的
+ * 本地组件，sidecar 侧 `ctx.slots`/`ctx.clientModules`（packages/core）经 `client/list` 快照 +
+ * 宿主 `ClientModuleHost` 汇入本表。远程 `bk://` bundle、HMR、store 仍目标态。
  */
 import type { ComponentType } from "react"
 import {
@@ -20,7 +21,7 @@ import {
   type FrontendSlotName,
 } from "./types"
 
-/** 当前宿主约定的 slot API 版本（跨边界演进时的版本栅栏；现唯一值 1）。 */
+/** 当前约定的 slot API 版本（跨边界演进时的版本栅栏；现唯一值 1）。 */
 export const SLOT_API_VERSION = 1
 
 /**
@@ -29,7 +30,24 @@ export const SLOT_API_VERSION = 1
  */
 const REG_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?::[a-z0-9]+(?:-[a-z0-9]+)*){1,4}$/
 
-/** slot 组件的 props 约定：宿主把该槽位的上下文/actions 以 `context` 属性注入。 */
+/**
+ * 槽的承接语义（对齐 dsh `SlotCore` 的 `SlotKind='single'|'list'`）：
+ * - `single`：全场**仅一份**，如根 `root` 槽的壳帧——重复注册 fail-closed 拒绝；
+ * - `list`：同一槽可挂多个组件（默认，导航/状态项/设置卡片等）。
+ */
+export type SlotKind = "single" | "list"
+
+/** 各槽承接语义表（缺省 `list`）。现仅 `root` 为 `single`（壳帧唯一）。 */
+export const SLOT_KINDS: Readonly<Partial<Record<FrontendSlotName, SlotKind>>> = {
+  root: "single",
+}
+
+/** 取某槽的承接语义（缺省 `list`）。 */
+function slotKind(name: FrontendSlotName): SlotKind {
+  return SLOT_KINDS[name] ?? "list"
+}
+
+/** slot 组件的 props 约定：宿主/插件把该槽位的上下文/actions 以 `context` 属性注入。 */
 export type SlotComponent<C extends object> = ComponentType<{ context: C }>
 
 /** 一次 slot 注册的声明。 */
@@ -48,7 +66,7 @@ export interface SlotRegistration<C extends object> {
 type StoredSlotRegistration = SlotRegistration<object> & { order: number }
 
 /**
- * 前端 slot 注册表（宿主中枢，不实现业务 UI）。新增/修改/删除都经这里，返回 disposer，
+ * 前端 slot 注册表（共享中枢，不实现业务 UI）。新增/修改/删除都经这里，返回 disposer，
  * 调用方可热卸不泄漏（注册即效应）；带反应式订阅供 `ExtensionSlot` 实时重渲染。
  */
 export class SlotRegistry {
@@ -93,10 +111,16 @@ export class SlotRegistry {
     this.assertSlotName(name)
     this.assertRegistration(reg)
 
+    // single 语义（如根 root 槽的壳帧）：全场仅一份，重复注册 fail-closed 拒绝。
+    const existingEntries = this.slots.get(name) ?? []
+    if (slotKind(name) === "single" && existingEntries.length > 0) {
+      throw new Error(`[slots] slot '${name}' 是 single 语义（全场唯一，如壳帧），已有注册，拒绝重复`)
+    }
+
     const apiVersion = reg.apiVersion ?? SLOT_API_VERSION
     if (apiVersion !== SLOT_API_VERSION) {
       throw new Error(
-        `[slots] 扩展 '${reg.id}' 请求 slot API v${apiVersion}，宿主仅支持 v${SLOT_API_VERSION}`,
+        `[slots] 扩展 '${reg.id}' 请求 slot API v${apiVersion}，当前仅支持 v${SLOT_API_VERSION}`,
       )
     }
 
@@ -128,7 +152,7 @@ export class SlotRegistry {
   private assertSlotName(name: string): asserts name is FrontendSlotName {
     if (!FRONTEND_SLOT_NAMES.includes(name as FrontendSlotName)) {
       throw new Error(
-        `[slots] 未知 slot '${name}'，可用：${FRONTEND_SLOT_NAMES.join(", ")}（挂点归宿主，插件只挂内容）`,
+        `[slots] 未知 slot '${name}'，可用：${FRONTEND_SLOT_NAMES.join(", ")}（挂点归中枢，插件只挂内容）`,
       )
     }
   }
@@ -164,5 +188,5 @@ type ErasedSlotReg = {
   component?: unknown
 }
 
-/** 全局唯一 slot 注册表（宿主中枢单例，供 `ExtensionSlot` 与各注册方共享）。 */
+/** 全局唯一 slot 注册表（共享中枢单例，供 `ExtensionSlot` 与各注册方共享）。 */
 export const slotRegistry = new SlotRegistry()

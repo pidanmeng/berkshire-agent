@@ -19,7 +19,8 @@ import {
   type NotifyLevel,
   type NotifyPayload,
 } from "../lib/api";
-import { ExtensionBoundary } from "../lib/ExtensionBoundary";
+import { ExtensionBoundary } from "@berkshire/ui-slots";
+import styles from "./SidecarPanel.module.css";
 
 type BridgeStatus = "loading" | "connected" | "unavailable";
 
@@ -102,12 +103,12 @@ function SidecarPanelInner() {
   }, [message, level]);
 
   return (
-    <section className="sidecar-panel">
+    <section className={styles.panel}>
       <h2>Sidecar 桥 demo 面板</h2>
 
-      {status === "loading" && <p className="hint">正在连接 sidecar…</p>}
+      {status === "loading" && <p className={styles.hint}>正在连接 sidecar…</p>}
       {status === "unavailable" && (
-        <div className="bridge-banner" role="alert">
+        <div className={styles.banner} role="alert">
           ⚠ bridge 不可用（{bridgeError ?? "未知原因"}）——宿主页不受影响，可继续交互。
         </div>
       )}
@@ -115,7 +116,7 @@ function SidecarPanelInner() {
       <fieldset>
         <legend>capabilities/list（usable 门控）</legend>
         {caps.length === 0 ? (
-          <p className="hint">（无能力 / bridge 未接通）</p>
+          <p className={styles.hint}>（无能力 / bridge 未接通）</p>
         ) : (
           <ul>
             {caps.map((c) => (
@@ -146,11 +147,11 @@ function SidecarPanelInner() {
         </button>
       </fieldset>
 
-      <div className="sidecar-panel-cols">
+      <div className={styles.cols}>
         <fieldset>
           <legend>实时推送（sidecar://notify/request）</legend>
           {live.length === 0 ? (
-            <p className="hint">（暂无事件推送）</p>
+            <p className={styles.hint}>（暂无事件推送）</p>
           ) : (
             <ul>
               {live.map((n, i) => (
@@ -165,13 +166,13 @@ function SidecarPanelInner() {
         <fieldset>
           <legend>最近 log/list</legend>
           {logs.length === 0 ? (
-            <p className="hint">（日志为空）</p>
+            <p className={styles.hint}>（日志为空）</p>
           ) : (
             <ol>
               {logs.slice(-8).map((e) => (
                 <li key={e.id}>
                   <code>{e.event}</code>{" "}
-                  <span className="log-data">{JSON.stringify(e.data)}</span>
+                  <span className={styles.logData}>{JSON.stringify(e.data)}</span>
                 </li>
               ))}
             </ol>

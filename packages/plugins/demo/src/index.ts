@@ -3,7 +3,7 @@ import type { Context } from 'cordis'
 import type { ClientModuleId } from '@berkshire/core'
 // 插件独立打包阶段编译产物（P3：CSS Modules → 哈希类名 + 注入代码，lightningcss）。
 // 同一份文件也供 `.tsx` webview 半身拿哈希类名——sidecar 只取 `css` 作为注入代码交给 host。
-import { fundFlow, moneyFlow, watchlistToolbar } from './client/styles.generated'
+import { fundFlow, moneyFlow, watchlistToolbar, navExtra, statusItem, settingsCard } from './client/styles.generated'
 
 import '@berkshire/core'
 // 上方 `import '@berkshire/core'` 已把 `declare module 'cordis'` 的增强带入本模块，
@@ -39,6 +39,8 @@ export const Config = z.object({
   enableToolbar: z.boolean().default(true),
   /** 是否注册 `analysis.menu` 资金流向页（能力块 B）。 */
   enableMenu: z.boolean().default(true),
+  /** 是否注册应用壳布局挂点组件（应用壳：侧边栏导航追加项 / 状态栏状态项 / 设置卡片）。 */
+  enableShellWidgets: z.boolean().default(true),
 })
 export type Config = z.infer<typeof Config>
 
@@ -78,12 +80,14 @@ export function apply(ctx: Context, config: Config): () => void {
     }
 
     // B+A+C：`analysis.menu` 资金流向页（菜单项 + 分析页 client 模块 + scoped 样式）。
+    // 应用壳：路由带 `section: '分析'` 分组展示在侧边栏。
     if (config.enableMenu) {
       disposers.push(
         ctx.slots.register('analysis.menu', {
           id: 'demo-money-flow',
           order: 30,
           title: '资金流向（demo）',
+          section: '分析',
           route: { path: MONEY_FLOW_PATH },
         }),
       )
@@ -97,6 +101,41 @@ export function apply(ctx: Context, config: Config): () => void {
       )
     }
 
+    // 应用壳布局挂点证明：侧边栏导航追加项 + 状态栏状态项 + 设置卡片（各带 scoped 样式）。
+    if (config.enableShellWidgets) {
+      disposers.push(
+        ctx.slots.register('layout.navigation.extra', { id: 'demo-nav-extra', order: 10 }),
+      )
+      disposers.push(
+        ctx.clientModules.register({
+          id: 'demo-nav-extra' as ClientModuleId,
+          slot: 'layout.navigation.extra',
+          bundle: 'client/demo-nav-extra.js',
+          style: navExtra.css,
+        }),
+      )
+      disposers.push(
+        ctx.slots.register('layout.statusbar.right', { id: 'demo-status-item', order: 10 }),
+      )
+      disposers.push(
+        ctx.clientModules.register({
+          id: 'demo-status-item' as ClientModuleId,
+          slot: 'layout.statusbar.right',
+          bundle: 'client/demo-status-item.js',
+          style: statusItem.css,
+        }),
+      )
+      disposers.push(ctx.slots.register('settings.cards', { id: 'demo-settings-card', order: 10 }))
+      disposers.push(
+        ctx.clientModules.register({
+          id: 'demo-settings-card' as ClientModuleId,
+          slot: 'settings.cards',
+          bundle: 'client/demo-settings-card.js',
+          style: settingsCard.css,
+        }),
+      )
+    }
+
     // 后端逻辑走已有能力缝：无 database，用 `ctx.log` 留痕（诚实：数据为占位，非真实行情）。
     ctx.log.append('demo', {
       registered: disposers.length,
@@ -104,10 +143,13 @@ export function apply(ctx: Context, config: Config): () => void {
         config.enableFooter ? 'stock-preview.footer' : null,
         config.enableToolbar ? 'watchlist.toolbar' : null,
         config.enableMenu ? 'analysis.menu' : null,
+        config.enableShellWidgets ? 'layout.navigation.extra' : null,
+        config.enableShellWidgets ? 'layout.statusbar.right' : null,
+        config.enableShellWidgets ? 'settings.cards' : null,
       ].filter((s): s is string => Boolean(s)),
     })
 
-    // 卸载**逆序**撤销全部注册：先摘 analysis 页 bundle/菜单，再摘 toolbar，最后摘 footer。
+    // 卸载**逆序**撤销全部注册：设置/状态/导航追加项 → analysis 页 → toolbar → footer。
     return () => {
       for (let i = disposers.length - 1; i >= 0; i--) disposers[i]!()
     }

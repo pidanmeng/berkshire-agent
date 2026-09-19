@@ -1,0 +1,29 @@
+/* App —— 应用根包裹 + 核心页容器（Home / 404）。只写 var(--bk-*) 与结构，禁魔法值。
+ * 原 App.css 的 .container 等全局 class 全部下沉为本模块的 scoped class（CSS Modules）。 */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.container {
+  margin: 0;
+  padding-top: 10vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  gap: var(--bk-space-3);
+}
+
+.hint {
+  color: var(--bk-color-fg-subtle);
+  font-size: var(--bk-font-size-sm);
+  margin: 0;
+}
+
+.slotDemo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-3);
+}

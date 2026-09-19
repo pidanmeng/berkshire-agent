@@ -9,8 +9,15 @@
  * demo 的页面/组件 + 前端样式定义随 `@berkshire/plugin-demo` 打包进来（从 `./client` 入口取），
  * host 只做模块映射 + 样式注入宿主。
  */
-import type { SlotComponent } from "../slots/registry"
-import { DemoFundFlow, DemoWatchlistToolbar, DemoMoneyFlow } from "@berkshire/plugin-demo/client"
+import type { SlotComponent } from "@berkshire/ui-slots"
+import {
+  DemoFundFlow,
+  DemoWatchlistToolbar,
+  DemoMoneyFlow,
+  DemoNavExtra,
+  DemoStatusItem,
+  DemoSettingsCard,
+} from "@berkshire/plugin-demo/client"
 
 export interface ClientModuleDef {
   /** bundle 名（与 sidecar `ClientModuleRegistration.bundle` 对应）。 */
@@ -27,6 +34,9 @@ const LOCAL_MODULES: Record<string, ClientModuleDef> = {
     component: DemoWatchlistToolbar,
   },
   "client/demo-money-flow.js": { bundle: "client/demo-money-flow.js", component: DemoMoneyFlow },
+  "client/demo-nav-extra.js": { bundle: "client/demo-nav-extra.js", component: DemoNavExtra },
+  "client/demo-status-item.js": { bundle: "client/demo-status-item.js", component: DemoStatusItem },
+  "client/demo-settings-card.js": { bundle: "client/demo-settings-card.js", component: DemoSettingsCard },
 }
 
 /** 按 bundle 名解析本地模块；未知 bundle 返回 undefined（调用方 fail-closed 降级）。 */

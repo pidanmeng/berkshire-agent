@@ -16,6 +16,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-    "types": ["bun"]
+    "types": ["bun"],
+    "jsx": "react-jsx"
   }
 }

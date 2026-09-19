@@ -58,6 +58,8 @@ export interface RouteEntry {
   title: string;
   path: string;
   slot: string;
+  /** 侧边栏分组键（应用壳 v1）：缺省单组。 */
+  section?: string;
 }
 
 export interface LogEntry {

@@ -1,0 +1,111 @@
+/* Sidebar（可扩展侧边栏，base-ui 壳插件）—— 应用壳，Vercel 黑白风。只写 var(--bk-*) 与结构，禁魔法值。 */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  min-height: 100vh;
+  padding: var(--bk-space-2);
+  gap: var(--bk-space-2);
+  box-sizing: border-box;
+  transition: width 0.2s ease;
+}
+
+.sidebarCollapsed {
+  width: 56px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+  padding: var(--bk-space-1) var(--bk-space-2);
+}
+
+.collapseToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-md);
+  cursor: pointer;
+}
+.collapseToggle:hover {
+  background: var(--bk-hover);
+}
+
+.brandName {
+  font-weight: 600;
+  color: var(--bk-color-fg);
+  white-space: nowrap;
+}
+
+.navSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+}
+
+.sectionLabel {
+  padding: var(--bk-space-1) var(--bk-space-2);
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.navItem {
+  display: block;
+  padding: var(--bk-space-1) var(--bk-space-2);
+  border-radius: var(--bk-radius-md);
+  color: var(--bk-color-fg-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.navItem:hover {
+  background: var(--bk-hover);
+  color: var(--bk-color-fg);
+}
+.navItemActive {
+  background: var(--bk-active);
+  color: var(--bk-color-fg);
+  font-weight: 600;
+}
+
+.footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+  border-top: 1px solid var(--bk-border);
+  padding-top: var(--bk-space-2);
+}
+
+.settingsEntry {
+  display: flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+  padding: var(--bk-space-1) var(--bk-space-2);
+  border-radius: var(--bk-radius-md);
+  color: var(--bk-color-fg-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.settingsEntry:hover {
+  background: var(--bk-hover);
+  color: var(--bk-color-fg);
+}
+.settingsActive {
+  background: var(--bk-active);
+  color: var(--bk-color-fg);
+}
+.settingsIcon {
+  font-size: var(--bk-font-size-md);
+}

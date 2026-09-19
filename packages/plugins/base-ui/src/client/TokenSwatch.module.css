@@ -1,4 +1,4 @@
-/* TokenSwatch 的 CSS Modules（H2：host 组件构建期哈希、类名自动唯一，camelCase）。 */
+/* TokenSwatch 的 CSS Modules（base-ui：构建期哈希、类名自动唯一，camelCase）。 */
 .swatch {
   border: 1px solid var(--bk-border);
   border-radius: var(--bk-radius-md);

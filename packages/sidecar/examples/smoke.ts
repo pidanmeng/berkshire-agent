@@ -123,7 +123,7 @@ async function main(): Promise<void> {
   if (clients.error) fail(`client/list error: ${clients.error.message}`)
   const carr = clients.result as Array<{ id: string; slot: string; bundle: string }>
   const byId = new Map(carr.map((c) => [c.id, c]))
-  if (carr.length !== 3) fail(`T3 demo 插件应注册 3 个 client 模块，got ${JSON.stringify(carr)}`)
+  if (carr.length !== 6) fail(`T3 demo 插件应注册 6 个 client 模块，got ${JSON.stringify(carr)}`)
   const footer = byId.get('demo-fund-flow')
   if (!footer || footer.slot !== 'stock-preview.footer' || footer.bundle !== 'client/demo-fund-flow.js') {
     fail(`client/list 应含 demo-fund-flow → stock-preview.footer，got ${JSON.stringify(carr)}`)
@@ -135,19 +135,32 @@ async function main(): Promise<void> {
   if (!menu || menu.slot !== 'analysis.menu' || menu.bundle !== 'client/demo-money-flow.js') {
     fail(`client/list 应含 demo-money-flow → analysis.menu，got ${JSON.stringify(carr)}`)
   }
+  const navExtra = byId.get('demo-nav-extra')
+  if (!navExtra || navExtra.slot !== 'layout.navigation.extra') {
+    fail(`client/list 应含 demo-nav-extra → layout.navigation.extra，got ${JSON.stringify(carr)}`)
+  }
+  const statusItem = byId.get('demo-status-item')
+  if (!statusItem || statusItem.slot !== 'layout.statusbar.right') {
+    fail(`client/list 应含 demo-status-item → layout.statusbar.right，got ${JSON.stringify(carr)}`)
+  }
+  const settingsCard = byId.get('demo-settings-card')
+  if (!settingsCard || settingsCard.slot !== 'settings.cards') {
+    fail(`client/list 应含 demo-settings-card → settings.cards，got ${JSON.stringify(carr)}`)
+  }
   console.log('✓ client/list →', JSON.stringify(carr))
 
   const routes = await s.request('routes/list')
   if (routes.error) fail(`routes/list error: ${routes.error.message}`)
-  const rarr = routes.result as Array<{ id: string; title: string; path: string; slot: string }>
+  const rarr = routes.result as Array<{ id: string; title: string; path: string; slot: string; section?: string }>
   const analysis = rarr.find((r) => r.id === 'demo-money-flow')
   if (
     !analysis ||
     analysis.title !== '资金流向（demo）' ||
     analysis.path !== '/analysis/money-flow' ||
-    analysis.slot !== 'analysis.menu'
+    analysis.slot !== 'analysis.menu' ||
+    analysis.section !== '分析'
   ) {
-    fail(`routes/list 应含 demo-money-flow → /analysis/money-flow（slot=analysis.menu），got ${JSON.stringify(rarr)}`)
+    fail(`routes/list 应含 demo-money-flow → /analysis/money-flow（slot=analysis.menu，section=分析），got ${JSON.stringify(rarr)}`)
   }
   console.log('✓ routes/list →', JSON.stringify(rarr))
 

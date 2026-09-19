@@ -1,0 +1,25 @@
+/* AppShell —— 应用壳网格（Vercel 黑白风，base-ui 壳插件）。只写 var(--bk-*) 与结构，禁魔法值。 */
+.shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.sidebar {
+  flex: 0 0 auto;
+  border-right: 1px solid var(--bk-border);
+  background: var(--bk-color-bg-muted);
+}
+
+.mainColumn {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--bk-space-5);
+}

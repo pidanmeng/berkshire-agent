@@ -1,0 +1,8 @@
+/* ExtensionRoute（插件自声明路由的动态页容器）。只写 var(--bk-*) 与结构，禁魔法值。 */
+.page {
+  padding: var(--bk-space-3);
+}
+
+.content {
+  margin-top: var(--bk-space-2);
+}

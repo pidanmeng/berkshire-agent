@@ -1,5 +1,5 @@
 /**
- * TokenSwatch —— host 组件 **CSS Modules + clsx** 示范（H2）。
+ * TokenSwatch —— base-ui 组件 **CSS Modules + clsx** 示范（H2；自宿主 `src/theme` 迁出下沉）。
  *
  * 对齐 `@berkshire/theme` 令牌治理：
  * - 颜色/圆角/间距一律 `var(--bk-*)`（别名层）引用，禁魔法值；

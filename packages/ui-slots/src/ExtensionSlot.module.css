@@ -1,0 +1,14 @@
+/* ExtensionSlot 渲染器（能力块 A 挂载面，共享缝引擎）。只写 var(--bk-*) 与结构，禁魔法值。 */
+.slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-2);
+}
+
+.banner {
+  padding: var(--bk-space-2) var(--bk-space-3);
+  border: 1px dashed var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  color: var(--bk-color-fg-subtle);
+  font-size: var(--bk-font-size-sm);
+}

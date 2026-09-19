@@ -119,3 +119,19 @@ declare module '@berkshire/cordis' {
 | `bail` | 否 | 同步竞态，任一确定即停 | `datasource/authenticate`（多个源都能认证）|
 
 事件域三层（耐久 / 在途 / 能力策略）见 [architecture.md §5](architecture.md#5-事件领域三层分明)。对 downstream 的约束（waterfall 必须 `next()` 等）见 [secondary-development.md](secondary-development.md)。
+
+## 6. 应用壳布局挂点（已实现：`@berkshire/base-ui` 壳插件 + 新布局 slot）
+
+应用壳把「挂点归中枢、内容归插件」落到具体的四个布局位置。**这些是 `ctx.slots` / `ctx.clientModules` 的扩展**（Definition 仍归中枢），不是新独立能力缝：
+
+| 槽（布局挂点） | 位置 | context | 说明 |
+| --- | --- | --- | --- |
+| `layout.navigation.extra` | 侧边栏导航区 | `{ collapsed: boolean; pathname: string }` | 插件在导航区追加项/分组 |
+| `layout.sidebar.footer` | 侧边栏底部（设置入口上方） | `{ collapsed: boolean }` | 插件追加控制项 |
+| `layout.statusbar.right` | 状态栏右侧 | `Record<string, never>` | 插件追加状态项（插件自持响应式） |
+| `settings.cards` | 设置页（`/settings`） | `Record<string, never>` | 插件追加设置卡片/分组 |
+
+- **三角色**：Definition 挂点（共享缝 `@berkshire/ui-slots` `FrontendSlotContextMap` + core `SLOT_NAMES`，两端同一契约）；Provider（插件经 `ctx.slots`/`ctx.clientModules` 挂载组件 + scoped 样式）；Consumer（`AppShell`/`Sidebar`/`StatusBar`/`SettingsPage` 内的 `ExtensionSlot`，每槽包 `ExtensionBoundary`）。
+- **共享 `root` 单例槽**：应用壳帧经 `@berkshire/ui-slots` 内置 `root` 槽（`SlotKind='single'`）挂载——`@berkshire/base-ui` 的 `RootShell` 是唯一 single 项（重复注册 fail-closed 拒绝），宿主 `App.tsx` 从 root 槽取壳帧。`root` 是 **webview 本地槽**、不在 core `SLOT_NAMES`（sidecar 不可注册壳帧），两端集合因此**有意不同**。
+- **侧边栏路由分组**：`RouteDescriptor.section?`（core `slots.ts`）使插件路由在侧边栏按组展示；缺省单组（兼容既有声明）。
+- **诚实边界**：紧凑 `page.header` 每页头槽、折叠态持久化（storage）、store 作用域、`bk://` 远程 bundle、壳经 sidecar 装配可 disable（note「host-to-base-ui」step 3b 余下）均 v-next。
