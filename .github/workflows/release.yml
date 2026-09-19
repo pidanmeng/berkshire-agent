@@ -36,6 +36,49 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # 拉取完整历史 + 全部 tag，供下方生成「本次与上一版本之间」的提交明细（默认浅克隆拿不到前后 tag 与区间日志）。
+          fetch-depth: 0
+
+      # 生成 Release 正文：收集「上一版本 tag..当前版本」之间的所有 commit，写入步骤输出供 tauri-action 使用。
+      # - 当前版本：由触发本次 release 的 GITHUB_REF_NAME 提供（tag 触发时即 v<版本>）。
+      # - 上一版本：取存在的历史 v* tag 中版本号最大的那个（git --sort=-version:refname）。
+      # - workflow_dispatch（非 tag）时没有「当前 tag」，则列出到最近一个 v* tag 之后的提交，标题用分支名兜底。
+      - name: Prepare release body (commits since previous tag)
+        id: changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CURRENT_REF="${GITHUB_REF_NAME}"
+          PREV_TAG="$(git tag --sort=-version:refname | grep -E '^v[0-9]' | sed -n '2p')"
+
+          if [[ -n "${PREV_TAG:-}" ]]; then
+            RANGE="${PREV_TAG}..${CURRENT_REF}"
+            RANGE_TEXT="对比上一版本 \`${PREV_TAG}\`（${RANGE}）"
+            COMMITS="$(git log --pretty=format:'- `%h` %s' "${RANGE}")"
+          else
+            RANGE_TEXT="无上一版本可对比，列出历史全部提交"
+            COMMITS="$(git log --pretty=format:'- `%h` %s')"
+          fi
+
+          COUNT="$(printf '%s\n' "${COMMITS}" | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
+
+          DELIM="CHANGELOG_EOF_${RANDOM}_${RANDOM}"
+          {
+            echo "release_body<<${DELIM}"
+            echo "## berkshire-agent ${CURRENT_REF}"
+            echo ""
+            echo "自动生成于 tag 触发的 CI 流水线。"
+            echo "（由 .github/workflows/release.yml 构建并上传，正式发布，含各平台安装包下载。）"
+            echo ""
+            echo "### 本次发版包含的提交"
+            echo ""
+            echo "${RANGE_TEXT}，共 ${COUNT} 条提交："
+            echo ""
+            printf '%s\n' "${COMMITS}"
+            echo "${DELIM}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Install Linux system dependencies (webkit2gtk, etc.)
         if: matrix.platform == 'ubuntu-22.04'
@@ -87,11 +130,7 @@ jobs:
         with:
           tagName: v__VERSION__ # 自动使用 package.json / Cargo.toml 中的版本
           releaseName: 'berkshire-agent v__VERSION__'
-          releaseBody: |
-            ## berkshire-agent v__VERSION__
-
-            自动生成于 tag 触发的 CI 流水线。
-            （由 .github/workflows/release.yml 构建并上传，正式发布，含各平台安装包下载。）
+          releaseBody: '${{ steps.changelog.outputs.release_body }}'
           releaseDraft: false
           prerelease: false
           projectPath: './apps/berkshire-agent'
