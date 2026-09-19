@@ -58,6 +58,11 @@ async fn client_list(state: BridgeState<'_>) -> Result<Vec<bridge::ClientModuleD
     bridge_call(state, Bridge::client_list).await
 }
 
+#[tauri::command]
+async fn menu_list(state: BridgeState<'_>) -> Result<Vec<bridge::MenuItemDto>, String> {
+    bridge_call(state, Bridge::menu_list).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -73,7 +78,8 @@ pub fn run() {
             capabilities_usable,
             notify_send,
             log_list,
-            client_list
+            client_list,
+            menu_list
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

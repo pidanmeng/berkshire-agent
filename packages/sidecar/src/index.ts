@@ -61,6 +61,21 @@ async function main(): Promise<void> {
     style: '.bk-demo-minimal { display:block; margin:.35rem 0; padding:.5rem .8rem; border:1px dashed #2e86de; border-radius:8px; color:#1f618d; background:rgba(46,134,222,.08); font-size:.9em; }',
   })
 
+  // T2 client 页面（能力块 B）：声明一个 `analysis.menu` 动态菜单项（静态、不覆盖核心路由）+
+  // 一个 analysis 分析页 client 模块，webview 据此生成导航 + 路由 + 页面内容。
+  boot.ctx.slots.register('analysis.menu', {
+    id: 'demo-analysis',
+    order: 30,
+    title: 'Demo 分析页',
+    route: { path: '/analysis/demo', staticOnly: true },
+  })
+  boot.ctx.clientModules.register({
+    id: 'demo-analysis' as ClientModuleId,
+    slot: 'analysis.menu',
+    bundle: 'client/demo-analysis.js',
+    style: '.bk-demo-analysis { display:block; margin:.5rem 0; padding:.8rem 1rem; border:1px solid #27ae60; border-radius:8px; color:#1e8449; background:rgba(39,174,96,.08); font-size:.95em; }',
+  })
+
   const deps: HandleLineDeps = { ctx: boot.ctx }
 
   const teardown = async () => {

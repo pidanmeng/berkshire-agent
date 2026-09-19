@@ -128,6 +128,15 @@ async function main(): Promise<void> {
   }
   console.log('✓ client/list →', JSON.stringify(carr))
 
+  const menus = await s.request('menu/list')
+  if (menus.error) fail(`menu/list error: ${menus.error.message}`)
+  const marr = menus.result as Array<{ id: string; title: string; path: string }>
+  const analysis = marr.find((m) => m.id === 'demo-analysis')
+  if (!analysis || analysis.title !== 'Demo 分析页' || analysis.path !== '/analysis/demo') {
+    fail(`menu/list 应含 demo-analysis → /analysis/demo，got ${JSON.stringify(marr)}`)
+  }
+  console.log('✓ menu/list →', JSON.stringify(marr))
+
   const bogus = await s.request('no/such/method')
   if (!bogus.error || bogus.error.code !== -32601) fail(`未知方法应返回 -32601，got ${JSON.stringify(bogus)}`)
   console.log(`✓ 未知方法 fail-closed → -32601`)

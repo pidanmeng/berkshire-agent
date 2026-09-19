@@ -293,3 +293,65 @@ describe('handleLine · client/list（T1 client 插件图快照）', () => {
     await boot.dispose()
   })
 })
+
+describe('handleLine · menu/list（T2 动态菜单/页面）', () => {
+  test('未注册 → 空数组；注册后返回已排序导航快照', async () => {
+    const boot = await mount(true)
+    const empty = await handleLine('{"id":1,"method":"menu/list","params":{}}', { ctx: boot.ctx })
+    expect(JSON.parse(empty.lines[0]!)).toEqual({ id: 1, result: [] })
+
+    boot.ctx.slots.register('analysis.menu', {
+      id: 'demo',
+      order: 30,
+      title: 'Demo',
+      route: { path: '/analysis/demo', staticOnly: true },
+    })
+    const res = await handleLine('{"id":2,"method":"menu/list","params":{}}', { ctx: boot.ctx })
+    const arr = (
+      JSON.parse(res.lines[0]!) as {
+        result: Array<{ id: string; order: number; title: string; path: string }>
+      }
+    ).result
+    expect(arr).toEqual([{ id: 'demo', order: 30, title: 'Demo', path: '/analysis/demo' }])
+    await boot.dispose()
+  })
+
+  test('排序按 order；缺省 order 按 100', async () => {
+    const boot = await mount(true)
+    boot.ctx.slots.register('analysis.menu', { id: 'a', order: 50, title: 'A', route: { path: '/a' } })
+    boot.ctx.slots.register('analysis.menu', { id: 'b', title: 'B', route: { path: '/b' } }) // order→100
+    boot.ctx.slots.register('analysis.menu', { id: 'c', order: 10, title: 'C', route: { path: '/c' } })
+    const res = await handleLine('{"id":1,"method":"menu/list","params":{}}', { ctx: boot.ctx })
+    const arr = (JSON.parse(res.lines[0]!) as { result: Array<{ id: string }> }).result
+    expect(arr.map((x) => x.id)).toEqual(['c', 'a', 'b'])
+    await boot.dispose()
+  })
+
+  test('静态路径/核心路由/重复 path/重复 id 校验 fail-closed；非 analysis.menu 槽不要求 title/route', async () => {
+    const boot = await mount(true)
+    // 缺 title
+    expect(() => boot.ctx.slots.register('analysis.menu', { id: 'x', route: { path: '/x' } })).toThrow(/title/)
+    // 缺 path
+    expect(() => boot.ctx.slots.register('analysis.menu', { id: 'x', title: 'X' })).toThrow(/route\.path/)
+    // 非静态（含动态段 :）
+    expect(() =>
+      boot.ctx.slots.register('analysis.menu', { id: 'x', title: 'X', route: { path: '/stock/:id' } }),
+    ).toThrow(/静态/)
+    // 覆盖核心路由 /settings
+    expect(() =>
+      boot.ctx.slots.register('analysis.menu', { id: 'x', title: 'X', route: { path: '/settings' } }),
+    ).toThrow(/核心路由/)
+    // 重复 path
+    boot.ctx.slots.register('analysis.menu', { id: 'ok', title: 'OK', route: { path: '/ok' } })
+    expect(() =>
+      boot.ctx.slots.register('analysis.menu', { id: 'dup-path', title: 'Dup', route: { path: '/ok' } }),
+    ).toThrow(/重复/)
+    // 重复 id
+    expect(() =>
+      boot.ctx.slots.register('analysis.menu', { id: 'ok', title: 'OK2', route: { path: '/ok2' } }),
+    ).toThrow(/重复 id/)
+    // 非 analysis.menu 槽不要求 title/route
+    expect(() => boot.ctx.slots.register('stock-preview.footer', { id: 'f' })).not.toThrow()
+    await boot.dispose()
+  })
+})

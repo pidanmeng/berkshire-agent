@@ -50,6 +50,14 @@ export interface ClientChangedEvent {
   kind: "slots" | "clientModules";
 }
 
+/** 动态菜单项（T2：analysis.menu → 导航 + 路由）。 */
+export interface MenuEntry {
+  id: string;
+  order: number;
+  title: string;
+  path: string;
+}
+
 export interface LogEntry {
   id: number;
   event: string;
@@ -98,6 +106,11 @@ export function logList(event?: string): Promise<LogEntry[]> {
 /** 拉取 client 插件图快照（T1：`client/list` → ClientModuleHost 挂载）。 */
 export function clientList(): Promise<ClientModule[]> {
   return withTimeout(invoke<ClientModule[]>("client_list"), "client_list");
+}
+
+/** 拉取动态菜单快照（T2：`menu/list` → 导航 + 路由）。 */
+export function menuList(): Promise<MenuEntry[]> {
+  return withTimeout(invoke<MenuEntry[]>("menu_list"), "menu_list");
 }
 
 /** 订阅 sidecar 透传的 `client/changed` 事件；返回退订函数。 */

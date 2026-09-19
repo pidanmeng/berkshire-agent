@@ -11,6 +11,10 @@ describe("loadClientModule（client/list 快照 → 本地模块）", () => {
     expect(def).toBeDefined()
     expect(def?.bundle).toBe("client/demo-minimal.js")
     expect(typeof def?.component).toBe("function")
+
+    const analysis = loadClientModule("client/demo-analysis.js")
+    expect(analysis?.bundle).toBe("client/demo-analysis.js")
+    expect(typeof analysis?.component).toBe("function")
   })
 
   test("未知 bundle → undefined（调用方 fail-closed 降级）", () => {

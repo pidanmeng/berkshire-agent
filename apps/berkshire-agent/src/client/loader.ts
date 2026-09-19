@@ -9,6 +9,7 @@
  */
 import type { SlotComponent } from "../slots/registry"
 import { DemoMinimal } from "./demoMinimal"
+import { DemoAnalysis } from "./demoAnalysis"
 
 export interface ClientModuleDef {
   /** bundle 名（与 sidecar `ClientModuleRegistration.bundle` 对应）。 */
@@ -20,6 +21,7 @@ export interface ClientModuleDef {
 /** 本地模块表：bundle 名 → 本地模块。新增 client 插件在此登记，或由 T3 demo 插件打包进来。 */
 const LOCAL_MODULES: Record<string, ClientModuleDef> = {
   "client/demo-minimal.js": { bundle: "client/demo-minimal.js", component: DemoMinimal },
+  "client/demo-analysis.js": { bundle: "client/demo-analysis.js", component: DemoAnalysis },
 }
 
 /** 按 bundle 名解析本地模块；未知 bundle 返回 undefined（调用方 fail-closed 降级）。 */

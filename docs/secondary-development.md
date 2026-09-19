@@ -48,7 +48,7 @@
 
 - **未实现（目标契约，不允许 import/当已存在）**：DuckDB 写者、rspc/specta typed bridge、`bk://` 协议——仍处于本文档的“目标态”。（注：`packages/sidecar` 的 stdio JSON-RPC 长驻进程**本体已由 T1 落地**；**T2 的 Rust 宿主半边（`bridge.rs` 拉起/restart + 事件转发到 Tauri events）已落地 v1**；**T3 的 webview 薄客户端（`apps/berkshire-agent/src/lib/api.ts` + `components/SidecarPanel.tsx` + `lib/ExtensionBoundary.tsx`）已落地 v1**，均见 §8。）
 - **已有**：`apps/berkshire-agent` 的 Tauri 2 + React + Vite 骨架（见 [architecture.md §11](architecture.md#11-关键文件索引现状--目标)）。
-- **v1 已实现（headless 最小核心脊）+ T2 Rust 宿主桥 + T3 webview 接线**：见下文 [§8](#8-v1-落地说明已实现的-headless-最小核心脊)。核心脊已落三条（`ctx.log` / `ctx.capabilities` / `ctx.notifier` 能力缝）+ 第一个插件（notify-console）+ boot 装配器；另桥接协议 sidecar 长驻进程（T1，stdio JSON-RPC）**及 T2 的 Rust 宿主桥（`src-tauri/src/bridge.rs`/`sidecar_client.rs`：拉起/restart + 事件转发到 Tauri events）**、**T3 的 webview 接线（`apps/berkshire-agent/src/lib/api.ts` 薄客户端 + `components/SidecarPanel.tsx` + `lib/ExtensionBoundary.tsx`，最小证明面）**均已落地，见 §8；webview 本地 slot 宿主（`apps/berkshire-agent/src/slots/*`，T0 最小件，含 `useSyncExternalStore` 反应式订阅）也已落地（见 §8 下表）**。`@berkshire/cordis` vendor 重命名、DuckDB 写者仍为目标态；**T1 已把 sidecar 侧 `ctx.slots`/`ctx.clientModules` 能力缝（`packages/core`）最小件落地 + `client/list` 协议/`client_list` command + webview `ClientModuleHost`/`loader`（scoped 样式），构成 client 插件图最小链路**；正式 router/store 仍目标态。
+- **v1 已实现（headless 最小核心脊）+ T2 Rust 宿主桥 + T3 webview 接线**：见下文 [§8](#8-v1-落地说明已实现的-headless-最小核心脊)。核心脊已落三条（`ctx.log` / `ctx.capabilities` / `ctx.notifier` 能力缝）+ 第一个插件（notify-console）+ boot 装配器；另桥接协议 sidecar 长驻进程（T1，stdio JSON-RPC）**及 T2 的 Rust 宿主桥（`src-tauri/src/bridge.rs`/`sidecar_client.rs`：拉起/restart + 事件转发到 Tauri events）**、**T3 的 webview 接线（`apps/berkshire-agent/src/lib/api.ts` 薄客户端 + `components/SidecarPanel.tsx` + `lib/ExtensionBoundary.tsx`，最小证明面）**均已落地，见 §8；webview 本地 slot 宿主（`apps/berkshire-agent/src/slots/*`，T0 最小件，含 `useSyncExternalStore` 反应式订阅）也已落地（见 §8 下表）**。`@berkshire/cordis` vendor 重命名、DuckDB 写者仍为目标态；**T1 已把 sidecar 侧 `ctx.slots`/`ctx.clientModules` 能力缝（`packages/core`）最小件落地 + `client/list` 协议/`client_list` command + webview `ClientModuleHost`/`loader`（scoped 样式），构成 client 插件图最小链路**；**T2 已把「analysis.menu → 动态导航/路由/页面」最小件落地**（core `Slots.menu()`/`CORE_ROUTE_PATHS` 校验 + sidecar `menu/list` + Rust `menu_list` + webview `react-router-dom` `HashRouter` 与 `src/menu/{menuStore,MenuSync,ExtensionRoute}`）；正式 router（layout/menu 全量注入）与 store 仍目标态。
 - 参考复用（允许照抄契约，标注来源）：TSP 的 provider 接口、能力矩阵、slot 模型、plugin 清单、缓存失效；dsh 的插件形态、typed events、profile/bundle/patch、isolate/extend。
 
 ## 7. 关键文件索引（文档 ↔ 参考证据）
@@ -77,7 +77,8 @@
 | | `ctx.notifier`（能力缝 **Definition**） | 通知能力缝 | Provider 经 `register()` 挂入、Consumer 经 `send()` 消费；duplicate/fail-closed 响亮失败 |
 | | 品牌 id `CapabilityId` | 跨边界品牌化 | 已接入 `ctx.capabilities` / `capabilities/changed`；`AssetId`/`DatasetId`/`SymbolId` 为类型占位（v2 接入业务） |
 | | `declare module 'cordis'` | typed events + 服务增强 | `'notify/request'`、`'capabilities/changed'`、`'client/changed'` 均标注 `@mode emit` |
-| | `ctx.slots` / `ctx.clientModules`（能力缝 **Definition**，T1 最小件） | sidecar 侧 slot 占用 + client 插件图 / 前端 bundle 声明 | `Slots`/`ClientModules` extends `Service`：运行时校验（未知 slot/重复 id，fail-closed）+ `client/changed` 广播 + 可逆 disposer；`ClientModuleId` 品牌化；slot 名与 webview `slots/types.ts` 两端一致（共享类型层 v2）。菜单/路由语义（title/route）留 T2，`bk://` 远程 bundle 留 v-next |
+| | `ctx.slots` / `ctx.clientModules`（能力缝 **Definition**，T1 最小件） | sidecar 侧 slot 占用 + client 插件图 / 前端 bundle 声明 | `Slots`/`ClientModules` extends `Service`：运行时校验（未知 slot/重复 id，fail-closed）+ `client/changed` 广播 + 可逆 disposer；`ClientModuleId` 品牌化；slot 名与 webview `slots/types.ts` 两端一致（共享类型层 v2）。`analysis.menu` 的菜单/路由语义（title/route、静态路径/核心碰撞校验）已由 T2 落地（见下行），`bk://` 远程 bundle 留 v-next |
+| | `analysis.menu` 动态菜单/页面（能力块 B，T2 最小件） | sidecar 侧菜单声明 + 前端动态路由/导航 | `Slots.menu()`（按 `order ?? 100` 排序 + 过滤空 title/path）+ `CORE_ROUTE_PATHS`（`/`、`/settings`）校验：菜单路径须静态（无 `:`）、不得覆盖核心路由、路径在菜单内唯一（均 fail-closed）；sidecar `menu/list` 方法；Rust `menu_list` command；webview 引入 `react-router-dom` `HashRouter`（核心 `<Route>` `/`、`/settings`）+ `src/menu/{menuStore,MenuSync,ExtensionRoute}` 按 `analysis.menu` 动态生成顶栏导航与 `<Route>`，`ExtensionRoute` 指向 `ExtensionSlot{name:'analysis.menu'}` 并包 `ExtensionBoundary`（页面内容仍归插件）。正式 layout/menu 全量注入留 v-next |
 | `packages/boot`（`@berkshire/boot`） | `Boot` 装配器 | app-boot | `ctx.plugin()` 挂载、`dispose()` 逆序（后装先卸）；HMR 热装卸/sidecar 生命周期留 v2 |
 | | `composeEntries`/`applyEntryPatches` | profile/bundle/patch 组合 | 仅支持 `insert` 与按 id 整行覆盖；`!!js` 惰性求值、dump-config、isolate/group 留 v2 |
 | `packages/plugins/notify-console` | **第一个插件** | datasource/… 各插件 | 能力缝三角色之 **Provider**；inject 声明依赖、效应注册、卸载逆序清理 |
@@ -97,7 +98,7 @@
 ### 与目标态的差异（诚实标注）
 
 - **底座**：v1 以 Cordis 官方包 `cordis` 为底座并对 `'cordis'` 做 `declare module`；目标态的 `@berkshire/cordis` vendor、DuckDB 单写者、rspc/specta typed bridge、`bk://` 协议**均未实现**（v2）。桥接协议 sidecar 进程**本体**（T1 stdio JSON-RPC）已落地；T2 的 Rust 宿主桥（`bridge.rs` 拉起/restart + 事件转发到 Tauri events）已落地 v1；T3 的 webview 接线（进程 C，`lib/api.ts` 薄客户端 + `components/SidecarPanel.tsx`，最小证明面）已落地 v1，见上表。
-- **范围**：核心脊已落 sessions/log、capabilities、notifier(seam)、slots、clientModules 五条；前端 **webview 本地 slot 宿主（`apps/berkshire-agent/src/slots/*`，T0 最小件）已落地**、**T1 的 sidecar 侧 `ctx.slots`/`ctx.clientModules` 能力缝最小件 + `client/list`/`client_list` + webview `ClientModuleHost`（client 插件图最小链路）已落地**（见 §6/§8）；database/datasets/market/scheduler 及正式 router/store 仍为目标态。
+- **范围**：核心脊已落 sessions/log、capabilities、notifier(seam)、slots、clientModules 五条；前端 **webview 本地 slot 宿主（`apps/berkshire-agent/src/slots/*`，T0 最小件）已落地**、**T1 的 sidecar 侧 `ctx.slots`/`ctx.clientModules` 能力缝最小件 + `client/list`/`client_list` + webview `ClientModuleHost`（client 插件图最小链路）已落地**、**T2 的 `analysis.menu` → 动态导航/路由/页面最小件（core `Slots.menu()`/`CORE_ROUTE_PATHS` + sidecar `menu/list` + Rust `menu_list` + webview `HashRouter`/`src/menu/*`）已落地**（见 §6/§8）；database/datasets/market/scheduler 及正式 router/store 仍为目标态。
 - **配置**：`composeEntries` 只实现最小区间；`dump-config`、`!!js`、`isolate/extend`、HMR 留 v2。
 
 ### 复现命令（已在本次交付跑通）
@@ -106,17 +107,17 @@
 bun install
 bun run packages/boot/examples/headless.ts   # 端到端样例：enable/disable 两场景
 bun test packages/boot/test/core.test.ts     # v1 自动化测试：6 pass / 0 fail
-bun run packages/sidecar/examples/smoke.ts   # sidecar 桥接协议冒烟（T1）：五方法 + 事件 + fail-closed + shutdown（含 client/list）
-bun test packages/sidecar/test               # sidecar 自动化测试（T4）：协议层 + writer + 事件推送器 + 进程端到端，30 pass / 0 fail
+bun run packages/sidecar/examples/smoke.ts   # sidecar 桥接协议冒烟（T1）：六方法 + 事件 + fail-closed + shutdown（含 client/list、menu/list）
+bun test packages/sidecar/test               # sidecar 自动化测试（T4）：协议层 + writer + 事件推送器 + 进程端到端，33 pass / 0 fail
 bun test apps/berkshire-agent/src            # webview：slot 注册表（T0，7）+ client loader（T1，3）单测
-cargo check -p berkshire-agent --manifest-path apps/berkshire-agent/src-tauri/Cargo.toml  # Rust 桥（含 client_list）
-bun test                                     # 全仓：v1(6) + sidecar(30) + webview(10) = 46 pass / 0 fail
+cargo check -p berkshire-agent --manifest-path apps/berkshire-agent/src-tauri/Cargo.toml  # Rust 桥（含 client_list、menu_list）
+bun test                                     # 全仓：v1(6) + sidecar(33) + webview(10) = 49 pass / 0 fail
 ```
 
 ### v1 接线已验证（T4 收口）
 
-- `packages/sidecar/test/*.test.ts`（bun test）：`protocol.test.ts`（协议层 22，含 `client/list`）、`writer.test.ts`（行缓冲 4）、`events.test.ts`（`client/changed` 推送 3）、`process.test.ts`（spawn 真实 sidecar 的端到端：四方法 round-trip + 事件推送 + shutdown 逆序销毁顺序 + 退出码 0）。
+- `packages/sidecar/test/*.test.ts`（bun test）：`protocol.test.ts`（协议层 25，含 `client/list`、`menu/list`）、`writer.test.ts`（行缓冲 4）、`events.test.ts`（`client/changed` 推送 3）、`process.test.ts`（spawn 真实 sidecar 的端到端：四方法 round-trip + 事件推送 + shutdown 逆序销毁顺序 + 退出码 0）——共 33。
 - Rust 桥侧 `cargo test --offline`：`sidecar_client.rs` 单测 2 用例（含真实 spawn round-trip）。
-- 前端 `bun run build`（tsc + vite build）通过；`apps/berkshire-agent/src/lib/api.ts`、`components/SidecarPanel.tsx` 为最小证明面；webview 本地 slot 宿主 `src/slots/*`（T0：`SlotRegistry`/校验/`ExtensionSlot`/降级 + 反应式订阅，`bun test src/slots/registry.test.ts` 覆盖）已落地；**T1 已落地 sidecar 侧 `ctx.slots`/`clientModules` 缝、`client/list`/`client_list`、webview `ClientModuleHost`/`loader`（client 插件图最小链路，`bun test src/client/loader.test.ts` 覆盖）**；正式 router/store 仍目标态。
+- 前端 `bun run build`（tsc + vite build）通过；`apps/berkshire-agent/src/lib/api.ts`、`components/SidecarPanel.tsx` 为最小证明面；webview 本地 slot 宿主 `src/slots/*`（T0：`SlotRegistry`/校验/`ExtensionSlot`/降级 + 反应式订阅，`bun test src/slots/registry.test.ts` 覆盖）已落地；**T1 已落地 sidecar 侧 `ctx.slots`/`clientModules` 缝、`client/list`/`client_list`、webview `ClientModuleHost`/`loader`（client 插件图最小链路，`bun test src/client/loader.test.ts` 覆盖）**；**T2 已落地 `analysis.menu` → 动态导航/路由/页面（core `Slots.menu()`/`CORE_ROUTE_PATHS` 校验 + sidecar `menu/list` + Rust `menu_list` + webview `react-router-dom` `HashRouter` 与 `src/menu/*`，`menu/list` 协议校验在 sidecar `protocol.test.ts` 覆盖）**；正式 router/store 仍目标态。
 
 > 注：[architecture.md §11](architecture.md#11-关键文件索引现状--目标) 的“现状锚点”已把 v1 的 core/boot/plugin/bundle 更新为真实文件锚点（见上表对应行），`AGENTS.md` 的「已有 / 目标态」清单也已同步。
