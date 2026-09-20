@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import type { Context } from '@berkshire/cordis'
 import type { ClientModuleId } from '@berkshire/core'
 // 插件独立打包阶段编译产物（P3：CSS Modules → 哈希类名 + 注入代码，lightningcss）。
@@ -8,13 +10,23 @@ import { fundFlow, moneyFlow, watchlistToolbar, navExtra, statusItem, settingsCa
 import '@berkshire/core'
 
 /**
- * webview 半身的 **client 入口 URL**（M3）：本文件在运行期是插件的已构建 sidecar 半身
- * （`dist/index.js`，`exports["."]` 指向 dist），相对它取 `./client/index.js` 即命中
- * 已编译的 client 入口（`dist/client/index.js`，导出台面所有组件/页面）。插件只自报
- * 自己的入口与具名导出，宿主零硬编码；宿主侧 `to_bk_url`（Rust bridge.rs）再按 `$BK_HOME` 规范化
- * 成 `bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js` 供 webview 动态 `import()`。
+ * webview 半身的 **client 入口 URL**（M3）：插件只自报自己的入口与具名导出，宿主零硬编码；
+ * 宿主侧 `to_bk_url`（Rust bridge.rs）再把 `$BK_HOME` 内的入口规范化成 `bk://` 供 webview 动态 `import()`。
+ *
+ * 运行态有两种真实装载位置，入口必须对两者都解析到**真实存在**的文件：
+ * - **已构建包（prod/`bun add` 进 home）**：`exports["."]` 指向 `dist/index.js`，`import.meta.url`
+ *   是 dist → `./client/index.js`（已编译 client 入口）；
+ * - **dev 源码态**：bun 把 workspace 插件解析到 `src/index.ts`，`import.meta.url` 是 src →
+ *   `./client/index.tsx`（client 源；webview 经 Vite `/@fs/` 变换 serve，组件 .tsx 归 Vite Fast Refresh）。
+ * 两个候选里取第一个落盘存在的，避免旁支路径（如 src 下无 index.js）产生 404。
  */
-const CLIENT_ENTRY_URL = new URL('./client/index.js', import.meta.url).href
+const CLIENT_ENTRY_URL = (() => {
+  // 已构建 client 入口（dist）：相对运行文件取 ./client/index.js。
+  const distEntry = new URL('./client/index.js', import.meta.url)
+  if (existsSync(fileURLToPath(distEntry))) return distEntry.href
+  // dev 源码态：client 源是 ./client/index.tsx（Vite 经 /@fs 变换）。
+  return new URL('./client/index.tsx', import.meta.url).href
+})()
 // 上方 `import '@berkshire/core'` 已把 `declare module '@berkshire/cordis'` 的增强带入本模块，
 // 使 `ctx.slots` / `ctx.clientModules` / `ctx.log` 可用类型（能力缝三角色：
 // core 提供 Service Definition，本插件作为 Consumer/Provider 把页面 + 组件 + 样式挂进槽位）。

@@ -5,9 +5,14 @@
  * stderr=日志。启动即按 `$BK_HOME/cordis.yml` 声明装配插件，**第一条消息前**完成；
  * 随后进入逐行串行的 ndjson 读循环。
  *
+ * **首启供给（provisioning）**：`$BK_HOME/cordis.yml` 尚不存在时，本进程**不装配也不崩溃**，
+ * 而是进入待供给阶段——保活应答 `boot/status` → `{ phase: 'provisioning' }`，其余方法
+ * METHOD(…fail-closed)。宿主据此展示首启引导、写入 cordis.yml 后 `restart` 本进程 → 重新进入
+ * ready 装配路径。这样首启不再黑屏/离线，且「装配只由 cordis.yml 驱动」的纪律不变。
+ *
  * 诚实边界：全内存实现（capabilities/log 均为进程内状态），持久化目标态；
  * 本入口只做「手动 bun run 冒烟 + 协议服务」，由宿主拉起/restart 属 T2。配置持久化
- * （写回 cordis.yml、`!!js` 惰性表达式）属 v2 目标态。
+ * （写回 cordis.yml、`!!js` 惰性表达式）属 v2 目标态；首启写 cordis.yml 由宿主 Rust 落盘。
  *
  * 装载纪律（用户拍板）：加载**只由 `$BK_HOME/cordis.yml` + 下载的 npm 包驱动**——不 import、
  * 不写死表单。resolver 用 `@berkshire/boot` 内置动态 `importPlugin`（npm 裸名 / 相对·绝对
@@ -15,20 +20,88 @@
  * 新增插件 = 「`bun add` 进 `$BK_HOME/node_modules` + cordis.yml 加一行」，sidecar 零改码。
  */
 import { createInterface } from 'node:readline'
+import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { Boot, importPlugin, defaultBkHome, nodeModulesDir, readCordisYml } from '@berkshire/boot'
+import {
+  Boot,
+  importPlugin,
+  defaultBkHome,
+  nodeModulesDir,
+  cordisYmlPath,
+  readCordisYml,
+} from '@berkshire/boot'
 import type { Resolver } from '@berkshire/boot'
 import { createLineWriter } from './writer'
-import { handleLine } from './protocol'
-import type { HandleLineDeps } from './protocol'
+import { handleLine, handleProvisionLine, type HandleLineDeps, type HandleLineResult } from './protocol'
 import { attachEventPusher } from './events'
 import { attachDevWatcher } from './dev_watch'
+import type { LineWriter } from './writer'
 
 /** 仓库根（dev 态插件热更 watcher 用）：packages/sidecar/src → ../../../。 */
 const REPO = resolve(import.meta.dir, '../../..')
 
+/** 逐行串行的 ndjson 读循环（两阶段共享）：处理一行 → 写响应；shutdown 走 onShutdown。 */
+async function runLoop(
+  writer: LineWriter,
+  handle: (line: string) => Promise<HandleLineResult>,
+  onShutdown: () => Promise<void>,
+): Promise<void> {
+  const rl = createInterface({ input: process.stdin, crlfDelay: Infinity })
+  let shuttingDown = false
+  let chain: Promise<void> = Promise.resolve()
+  rl.on('line', (line) => {
+    if (shuttingDown) return
+    chain = chain
+      .then(async () => {
+        const { lines, shutdown } = await handle(line)
+        for (const l of lines) writer.write(l)
+        if (shutdown) {
+          shuttingDown = true
+          await writer.flush() // 确保 shutdown 响应已送达宿主
+          await onShutdown()
+        }
+      })
+      .catch((err) => {
+        process.stderr.write(`[sidecar][internal] ${err instanceof Error ? err.message : String(err)}\n`)
+      })
+  })
+
+  // stdin EOF（宿主关闭管道）：flush 已排队的响应后以 0 退出。真实宿主走 shutdown，不依赖此路径。
+  rl.on('close', () => {
+    void chain.finally(async () => {
+      if (shuttingDown) return
+      await writer.flush()
+      process.exit(0)
+    })
+  })
+}
+
+/** 待供给阶段：cordis.yml 缺失 → 不装配不崩溃，保活应答 boot/status，等宿主写入后重启。 */
+async function runProvisioning(bkHome: string): Promise<void> {
+  process.stderr.write(
+    `[sidecar][provisioning] cordis.yml not found at ${cordisYmlPath(bkHome)}; ` +
+      `awaiting provision (answers boot/status)\n`,
+  )
+  const writer = createLineWriter(process.stdout)
+  await runLoop(
+    writer,
+    (line) => handleProvisionLine(line, 'provisioning'),
+    async () => {
+      process.stderr.write('[sidecar] provisioning shutdown\n')
+      process.exit(0)
+    },
+  )
+}
+
 async function main(): Promise<void> {
   const bkHome = defaultBkHome()
+  const ymlPath = cordisYmlPath(bkHome)
+
+  // 首启供给：cordis.yml 不存在 → 进入 provisioning，宿主展示引导后写盘并 restart。
+  if (!existsSync(ymlPath)) {
+    return runProvisioning(bkHome)
+  }
+
   const nmDir = nodeModulesDir(bkHome)
   // 顶层装配入口：只从 $BK_HOME/cordis.yml 读「装哪些插件」（fail-closed，缺文件即报错）。
   const rows = readCordisYml(bkHome)
@@ -66,36 +139,8 @@ async function main(): Promise<void> {
     process.exit(0)
   }
 
-  const rl = createInterface({ input: process.stdin, crlfDelay: Infinity })
-  let shuttingDown = false
-  let chain: Promise<void> = Promise.resolve()
-  rl.on('line', (line) => {
-    if (shuttingDown) return
-    chain = chain
-      .then(async () => {
-        const { lines, shutdown } = await handleLine(line, deps)
-        for (const l of lines) writer.write(l)
-        if (shutdown) {
-          shuttingDown = true
-          await writer.flush() // 确保 shutdown 响应已送达宿主
-          await teardown()
-        }
-      })
-      .catch((err) => {
-        process.stderr.write(`[sidecar][internal] ${err instanceof Error ? err.message : String(err)}\n`)
-      })
-  })
-
-  // stdin EOF（宿主关闭管道）：flush 已排队的响应后以 0 退出。真实宿主走 shutdown，不依赖此路径。
-  rl.on('close', () => {
-    void chain.finally(async () => {
-      if (shuttingDown) return
-      await writer.flush()
-      process.exit(0)
-    })
-  })
-
-  // 事件循环由活动的 stdin 读循环维持；由 close / shutdown 决定退出。
+  // ready：装配完成，进入服务协议；`boot/status` 由 dispatch 应答 `{ phase: 'ready' }`。
+  await runLoop(writer, (line) => handleLine(line, deps), teardown)
 }
 
 void main().catch((err) => {

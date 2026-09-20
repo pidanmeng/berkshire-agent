@@ -80,8 +80,16 @@ export class ProtocolError extends Error {
 
 const LEVELS = ['info', 'warn', 'error'] as const
 
+/** 桥接装配阶段（首启供给）：sidecar 是否已按 `$BK_HOME/cordis.yml` 装配完成。 */
+export type BootPhase = 'ready' | 'provisioning'
+
 async function dispatch(method: string, params: Record<string, unknown>, ctx: Context): Promise<unknown> {
   switch (method) {
+    case 'boot/status':
+      // 装配完成阶段（ready）：宿主据此把 webview 切到「已初始化/在线」。provisioning 阶段由
+      // handleProvisionLine 服务于 `boot/status`，此处只服务 ready。
+      return { phase: 'ready' }
+
     case 'capabilities/list':
       return ctx.capabilities
         .matrix()
@@ -173,5 +181,38 @@ export async function handleLine(netline: string, deps: HandleLineDeps): Promise
     const code = err instanceof ProtocolError ? err.code : ESC.INTERNAL
     const message = err instanceof Error ? err.message : String(err)
     return { lines: [serializeError({ id: req.id, error: { code, message } })], shutdown: false }
+  }
+}
+
+/**
+ * 「待供给（provisioning）」阶段的无 ctx 单行处理：`$BK_HOME/cordis.yml` 尚不存在时，sidecar
+ * 不装配任何插件、也不崩溃（否则首启只能黑屏/离线），而是保活应答 `boot/status`，让宿主据此
+ * 展示首启引导、写入 cordis.yml 后由宿主重启本进程进入 ready。其余方法一律 METHOD(…fail-closed)，
+ * 绝不吞、绝不伪造「已装配」结果。
+ */
+export async function handleProvisionLine(
+  netline: string,
+  phase: BootPhase,
+): Promise<HandleLineResult> {
+  const parsed = parseLine(netline)
+  if (parsed.status === 'ignore') return { lines: [], shutdown: false }
+  if (parsed.status === 'error') {
+    return { lines: [serializeError(parsed.error)], shutdown: false }
+  }
+  const req = parsed.req
+  if (req.method === 'shutdown') {
+    return { lines: [serializeResult(req.id, null)], shutdown: true }
+  }
+  if (req.method === 'boot/status') {
+    return { lines: [serializeResult(req.id, { phase })], shutdown: false }
+  }
+  return {
+    lines: [
+      serializeError({
+        id: req.id,
+        error: { code: ESC.METHOD, message: `unknown method "${req.method}" (unprovisioned)` },
+      }),
+    ],
+    shutdown: false,
   }
 }

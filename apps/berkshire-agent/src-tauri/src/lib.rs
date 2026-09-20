@@ -64,6 +64,19 @@ async fn routes_list(state: BridgeState<'_>) -> Result<Vec<bridge::RouteDto>, St
     bridge_call(state, Bridge::routes_list).await
 }
 
+/// 首启供给：sidecar 是否处于「待供给」阶段（无 cordis.yml）→ webview 显示首启引导。
+#[tauri::command]
+async fn provisioning_status(state: BridgeState<'_>) -> Result<bool, String> {
+    bridge_call(state, Bridge::provisioning_status).await
+}
+
+/// 首启供给：把 user 选择的完整 cordis.yml 写入 `$BK_HOME` 并重启 sidecar 进入 ready。
+/// （JS 侧经 Tauri 默认 camelCase 传 `{ cordisYml }` → 本参 `cordis_yml`。）
+#[tauri::command]
+async fn provision_bk_home(cordis_yml: String, state: BridgeState<'_>) -> Result<(), String> {
+    bridge_call(state, move |b| b.provision_bk_home(cordis_yml)).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -83,7 +96,9 @@ pub fn run() {
             notify_send,
             log_list,
             client_list,
-            routes_list
+            routes_list,
+            provisioning_status,
+            provision_bk_home
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

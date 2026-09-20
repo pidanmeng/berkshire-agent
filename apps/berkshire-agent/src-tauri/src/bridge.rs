@@ -26,14 +26,19 @@ pub struct CapabilityDto {
 
 /// client 插件图快照（`client/list` 结果）：slot → 可 import 的 client 入口 URL 清单，
 /// 随入口的具名导出（组件/页面）与可选 scoped 样式。宿主据此运行时动态 `import(url)`，零硬编码。
+///
+/// `rename_all = "camelCase"`：sidecar（JS）的 `clientModules` 快照字段是 camelCase
+/// （`exportName`），Rust 侧 `export_name` 与之双向映射——反序列化能读到、序列化成 `exportName`
+/// 交 webview。缺此会把 `exportName` 当未知键忽略 → 入口回到 default → 具名导出必然失败。
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ClientModuleDto {
     pub id: String,
     pub slot: String,
     pub url: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub export_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub style: Option<String>,
 }
 
@@ -202,6 +207,44 @@ impl Bridge {
         self.client()?.request(method, params)
     }
 
+    // ---- 首启供给（onboarding）：boot/status + 写 cordis.yml + restart ----
+
+    /// 查询 sidecar 装配阶段：`boot/status` → `{ phase: 'ready'|'provisioning' }`。
+    pub fn boot_status(&self) -> Result<Value, String> {
+        self.call("boot/status", Value::Object(Default::default()))
+            .map_err(|e| e.message)
+    }
+
+    /// sidecar 是否处于「待供给」阶段（`$BK_HOME/cordis.yml` 尚未落盘）。webview 据此决定
+    /// 是否显示首启引导。sidecar 未就绪/不可达一律视为需引导（fail-closed，不误报已就绪）。
+    pub fn provisioning_status(&self) -> Result<bool, String> {
+        let v = self.boot_status()?;
+        Ok(v.get("phase").and_then(|p| p.as_str()) == Some("provisioning"))
+    }
+
+    /// 首启引导落盘 `$BK_HOME/cordis.yml`，随后重启 sidecar 进入 ready 装配。
+    /// `$BK_HOME` 写盘由 Rust 单写者承担；内容即 webview 首启步骤产出的完整 YAML 文本
+    /// （本层不做插件装载决策，只负责把用户选择写进配置并重装配）。
+    pub fn provision_bk_home(&self, cordis_yaml: String) -> Result<(), String> {
+        use std::fs;
+
+        let home = bk_home();
+        fs::create_dir_all(&home).map_err(|e| format!("create $BK_HOME {}: {e}", home.display()))?;
+        let yml = home.join("cordis.yml");
+        fs::write(&yml, cordis_yaml).map_err(|e| format!("write {}: {e}", yml.display()))?;
+        eprintln!("[bridge] provisioning: wrote {}", yml.display());
+
+        // 重装配：停掉 provisioning 阶段的 sidecar，按新 cordis.yml 拉起 ready 进程。
+        self.restart();
+        // 主动推一次 client/changed，让仍在活的 reconciler（ClientModuleHost）据此重拉 client/list；
+        // 即便新 sidecar 尚未 boot 完，其阻塞请求也会在就绪后被读线程应答。事件在 webview 尚未
+        // mount 前发出会丢失，故 ClientModuleHost 侧还做了首次拉取有界重试兜底。
+        let _ = self
+            .app
+            .emit("sidecar://client/changed", serde_json::json!({ "kind": "clientModules" }));
+        Ok(())
+    }
+
     // ---- 最小命令面（经 bridge 走 sidecar，v1 能力）----
 
     pub fn capabilities_list(&self) -> Result<Vec<CapabilityDto>, String> {
@@ -324,5 +367,27 @@ mod tests {
             "bk:///node_modules/a/pkg/dist/index.js"
         );
         assert_eq!(to_bk_url("https://cdn.example/x.js", &home), "https://cdn.example/x.js");
+    }
+
+    /// `ClientModuleDto` 双向映射 `exportName`（sidecar JS 是 camelCase）：反序列化能读到、
+    /// 序列化回 camelCase 供 webview 取具名导出。缺 `rename_all = "camelCase"` 会把导入名丢掉
+    /// → 入口回到 default → 具名导出必然失败（client 组件不渲染的根因之一）。
+    #[test]
+    fn client_module_dto_roundtrips_camel_case_export_name() {
+        // 反序列化 sidecar 的 camelCase 快照项。
+        let sidecar_item = r#"{"id":"demo-settings-card","slot":"settings.cards","url":"bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js","exportName":"DemoSettingsCard","style":".x{}"}"#;
+        let dto: ClientModuleDto = serde_json::from_str(sidecar_item).expect("应能读到 camelCase exportName");
+        assert_eq!(dto.export_name.as_deref(), Some("DemoSettingsCard"));
+        assert_eq!(dto.style.as_deref(), Some(".x{}"));
+        // 序列化回 webview 时应再产出 camelCase exportName。
+        let serialized = serde_json::to_value(&dto).expect("serialize");
+        assert_eq!(serialized["exportName"], "DemoSettingsCard");
+        assert_eq!(serialized.get("export_name"), None);
+        // 无 exportName（可选字段）→ None，webview 用 default。
+        let no_export: ClientModuleDto = serde_json::from_str(
+            r#"{"id":"a","slot":"root","url":"bk:///x.js"}"#,
+        )
+        .expect("缺 exportName 合法");
+        assert!(no_export.export_name.is_none());
     }
 }

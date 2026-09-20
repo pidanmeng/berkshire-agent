@@ -34,9 +34,9 @@ export default function ClientModuleHost() {
       try {
         list = await clientList()
       } catch (e) {
-        // bridge 断/超时：fail-closed，保留已挂载项，不崩页（宿主可继续交互）。
+        // bridge 断/超时：fail-closed，保留已挂载项，不崩页；**向上抛给 reconcile 做首次有界重试**。
         console.warn("[ClientModuleHost] client/list 不可用:", e)
-        return
+        throw e
       }
 
       const seen = new Set<string>()
@@ -90,11 +90,28 @@ export default function ClientModuleHost() {
       }
     }
 
-    // 串行化的 reconcile 入队；失败只告警，不让链断裂（后续事件仍能驱动下一轮）。
+    // 串行化 reconcile；失败不轻易放弃。首次拉取（前提 sidecar 刚 restart 进 ready）若碰上
+    // bridge 尚未就绪的瞬间 → 有界重试若干次；一旦成功过（everSucceeded）就不再重试（后续失败
+    // 只告警，等真实事件驱动——避免死循环）。
+    const RETRY_DELAY_MS = 350
+    const INITIAL_RETRIES = 12
+    let retries = 0
+    let everSucceeded = false
     const reconcile = () => {
-      chain = chain.then(apply).catch((e) => {
-        console.warn("[ClientModuleHost] reconcile 失败:", e)
-      })
+      chain = chain
+        .then(apply)
+        .then(() => {
+          everSucceeded = true
+        })
+        .catch((e) => {
+          if (everSucceeded || retries >= INITIAL_RETRIES) {
+            console.warn("[ClientModuleHost] reconcile 失败:", e)
+            return
+          }
+          retries += 1
+          if (cancelled) return
+          setTimeout(() => reconcile(), RETRY_DELAY_MS)
+        })
     }
 
     // 先订阅、后首拉——订阅建立后的事件不再有丢失窗口，首拉兜底拿全量初始快照。

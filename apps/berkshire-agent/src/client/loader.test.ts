@@ -10,7 +10,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { importClientModule, injectModuleStyle, type ClientComponent } from "./loader"
+import { importClientModule, injectModuleStyle, normalizeClientUrl, type ClientComponent } from "./loader"
 import { buildSharedImportMap, SHARED_IMPORTS } from "../lib/sharedImportMap"
 
 describe("importClientModule（运行时 import + 具名导出）", () => {
@@ -42,6 +42,35 @@ describe("importClientModule（运行时 import + 具名导出）", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe("normalizeClientUrl（dev workspace file:// → Vite /@fs）", () => {
+  const win = globalThis as { window?: unknown }
+  const prevWindow = win.window
+
+  test("bk:// / http(s):// 原样透传", () => {
+    expect(normalizeClientUrl("bk:///node_modules/a/dist/client/index.js")).toBe(
+      "bk:///node_modules/a/dist/client/index.js",
+    )
+    expect(normalizeClientUrl("https://cdn.example/x.js")).toBe("https://cdn.example/x.js")
+    expect(normalizeClientUrl("http://127.0.0.1:1420/x.js")).toBe("http://127.0.0.1:1420/x.js")
+  })
+
+  test("浏览器（window 存在，Vite dev webview）下 file:// → /@fs 绝对路径", () => {
+    win.window = {}
+    try {
+      expect(
+        normalizeClientUrl("file:///C:/Code/berkshire-agent/packages/plugins/demo/src/client/index.tsx"),
+      ).toBe("/@fs/C:/Code/berkshire-agent/packages/plugins/demo/src/client/index.tsx")
+    } finally {
+      win.window = prevWindow
+    }
+  })
+
+  test("非浏览器（Node/bun test，无 window）下 file:// 原样直接 import", () => {
+    win.window = prevWindow // 保持测试环境的无 window 态
+    expect(normalizeClientUrl("file:///C:/tmp/mod.ts")).toBe("file:///C:/tmp/mod.ts")
   })
 })
 

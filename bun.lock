@@ -80,7 +80,7 @@
       "name": "@berkshire/bundle-base",
       "version": "0.1.0",
     },
-    "packages/cordis": {
+    "packages/cordis-vendor": {
       "name": "@berkshire/cordis",
       "version": "0.1.0",
       "dependencies": {
@@ -206,7 +206,7 @@
 
     "@berkshire/bundle-base": ["@berkshire/bundle-base@workspace:packages/bundle/base"],
 
-    "@berkshire/cordis": ["@berkshire/cordis@workspace:packages/cordis"],
+    "@berkshire/cordis": ["@berkshire/cordis@workspace:packages/cordis-vendor"],
 
     "@berkshire/core": ["@berkshire/core@workspace:packages/core"],
 

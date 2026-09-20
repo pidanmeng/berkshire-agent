@@ -112,6 +112,11 @@ jobs:
       - name: Sync dependencies (bun monorepo)
         run: bun install --frozen-lockfile
 
+      # 插件先于宿主打包：宿主 dev/build 引用的是插件「打包后的产物」（package.json exports → dist），
+      # 必须在 `tsc && vite build`（tauri-action 内部）之前先构建全部包的 dist/，否则宿主解析不到插件入口。
+      - name: Build all packages (plugins before host)
+        run: bun run build:packages
+
       # tauri-action：构建本机安装包并上传到 GitHub Release。
       # - 4 个 matrix job 共用同一个 tag（v__VERSION__）与同一个 release：
       #   release 已存在时，其余 job 只把各自资产 append 到该 release，不整体覆盖。
@@ -135,3 +140,48 @@ jobs:
           prerelease: false
           projectPath: './apps/berkshire-agent'
           args: ${{ matrix.args }}
+
+  # 插件/依赖包发布到 npm（@berkshire/* 全量，lib 先、插件后）。
+  # - 触发：与宿主同一次 v* tag / workflow_dispatch，与 release job 并行。
+  # - 需要 secret：NPM_TOKEN（npmjs 推送 token）；缺失时 npm publish 响亮失败（fail-closed）。
+  # - 发布脚本（scripts/publish-plugins.ts）已处理 workspace:* 改写与「已发布版本跳过」（可安全重跑）。
+  publish-plugins:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache bun node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            bun.lock
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Sync dependencies (bun monorepo)
+        run: bun install --frozen-lockfile
+
+      - name: Setup node + npm registry auth
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      # 发布前必须先把包构建出 dist/（publish-plugins.ts 会校验，缺 dist 即 fail）。
+      - name: Build all packages (plugins before publish)
+        run: bun run build:packages
+
+      # 逐包 npm publish；scripts/publish-plugins.ts 自动改写 workspace:* 为已发布版本并还原。
+      - name: Publish @berkshire/* to npm
+        run: bun run publish:plugins
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PUBLISH_ACCESS: public

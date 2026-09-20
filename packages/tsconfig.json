@@ -10,7 +10,7 @@
     "outDir": "./.out",
     "baseUrl": ".",
     "paths": {
-      "@berkshire/cordis": ["./cordis/src/index.ts"],
+      "@berkshire/cordis": ["./cordis-vendor/src/index.ts"],
       "@berkshire/core": ["./core/src/index.ts"],
       "@berkshire/core/*": ["./core/src/*"],
       "@berkshire/boot": ["./boot/src/index.ts"],

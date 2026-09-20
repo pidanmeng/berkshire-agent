@@ -118,6 +118,16 @@ export function routesList(): Promise<RouteEntry[]> {
   return withTimeout(invoke<RouteEntry[]>("routes_list"), "routes_list");
 }
 
+/** 首启供给：sidecar 是否处于「待供给」阶段（$BK_HOME/cordis.yml 尚未落盘）。 */
+export function provisioningStatus(): Promise<boolean> {
+  return withTimeout(invoke<boolean>("provisioning_status"), "provisioning_status");
+}
+
+/** 首启供给：把 user 选择的完整 cordis.yml 文本写入 $BK_HOME 并重启 sidecar 进入 ready。 */
+export function provisionBkHome(cordisYml: string): Promise<void> {
+  return withTimeout(invoke<void>("provision_bk_home", { cordisYml }), "provision_bk_home");
+}
+
 /** 订阅 sidecar 透传的 `client/changed` 事件；返回退订函数。 */
 export function onClientChanged(cb: (payload: ClientChangedEvent) => void): Promise<() => void> {
   return listen<ClientChangedEvent>("sidecar://client/changed", (e) =>

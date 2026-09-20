@@ -9,6 +9,8 @@ import { routesStore } from "./routes/routesStore";
 import ExtensionRoute from "./routes/ExtensionRoute";
 import { ThemePalettePage, SettingsPage, registerRootShell } from "@berkshire/base-ui/client";
 import { useBridgeStatus } from "./lib/useBridgeStatus";
+import { OnboardingGate } from "./onboarding/OnboardingGate";
+import { useAppPhase } from "./onboarding/useAppPhase";
 
 // base-ui 壳帧 = 共享 `root` 槽的 single 项：装配即注册（注册即效应），宿主改从 root 槽挂载。
 registerRootShell();
@@ -51,6 +53,9 @@ function NotFound() {
 }
 
 function App() {
+  // 首启供给阶段：checking=探测中，provisioning=$BK_HOME/cordis.yml 未落盘（显示首启引导），
+  // ready=已装配（显示正常应用）。在 routes/bridgeOnline 之后取值，保证 hook 顺序稳定。
+  const [phase, refreshPhase] = useAppPhase();
   // 动态路由（路由契约化）：从 routesStore 反应式读取 sidecar 的插件自声明路由（含 slot/section）。
   const routes = useSyncExternalStore(
     routesStore.subscribe,
@@ -58,7 +63,30 @@ function App() {
     routesStore.getSnapshot,
   );
   // 桥接连通态：base-ui 壳不依赖宿主 lib/api，这里探测后作为 prop 注入。null=检测中。
-  const bridgeOnline = useBridgeStatus();
+  // gate 在 ready 上：provisioning 阶段 capabilitiesList 必 fail-closed，故只在就绪后探测。
+  const bridgeOnline = useBridgeStatus(phase === "ready");
+
+  // 首启供给：$BK_HOME 未初始化 → 全屏首启引导；探测中 → 轻量 splash（避免闪烁）。
+  if (phase === "checking") {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "var(--bk-font-sans)",
+          color: "var(--bk-color-fg-muted)",
+          background: "var(--bk-color-bg)",
+        }}
+      >
+        正在初始化…
+      </main>
+    );
+  }
+  if (phase === "provisioning") {
+    return <OnboardingGate onDone={refreshPhase} />;
+  }
 
   return (
     <div className={styles.app}>
