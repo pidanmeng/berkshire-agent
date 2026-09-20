@@ -1,25 +1,45 @@
-/* AppShell —— 应用壳网格（Vercel 黑白风，base-ui 壳插件）。只写 var(--bk-*) 与结构，禁魔法值。 */
+/* AppShell —— 应用壳 grid 三区域骨架（dark-first 终端风，base-ui 壳插件）。
+ * 只写 var(--bk-*) 与结构，禁魔法值。边框分层、少阴影（design.md §1）。 */
 .shell {
-  display: flex;
-  min-height: 100vh;
+  display: grid;
+  grid-template-areas:
+    "titlebar  titlebar"
+    "sidebar   statusbar"
+    "sidebar   content";
+  /* 左导航按其内容宽度；右列占剩余。三行：标题栏自适应、顶栏自适应、内容区占满余高。 */
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: 100vh;
   width: 100%;
 }
 
-.sidebar {
-  flex: 0 0 auto;
+/* 顶部自绘标题栏（WP-5）：跨两列铺满全宽。 */
+.titlebarRegion {
+  grid-area: titlebar;
+  min-width: 0;
+}
+
+/* 左导航：跨两行满高，独立滚动（grid-area 让它吃满 sidebar 区域）。 */
+.sidebarRegion {
+  grid-area: sidebar;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bk-color-bg-elevated);
   border-right: 1px solid var(--bk-border);
-  background: var(--bk-color-bg-muted);
 }
 
-.mainColumn {
-  flex: 1 1 auto;
+/* 右顶栏：铺满顶部一行。 */
+.statusbarRegion {
+  grid-area: statusbar;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
+  border-bottom: 1px solid var(--bk-border);
 }
 
-.content {
-  flex: 1 1 auto;
+/* 右下内容区：占满余下空间，独立滚动。 */
+.contentRegion {
+  grid-area: content;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
   padding: var(--bk-space-5);
 }

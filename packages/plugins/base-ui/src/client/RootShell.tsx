@@ -16,7 +16,11 @@ import type { FrontendSlotContextMap, SlotComponent } from "@berkshire/ui-slots"
 
 /** root 槽的壳帧组件：把 root 槽 context 解包成 `AppShell` 的 prop。 */
 export const RootShell: SlotComponent<FrontendSlotContextMap["root"]> = ({ context }) => (
-  <AppShell routes={context.routes} bridgeOnline={context.bridgeOnline}>
+  <AppShell
+    routes={context.routes}
+    bridgeOnline={context.bridgeOnline}
+    titleBar={context.titleBar}
+  >
     {context.renderApp()}
   </AppShell>
 )

@@ -61,8 +61,15 @@ export interface FrontendSlotContextMap {
   }
   /** 状态栏右侧（应用壳）：插件追加状态项；插件自持响应式数据，宿主暂无上下文。 */
   "layout.statusbar.right": Record<string, never>
-  /** 设置页（应用壳）：插件追加设置卡片/分组；卡片自包含，宿主每张包 ExtensionBoundary。 */
-  "settings.cards": Record<string, never>
+  /**
+   * 设置页（应用壳）：插件追加设置卡片/分组；卡片自包含，宿主每张包 ExtensionBoundary。
+   * 上下文携带当前可用的**设置分组占位契约**（id/label/order，见 {@link SettingsGroup}）——
+   * 真正设置弹窗/表单由 WP-6 消费，本 slot 只把分组骨架透传给卡片作消费面。
+   */
+  "settings.cards": {
+    /** 可用设置分组（占位骨架，`DEFAULT_SETTINGS_GROUPS` 在 `@berkshire/base-ui`）；UI 在 WP-6。 */
+    settingsGroups: readonly SettingsGroup[]
+  }
   /**
    * 根（root）槽：应用壳帧挂载点（对齐 dsh `ui-layout` 在宿主内置 `root` 槽挂 `AppFrame`）。
    * **single 语义**：全场**仅一个**壳帧（见 registry.ts `SLOT_KINDS`），重复注册 fail-closed 拒绝。
@@ -79,6 +86,8 @@ export interface FrontendSlotContextMap {
      * 故宿主把 `<Routes>` 的渲染封装成 prop 注入，由壳帧放进内容区渲染。
      */
     renderApp: () => ReactNode
+    /** 自绘标题栏控制器（WP-5）：宿主经 Rust window command 封装后注入；壳只做呈现与拖拽。 */
+    titleBar: TitleBarController
   }
 }
 
@@ -87,6 +96,44 @@ export interface ShellRouteInfo {
   path: string
   title: string
   section?: string
+}
+
+/**
+ * 自绘标题栏控制器契约（WP-5，root 槽 context 的一部分）。
+ *
+ * 壳侧（base-ui `TitleBar`）**不依赖宿主 `lib/api` / `@tauri-apps/api`**：宿主把 Rust window
+ * command（`decorations:false` 时提供窗口控制）封装成三个动作 + 一个最大态，作为 `titleBar`
+ * 注入。`isMaximized` 由宿主订阅 `tauri://resize` 后同步。
+ */
+export interface TitleBarController {
+  /** 窗口标题文案（自绘标题栏品牌区展示）。 */
+  title: string
+  /** 最小化窗口。 */
+  onMinimize(): void
+  /** 最大化/还原窗口。 */
+  onToggleMaximize(): void
+  /** 关闭窗口。 */
+  onClose(): void
+  /** 当前是否最大化（决定最大化/还原按钮图标与 aria-label）。 */
+  isMaximized: boolean
+}
+
+/**
+ * 设置分组占位契约（应用壳，WP-3）：一个设置的**分组 id / label / 顺序**。
+ *
+ * 诚实标注：这里是**占位承载**——真正设置弹窗/分组 UI 由 WP-6 消费，本包（base-ui）只定义
+ * 契约并给出缺省分组骨架（`通用设置`/`模型设置`，见 base-ui `settingsGroups.ts`）。分组 UI
+ * 仍标「待实现」，不要当成已渲染的弹窗。
+ */
+export interface SettingsGroup {
+  /** 分组的稳定 id（如 `general`/`model`），弹窗按它编排。 */
+  id: string
+  /** 面向用户的标签文案（如「通用设置」「模型设置」）。 */
+  label: string
+  /** 展示顺序（升序排布；等值按 id 稳定）。 */
+  order: number
+  /** 可选分组说明（hint 用）。 */
+  description?: string
 }
 
 /** 已注册槽位的名字（即类型化 map 的键全集）。 */

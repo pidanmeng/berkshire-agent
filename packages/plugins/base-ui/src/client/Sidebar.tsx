@@ -1,8 +1,9 @@
 /**
- * Sidebar —— 可扩展侧边栏（应用壳，Vercel 黑白风；下沉到 `@berkshire/base-ui`）。
+ * Sidebar —— 可扩展侧边栏（应用壳，dark-first 终端风；下沉到 `@berkshire/base-ui`）。
  *
  * 结构（顶→底）：
- * - 品牌区（折叠/展开开关 + 名称）；
+ * - 品牌区（折叠/展开开关 + 「Berkshire」品牌标识）：折叠开关复用 `@berkshire/ui` `Button`
+ *   （WP-3：不再手写平行按钮）；品牌区克制分层、一个强调色 mark 作收敛的视觉锚。
  * - 导航区：核心路由（`/`）pinned + 插件路由按 `section` 分组（经 prop `routes` 注入）；
  * - `layout.navigation.extra` 槽：插件在导航区追加项/分组；
  * - 底部：`layout.sidebar.footer` 槽（插件在设置入口上方追加控制项）+ 固定设置入口（`/settings`）。
@@ -10,10 +11,12 @@
  * 每个槽项/可折叠态经 context 传给插件组件；每个槽组件包在 ExtensionBoundary（ExtensionSlot 内建）。
  * 从宿主 `apps/berkshire-agent/src/layout/Sidebar.tsx` 迁出下沉；插件路由改由 prop 注入（不依赖宿主
  * routesStore）。折叠态为 webview 内存态（v-next 持久化），作为 context 传给槽。
+ * 满高由 AppShell grid 的 sidebar 区域提供（本组件 `height: 100%`，不再写死 100vh）。
  */
 import { useState, type ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { clsx } from "clsx"
+import { Button } from "@berkshire/ui"
 import { ExtensionSlot } from "@berkshire/ui-slots"
 import type { ShellRouteInfo } from "./AppShell"
 import styles from "./Sidebar.module.css"
@@ -43,16 +46,24 @@ export function Sidebar({ routes }: { routes: readonly ShellRouteInfo[] }) {
   return (
     <nav className={clsx(styles.sidebar, collapsed && styles.sidebarCollapsed)} aria-label="主导航">
       <div className={styles.brand}>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
           className={styles.collapseToggle}
           onClick={() => setCollapsed((c) => !c)}
           title={collapsed ? "展开侧边栏" : "折叠侧边栏"}
           aria-label="切换侧边栏折叠"
         >
           {collapsed ? "»" : "«"}
-        </button>
-        {!collapsed && <span className={styles.brandName}>Berkshire</span>}
+        </Button>
+        {!collapsed && (
+          <span className={styles.brandWord}>
+            {/* 品牌 mark：accent 作品牌区收敛色（WP-1 未令牌化品牌专用色 `#8B5CF6`，故用强调色顶替，
+                仅出现在品牌区，不扩散到功能语义）。品牌字用等宽加强终端感。 */}
+            <span className={styles.brandMark} aria-hidden />
+            <span className={styles.brandName}>Berkshire</span>
+          </span>
+        )}
       </div>
 
       {!collapsed && (
@@ -90,7 +101,9 @@ export function Sidebar({ routes }: { routes: readonly ShellRouteInfo[] }) {
           className={clsx(styles.settingsEntry, isNavLinkActive("/settings") && styles.settingsActive)}
           title={collapsed ? "设置" : undefined}
         >
-          <span className={styles.settingsIcon}>⚙</span>
+          <span className={styles.settingsIcon} aria-hidden>
+            ⚙
+          </span>
           {!collapsed && <span>设置</span>}
         </Link>
       </div>

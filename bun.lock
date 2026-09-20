@@ -107,6 +107,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@berkshire/theme": "workspace:*",
+        "@berkshire/ui": "workspace:*",
         "@berkshire/ui-slots": "workspace:*",
         "clsx": "^2.1.1",
         "react": "^19.1.0",

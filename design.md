@@ -10,13 +10,14 @@
 
 ## 1. 设计语言概览
 
-BK 前端采用**暗色优先**的专业交易终端风格，以等宽数字、红涨绿跌语义色、克制的层级区分为核心特征：
+BK 前端采用**暗色优先**的专业交易终端风格，走**近黑基底 + 锌灰中性分层 + 电光蓝强调 + 红涨绿跌语义色**的克制层级：
 
-- 暗色为默认主题，亮色可切换（令牌层 `LIGHT_PALETTE`/`DARK_PALETTE`，见 [`packages/theme`](packages/theme)；宿主经 `installThemedRoot()` 注入 `<style data-bk-theme>`）。
+- **近黑基底**：暗色默认主题，基底接近纯黑（`--bk-color-bg` = `#0A0A0B`），卡片/面板抬升一级到深灰（`#18181B`）；亮色可切换（令牌层 `LIGHT_PALETTE`/`DARK_PALETTE`，见 [`packages/theme`](packages/theme)；宿主经 `installThemedRoot()` 注入 `<style data-bk-theme>`）。
+- **中性分层用锌灰**：前景文字自 `#FAFAFA` 递减（muted / subtle）到 `#8E8E96`，层级靠**明度梯度 + 边框**区分，不使用阴影表达层次。
 - 强调色为**电光蓝**（`--bk-color-accent`，`#3B82F6`），仅用于交互与数据高亮；**不用于价格**。
-- A 股语义色**红涨绿跌**（`--bk-color-bull`/`--bk-color-bear`），**仅用于价格/K线相关元素，不用于 UI 状态**（如成功/失败——成功用 `--bk-color-success`、失败用 `--bk-color-danger`）。
+- A 股语义色**红涨绿跌**（`--bk-color-bull`/`--bk-color-bear`），**仅用于价格/K线相关元素，不用于 UI 状态**（如成功/失败——成功用 `--bk-color-success`、失败用 `--bk-color-danger`、琥珀警告用 `--bk-color-warning`）。
 - 价格与数字一律**等宽字体（`--bk-font-mono`）+ tabular-nums**，保证列对齐。
-- 暗色模式用**边框（`--bk-border`/`--bk-border-strong`）区分层次**，不使用阴影；亮色模式同理。
+- 暗色为主时**用边框（`--bk-border`/`--bk-border-strong`）区分层次**，不使用阴影；亮色模式同理。
 - 品牌色（`#8B5CF6` 系列）仅用于 Logo/brand 区域，不影响功能语义色。
 
 ## 2. 设计令牌（Design Tokens）
@@ -25,18 +26,18 @@ BK 前端采用**暗色优先**的专业交易终端风格，以等宽数字、�
 
 ### 2.1 色板（映射到真实 `--bk-*` 令牌）
 
-| 语义 | `--bk-*` 令牌 | 暗色值（参考） | 亮色值（参考） | 用途 |
+| 语义 | `--bk-*` 令牌 | 暗色值 | 亮色值 | 用途 |
 | --- | --- | --- | --- | --- |
-| 页面背景 | `--bk-color-bg` | `#2f2f2f` | `#f6f6f6` | 页面背景 |
-| 卡片/面板 | `--bk-color-bg-elevated` | `#1e1e1e` | `#ffffff` | 卡片/输入抬升面 |
-| hover/次级面 | `--bk-color-bg-muted` + `--bk-hover` | 透明度叠层 | 透明度叠层 | hover 背景/顶栏/斑马 |
-| 主文字 | `--bk-color-fg` | `#f6f6f6` | `#0f0f0f` | 前景（正文） |
-| 次级文字 | `--bk-color-fg-muted` | `#b3b3b3` | `#555555` | 次级（子标题/导航非激活） |
-| 辅助提示 | `--bk-color-fg-subtle` | `#9a9a9a` | `#888888` | hint |
+| 页面背景 | `--bk-color-bg` | `#0A0A0B` | `#FAFAFA` | 页面背景（近黑） |
+| 卡片/面板 | `--bk-color-bg-elevated` | `#18181B` | `#FFFFFF` | 卡片/输入抬升面 |
+| hover/次级面 | `--bk-color-bg-muted` | `#212126` | `#F4F4F5` | hover 底/顶栏/副面板 |
+| 主文字 | `--bk-color-fg` | `#FAFAFA` | `#18181B` | 前景（正文） |
+| 次级文字 | `--bk-color-fg-muted` | `#C4C4CB` | `#52525B` | 次级（子标题/导航非激活） |
+| 辅助提示 | `--bk-color-fg-subtle` | `#8E8E96` | `#A1A1AA` | hint |
 | 强调 | `--bk-color-accent`（+`-hover`/`-soft`/`-focus`） | `#3B82F6` | `#3B82F6` | 交互/高亮（不用于价格） |
 | 红涨 | `--bk-color-bull`（+`-soft`） | `#F04438` | `#F04438` | 价格/涨跌 |
 | 绿跌 | `--bk-color-bear`（+`-soft`） | `#12B76A` | `#12B76A` | 价格/涨跌 |
-| 成功/危险/警告 | `--bk-color-success`/`-danger`/`-warning` | — | — | UI 状态（不用 bull/bear） |
+| 成功/危险/警告 | `--bk-color-success`（`#22C55E`/`#16A34A`）·`-danger`（`#F04438`）·`-warning`（`#F79009`） | — | — | UI 状态（不用 bull/bear） |
 | 边框 | `--bk-border`/`--bk-border-strong` | 透明度叠层 | 透明度叠层 | 边框/分隔 |
 | 遮罩 | `--bk-scrim` | 透明度叠层 | 透明度叠层 | 模态 backdrop |
 
@@ -46,7 +47,7 @@ BK 前端采用**暗色优先**的专业交易终端风格，以等宽数字、�
 
 | 用途 | `--bk-*` 令牌（含字体栈） |
 | --- | --- |
-| 正文 | `--bk-font-sans`（Inter → Avenir → Helvetica → Arial → sans-serif） |
+| 正文 | `--bk-font-sans`（Inter → HarmonyOS Sans SC → PingFang SC → system-ui → sans-serif） |
 | 数字/代码 | `--bk-font-mono`（JetBrains Mono → IBM Plex Mono → ui-monospace → monospace） |
 
 **规则**：价格、涨跌幅、成交量、指标数值一律用 `--bk-font-mono` + `tabular-nums`。
@@ -68,7 +69,7 @@ BK 前端采用**暗色优先**的专业交易终端风格，以等宽数字、�
 
 ### 2.5 全局滚动条
 
-细滚动条（8px）样式属设计契约，落地后统一在令牌根样式/全局样式实现，不散落在组件内。
+细滚动条（8px），暗色 thumb 用边框色、hover 时变 `--bk-color-accent`；样式属设计契约，落地后统一在令牌根样式/全局样式实现，不散落在组件内。
 
 ## 3. 主题系统
 
@@ -94,7 +95,7 @@ BK 前端采用**暗色优先**的专业交易终端风格，以等宽数字、�
 
 **已落地**：`@berkshire/ui`（`packages/ui`）提供 Button/Input/Select/Dropdown/Modal/Toast/ToastRegion/Notification/Badge/Tooltip/EmptyState——全部 CSS Modules + `var(--bk-*)`、基础可访问性内置（Modal 含焦点陷阱/ESC/restore，Dropdown 含 `aria-haspopup`/外部点击关闭），T0 可 SSR 冒烟。验收：`bun run --cwd packages/ui build && test`。
 
-**目标态（设计契约，未实现）**：下述命名组件（PageHeader/StockPanel/StockInfoBar/Logo/Chart*）与「Modal + useDialogBackdrop 复用」等约定，落地时优先复用 `@berkshire/ui` 组件，**不要自建平行组件库/弹窗**。弹窗复用 `Modal`，空态用 `EmptyState`（图示 + 引导，而非一句「暂无数据」）。
+**目标态（设计契约，未实现）**：下述命名组件（PageHeader/StockPanel/StockInfoBar/Logo/Chart*）与「Modal 复用」等约定，落地时优先复用 `@berkshire/ui` 组件，**不要自建平行组件库/弹窗**。弹窗复用 `Modal`，空态用 `EmptyState`（图示 + 引导，而非一句「暂无数据」）。
 
 ### 5.1 图标
 
@@ -108,9 +109,9 @@ BK 前端采用**暗色优先**的专业交易终端风格，以等宽数字、�
 ## 7. 页面与布局结构
 
 - 路由：宿主 `apps/berkshire-agent/src` 用 `react-router-dom` `HashRouter`，核心路由 `/`、`/theme`、`/settings` + 插件自声明动态路由（`src/routes/*`，路由契约化）。
-- 外壳：`@berkshire/ui-slots` 共享 `root` 槽挂 `@berkshire/base-ui` 壳帧（可扩展侧边栏 + 右侧路由区 + 状态栏 + 设置页 + 布局挂点）。
+- 外壳：`@berkshire/ui-slots` 共享 `root` 槽挂 `@berkshire/base-ui` 壳帧（**grid 三区域骨架**：可扩展侧边栏 + 右顶栏 + 内容区；状态栏 + 设置页 + 布局挂点；复用 `@berkshire/ui` Button/Badge）。设置页承载「设置分组占位契约」（通用/模型，id/label/order，`DEFAULT_SETTINGS_GROUPS`），分组弹窗/表单为 WP-6 待实现。
 - 页面结构惯例：标题栏 → 内容区（卡片/表格/图表）。
-- 虚拟滚动表格、列自定义等仍是**目标态**。
+- 内核 k线/行情列表等深色图表区遵循 §1 的近黑基底与边框分层；虚拟滚动表格、列自定义等仍是**目标态**。
 
 ## 8. 状态与数据层约定（目标态）
 

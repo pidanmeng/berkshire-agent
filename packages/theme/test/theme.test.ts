@@ -97,9 +97,9 @@ describe("CSS 出口（两层）", () => {
     expect(css).toContain(":root")
     expect(css).toContain("prefers-color-scheme: dark")
     expect(css).toContain('[data-theme="dark"]')
-    // 取值层：`--bk-static-color-bg: #f6f6f6;`（实值唯一出处）
-    expect(css).toMatch(/--bk-static-color-bg:\s*#f6f6f6;/)
-    expect(css).toMatch(/--bk-static-color-bg:\s*#2f2f2f;/)
+    // 取值层：`--bk-static-color-bg: #FAFAFA;`（实值唯一出处）
+    expect(css).toMatch(/--bk-static-color-bg:\s*#FAFAFA;/)
+    expect(css).toMatch(/--bk-static-color-bg:\s*#0A0A0B;/)
     // 别名层：`--bk-color-bg: var(--bk-static-color-bg);`（引用，不写实值）
     expect(css).toMatch(/--bk-color-bg:\s*var\(--bk-static-color-bg\);/)
     // 别名层（非 static）任何一处都不含裸 hex（引用只见 var(--bk-static-*)）

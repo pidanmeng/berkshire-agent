@@ -8,6 +8,7 @@ import { routesStore } from "./routes/routesStore";
 import ExtensionRoute from "./routes/ExtensionRoute";
 import { ThemePalettePage, SettingsPage, registerRootShell } from "@berkshire/base-ui/client";
 import { useBridgeStatus } from "./lib/useBridgeStatus";
+import { useWindowControls } from "./lib/useWindowControls";
 import { OnboardingGate } from "./onboarding/OnboardingGate";
 import { useAppPhase } from "./onboarding/useAppPhase";
 
@@ -47,6 +48,8 @@ function App() {
   // 桥接连通态：base-ui 壳不依赖宿主 lib/api，这里探测后作为 prop 注入。null=检测中。
   // gate 在 ready 上：provisioning 阶段 capabilitiesList 必 fail-closed，故只在就绪后探测。
   const bridgeOnline = useBridgeStatus(phase === "ready");
+  // WP-5 自绘标题栏：宿主把 Rust window command 封装成控制器注入 root 槽 context（壳只呈现/拖拽）。
+  const titleBar = useWindowControls();
 
   // 首启供给：$BK_HOME 未初始化 → 全屏首启引导；探测中 → 轻量 splash（避免闪烁）。
   if (phase === "checking") {
@@ -83,6 +86,7 @@ function App() {
         context={{
           routes,
           bridgeOnline,
+          titleBar,
           renderApp: () => (
             <Routes>
               <Route path="/" element={<HomePage />} />

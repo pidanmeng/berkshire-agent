@@ -1,0 +1,82 @@
+/* TitleBar —— 自绘标题栏（WP-5，base-ui 壳插件）。只写 var(--bk-*) 与结构，禁魔法色值。 */
+.titleBar {
+  display: flex;
+  align-items: stretch;
+  height: 36px;
+  background: var(--bk-color-bg-elevated);
+  border-bottom: 1px solid var(--bk-border);
+  user-select: none;
+}
+
+/* 可拖拽区：占满剩余宽度，flex 布局承载品牌区 + 标题。 */
+.dragArea {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+  padding: 0 var(--bk-space-3);
+  overflow: hidden;
+}
+
+/* 品牌标记：小圆角方块（accent 强调色），示意应用徽标。 */
+.brandMark {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--bk-radius-sm);
+  background: var(--bk-color-accent);
+}
+
+/* 窗口标题文案：字号走令牌层。 */
+.titleText {
+  font-family: var(--bk-font-sans);
+  font-size: var(--bk-font-size-sm);
+  font-weight: 600;
+  color: var(--bk-color-fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 窗口控制按钮区：右对齐，按钮不做拖拽。 */
+.controls {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+/* 控制按钮基线（最小化/最大化·还原）：透明底 + 悬停叠层。 */
+.controlButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 100%;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--bk-color-fg);
+  cursor: default;
+}
+.controlButton:hover {
+  background: var(--bk-hover);
+}
+.controlButton:focus-visible {
+  outline: 2px solid var(--bk-color-focus);
+  outline-offset: -2px;
+}
+
+/* 关闭按钮：hover 用危险色实底（Windows 惯例），前景反转为白。 */
+.closeButton {
+  composes: controlButton;
+}
+.closeButton:hover {
+  background: var(--bk-color-danger);
+  color: var(--bk-color-fg-invert);
+}
+.closeButton:focus-visible {
+  outline: 2px solid var(--bk-color-focus);
+  outline-offset: -2px;
+}

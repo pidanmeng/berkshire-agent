@@ -1,12 +1,14 @@
-/* Sidebar（可扩展侧边栏，base-ui 壳插件）—— 应用壳，Vercel 黑白风。只写 var(--bk-*) 与结构，禁魔法值。 */
+/* Sidebar（可扩展侧边栏，base-ui 壳插件）—— 应用壳，dark-first 终端风。
+ * 只写 var(--bk-*) 与结构，禁魔法值。满高由 AppShell grid 的 sidebar 区域提供（本组件 height:100%）。 */
 .sidebar {
   display: flex;
   flex-direction: column;
   width: 220px;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
   padding: var(--bk-space-2);
   gap: var(--bk-space-2);
-  box-sizing: border-box;
   transition: width 0.2s ease;
 }
 
@@ -22,27 +24,36 @@
 }
 
 .collapseToggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  flex: 0 0 auto;
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--bk-border);
-  border-radius: var(--bk-radius-md);
-  background: var(--bk-color-bg-elevated);
-  color: var(--bk-color-fg);
-  font-size: var(--bk-font-size-md);
-  cursor: pointer;
 }
-.collapseToggle:hover {
-  background: var(--bk-hover);
+
+/* 品牌字（mark + wordmark）：等宽 + 收敛的强调 mark，克制分层（design.md §1/§2.2）。 */
+.brandWord {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.brandMark {
+  flex: 0 0 auto;
+  width: var(--bk-space-2);
+  height: var(--bk-space-2);
+  border-radius: var(--bk-radius-sm);
+  background: var(--bk-color-accent);
 }
 
 .brandName {
+  font-family: var(--bk-font-mono);
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--bk-color-fg);
-  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .navSection {

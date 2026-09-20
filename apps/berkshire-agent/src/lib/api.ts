@@ -164,3 +164,37 @@ export function onStorageChanged(
     cb(e.payload),
   ).then((unlisten) => unlisten);
 }
+
+// ---- WP-5：自绘标题栏窗口控制（Rust command 面，聚焦 Windows）----
+// 经 `tauri.conf.json` 的 `decorations:false` 去除原生标题栏后，webview 自绘标题栏据此调用窗口命令。
+// 这些命令不经过 sidecar（窗口级操作），仍经 `invoke` 直连 Rust。
+
+/** 最小化主窗口。 */
+export function windowMinimize(): Promise<void> {
+  return withTimeout(invoke<void>("window_minimize"), "window_minimize");
+}
+
+/** 最大化/还原主窗口；resolve 出切换后的最大化态（供按钮图标/aria-label 同步）。 */
+export function windowToggleMaximize(): Promise<boolean> {
+  return withTimeout(invoke<boolean>("window_toggle_maximize"), "window_toggle_maximize");
+}
+
+/** 关闭主窗口。 */
+export function windowClose(): Promise<void> {
+  return withTimeout(invoke<void>("window_close"), "window_close");
+}
+
+/** 查询主窗口当前是否最大化。 */
+export function windowIsMaximized(): Promise<boolean> {
+  return withTimeout(invoke<boolean>("window_is_maximized"), "window_is_maximized");
+}
+
+/** 取主窗口实际标题（Rust 侧从 `tauri.conf.json` 读，单一真源），供自绘标题栏展示。 */
+export function windowTitle(): Promise<string> {
+  return withTimeout(invoke<string>("window_title"), "window_title");
+}
+
+/** 订阅主窗口 resize（含最大化/还原）事件；最大化态变化据此重查。返回退订函数。 */
+export function onWindowResized(cb: () => void): Promise<() => void> {
+  return listen<unknown>("tauri://resize", () => cb()).then((unlisten) => unlisten);
+}

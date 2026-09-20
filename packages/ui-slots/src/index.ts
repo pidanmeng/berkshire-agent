@@ -18,5 +18,7 @@ export {
   type FrontendSlotContextMap,
   type FrontendSlotName,
   type ShellRouteInfo,
+  type SettingsGroup,
+  type TitleBarController,
 } from "./types"
 export type { PreviewView, WatchlistViewMode } from "./types"

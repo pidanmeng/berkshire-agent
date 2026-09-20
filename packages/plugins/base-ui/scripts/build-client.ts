@@ -17,7 +17,7 @@ const entry = resolve(pkg, "src/client/index.tsx");
 const outdir = resolve(pkg, "dist/client");
 
 // 1) JS + CSS（React / 路由 / utils / 共享包走 external → peer，宿主注入）。
-await $`bun build ${entry} --outdir ${outdir} --target=browser --format=esm --external react --external react-router-dom --external clsx --external @berkshire/theme --external @berkshire/ui-slots`;
+await $`bun build ${entry} --outdir ${outdir} --target=browser --format=esm --external react --external react-router-dom --external clsx --external @berkshire/theme --external @berkshire/ui-slots --external @berkshire/ui`;
 
 // 2) 在入口顶部补 CSS import（幂等）。
 const jsPath = resolve(outdir, "index.js");

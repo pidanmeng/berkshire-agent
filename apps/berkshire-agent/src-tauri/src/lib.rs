@@ -1,7 +1,7 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use std::sync::Arc;
 
-use tauri::Manager;
+use tauri::{AppHandle, Manager, WebviewWindow};
 
 mod bridge;
 mod bk_protocol;
@@ -112,6 +112,57 @@ async fn provision_bk_home(cordis_yml: String, state: BridgeState<'_>) -> Result
     bridge_call(state, move |b| b.provision_bk_home(cordis_yml)).await
 }
 
+// ---- WP-5：自绘标题栏窗口控制命令面 ----
+// `tauri.conf.json` 的 `app.windows[].decorations` 已置 `false`（去除原生标题栏），故本层暴露
+// 最小窗口控制命令供 webview 自绘标题栏调用（`window_minimize`/`window_toggle_maximize`/`window_close`/
+// `window_is_maximized`）。这些是**窗口级**命令，不经过 sidecar Bridge（与侧边桥无关）。
+//
+// 诚实标注（目标平台与降级）：本功能**聚焦 Windows**。`decorations:false` 对全部桌面平台生效
+// （含 macOS/Linux）；macOS 因此隐藏原生红绿灯、依赖本自绘标题栏提供窗口控制，属尽力降级——
+// macOS 的 `titleBarStyle: "Overlay"` 原生红绿灯叠加与 Linux 的差异化拖拽后续处理，不在本 WP 范围。
+
+/// 取主窗口（`tauri.conf.json` 未显式给 label，默认 `main`）；缺窗口 fail-closed 返回显式错误。
+fn main_window(app: &AppHandle) -> Result<WebviewWindow, String> {
+    app.get_webview_window("main").ok_or_else(|| "主窗口未找到".to_string())
+}
+
+/// 最小化主窗口。
+#[tauri::command]
+fn window_minimize(app: AppHandle) -> Result<(), String> {
+    main_window(&app)?.minimize().map_err(|e| e.to_string())
+}
+
+/// 最大化/还原主窗口，返回切换后的最大化态（供 webview 同步按钮图标与 aria-label）。
+#[tauri::command]
+fn window_toggle_maximize(app: AppHandle) -> Result<bool, String> {
+    let w = main_window(&app)?;
+    if w.is_maximized().map_err(|e| e.to_string())? {
+        w.unmaximize().map_err(|e| e.to_string())?;
+    } else {
+        w.maximize().map_err(|e| e.to_string())?;
+    }
+    w.is_maximized().map_err(|e| e.to_string())
+}
+
+/// 关闭主窗口。
+#[tauri::command]
+fn window_close(app: AppHandle) -> Result<(), String> {
+    main_window(&app)?.close().map_err(|e| e.to_string())
+}
+
+/// 查询主窗口当前是否最大化（初始态 + `tauri://resize` 事件后重查）。
+#[tauri::command]
+fn window_is_maximized(app: AppHandle) -> Result<bool, String> {
+    main_window(&app)?.is_maximized().map_err(|e| e.to_string())
+}
+
+/// 取主窗口的**实际标题**（`tauri.conf.json` 的 `app.windows[].title`，单一真源）——自绘标题栏
+/// 据此展示，避免 webview 侧硬编码与系统任务栏/Alt-Tab 标题漂移。
+#[tauri::command]
+fn window_title(app: AppHandle) -> Result<String, String> {
+    main_window(&app)?.title().map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -137,7 +188,12 @@ pub fn run() {
             storage_remove,
             storage_list,
             provisioning_status,
-            provision_bk_home
+            provision_bk_home,
+            window_minimize,
+            window_toggle_maximize,
+            window_close,
+            window_is_maximized,
+            window_title
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

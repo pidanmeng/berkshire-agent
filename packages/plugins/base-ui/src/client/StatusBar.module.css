@@ -1,15 +1,12 @@
-/* StatusBar（右侧路由区顶部状态栏，base-ui 壳插件）—— 应用壳，Vercel 黑白风。只写 var(--bk-*) 与结构，禁魔法值。 */
+/* StatusBar（右侧路由区顶部状态栏，base-ui 壳插件）—— 应用壳，dark-first 终端风。
+ * 只写 var(--bk-*) 与结构，禁魔法值。桥接态语义经 `@berkshire/ui` Badge 呈现（本文件不复刻徽标样式）。 */
 .statusBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--bk-space-3);
   padding: var(--bk-space-2) var(--bk-space-4);
-  border-bottom: 1px solid var(--bk-border);
   background: var(--bk-color-bg-muted);
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 
 .context {
@@ -27,34 +24,7 @@
   margin-left: auto;
 }
 
-/* 桥接连通态：三种颜色语义走令牌层；结构黑白主导、语义点点缀。 */
-.dotOnline,
-.dotOffline,
-.dotUnknown {
+/* 桥接态徽标的悬停说明载体（Badge 不直接收 title，包一层）。 */
+.bridge {
   display: inline-flex;
-  align-items: center;
-  gap: var(--bk-space-1);
-  font-size: var(--bk-font-size-sm);
-  color: var(--bk-color-fg-muted);
-}
-.dotOnline::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: var(--bk-radius-pill);
-  background: var(--bk-color-success);
-}
-.dotOffline::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: var(--bk-radius-pill);
-  background: var(--bk-color-danger);
-}
-.dotUnknown::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: var(--bk-radius-pill);
-  background: var(--bk-color-fg-subtle);
 }
