@@ -12,6 +12,15 @@
 
 `$BERKSHIRE_HOME` 默认 `~/.berkshire`。兼容升级保留插件文件、刷新 host 包链接、不重装核心依赖（持续集成友好）。
 
+> **已落地的简化装载锚点（M2，诚实标注）**：本文其余「profile/bundle/patch」三件套、`dump-config`、`!!js`、
+> `isolate/extend` 为**目标态**（v2）。当前已实现的动态装配走 **`$BK_HOME/cordis.yml`**（Windows
+> `%APPDATA%\.bk` / macOS `~/Library/Application Support/.bk` / Linux `~/.bk`，`BK_HOME` 环境变量优先，
+> 见 [secondary-development.md §8](secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊) 的
+> M2/M3/M4 节）：sidecar 只读 `$BK_HOME/cordis.yml` 声明「装哪些插件」，经 `@berkshire/boot` 内置
+> `importPlugin` 动态 `import(name)`（npm 下载包 `$BK_HOME/node_modules` 与本地/裸名一条路径），**加载只由
+> Cordis.yml + 下载的 npm 包驱动、零硬编码**；webview 半身经 `bk://` 运行时 `import(url)`。`$BK_HOME` 与
+> 本文 `$BERKSHIRE_HOME` 是两条不同契约（前者已落地、后者为目标态的 profile 层），勿混用。
+
 ## 2. 层叠顺序（叠加到**空**根行表）
 
 ```

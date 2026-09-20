@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tauri::Manager;
 
 mod bridge;
+mod bk_protocol;
 mod sidecar_client;
 
 pub use bridge::Bridge;
@@ -67,6 +68,8 @@ async fn routes_list(state: BridgeState<'_>) -> Result<Vec<bridge::RouteDto>, St
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        // M3：`bk://` 自定义协议——webview 运行时动态拉取 `$BK_HOME` 下的插件发布产物。
+        .register_uri_scheme_protocol(bk_protocol::SCHEME, bk_protocol::handle_bk)
         .setup(|app| {
             // 启动即拉起 sidecar（T2：bridge 启动由 app.setup 触发）；`start` 已返回 Arc，
             // dev 态热更的后台 reload 循环由其内部线程承担。

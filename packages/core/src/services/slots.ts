@@ -1,5 +1,13 @@
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
+import { Service } from '@berkshire/cordis'
+import type { Context } from '@berkshire/cordis'
+import '../events'
+
+// ctx.slots —— 服务类型增强 co-locate；`client/changed` 为跨服务共享事件（见 ../events）
+declare module '@berkshire/cordis' {
+  interface Context {
+    slots: Slots
+  }
+}
 
 /**
  * 已知 slot 名单（能力块 A：前端组件挂点；应用壳 v1 起含布局挂点：侧边栏/状态栏/设置页）。

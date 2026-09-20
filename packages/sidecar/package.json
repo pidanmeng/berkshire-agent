@@ -1,27 +1,34 @@
 {
   "name": "@berkshire/sidecar",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
+    "build": "bunx tsc -p tsconfig.build.json",
     "start": "bun run src/index.ts",
     "smoke": "bun run examples/smoke.ts",
     "test": "bun test"
   },
   "dependencies": {
+    "@berkshire/cordis": "workspace:*",
     "cordis": "4.0.0-rc.10",
     "yaml": "^2.6.1",
     "@berkshire/core": "workspace:*",
     "@berkshire/boot": "workspace:*",
-    "@berkshire/plugin-notify-console": "workspace:*"
+    "@berkshire/plugin-notify-console": "workspace:*",
+    "@berkshire/plugin-demo": "workspace:*"
+  },
+  "peerDependencies": {
+    "cordis": "4.0.0-rc.10"
   },
   "devDependencies": {
     "@types/bun": "latest"

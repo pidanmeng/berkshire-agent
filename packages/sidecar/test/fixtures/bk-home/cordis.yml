@@ -1,0 +1,12 @@
+# sidecar 测试/冒烟用的 BK_HOME 装配入口（$BK_HOME/cordis.yml）。
+# 铁律：加载只由 cordis.yml 声明驱动；sidecar/宿主代码零硬编码。
+# 三行 = core 脊 + notify-console 提供方 + demo 插件（贡献 6 个 client 模块 + 资金流向页）。
+- id: core
+  name: '@berkshire/core'
+- id: notify-console
+  name: '@berkshire/plugin-notify-console'
+  config:
+    channel: console
+    echo: false
+- id: demo
+  name: '@berkshire/plugin-demo'

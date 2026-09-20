@@ -63,6 +63,7 @@
       "name": "@berkshire/boot",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "yaml": "^2.6.1",
@@ -71,17 +72,34 @@
         "@berkshire/plugin-notify-console": "workspace:*",
         "@types/bun": "latest",
       },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
     },
     "packages/bundle/base": {
       "name": "@berkshire/bundle-base",
       "version": "0.1.0",
     },
+    "packages/cordis": {
+      "name": "@berkshire/cordis",
+      "version": "0.1.0",
+      "dependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
+    },
     "packages/core": {
       "name": "@berkshire/core",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/cordis": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "zod": "^3.23.8",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
       },
     },
     "packages/plugins/base-ui": {
@@ -98,11 +116,16 @@
         "@types/bun": "latest",
         "@types/react": "^19.1.8",
       },
+      "peerDependencies": {
+        "react": "^19.1.0",
+        "react-router-dom": "^7.9.0",
+      },
     },
     "packages/plugins/demo": {
       "name": "@berkshire/plugin-demo",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
         "@berkshire/theme": "workspace:*",
         "cordis": "4.0.0-rc.10",
@@ -113,14 +136,21 @@
         "@types/react": "^19.1.8",
         "lightningcss": "^1.33.0",
       },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
     },
     "packages/plugins/notify-console": {
       "name": "@berkshire/plugin-notify-console",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "zod": "^3.23.8",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
       },
     },
     "packages/sidecar": {
@@ -128,13 +158,18 @@
       "version": "0.1.0",
       "dependencies": {
         "@berkshire/boot": "workspace:*",
+        "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
+        "@berkshire/plugin-demo": "workspace:*",
         "@berkshire/plugin-notify-console": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "yaml": "^2.6.1",
       },
       "devDependencies": {
         "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
       },
     },
     "packages/theme": {
@@ -150,6 +185,9 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/react": "^19.1.8",
+      },
+      "peerDependencies": {
+        "react": "^19.1.0",
       },
     },
   },
@@ -167,6 +205,8 @@
     "@berkshire/boot": ["@berkshire/boot@workspace:packages/boot"],
 
     "@berkshire/bundle-base": ["@berkshire/bundle-base@workspace:packages/bundle/base"],
+
+    "@berkshire/cordis": ["@berkshire/cordis@workspace:packages/cordis"],
 
     "@berkshire/core": ["@berkshire/core@workspace:packages/core"],
 
