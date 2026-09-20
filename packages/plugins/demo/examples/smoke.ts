@@ -15,7 +15,9 @@ import { resolve } from 'node:path'
 import { parse } from 'yaml'
 import { Boot } from '@berkshire/boot'
 import type { PatchOverlay } from '@berkshire/boot'
+import { composeEntries } from '@berkshire/boot'
 import * as core from '@berkshire/core'
+import type { StorageProvider, StorageNamespaceId } from '@berkshire/core'
 import * as notify from '@berkshire/plugin-notify-console'
 import * as demo from '../src/index'
 
@@ -36,6 +38,28 @@ function fail(msg: string): never {
   process.exit(1)
 }
 
+/** 最小内存 Provider：让 demo 的 Consumer 演示（读/写 `demo` 命名空间）在本冒烟里可跑，
+ *  不引入 sidecar 依赖。真实磁盘持久化在 sidecar 测试/装配层验证。 */
+function inlineStorageProvider(): StorageProvider {
+  const map = new Map<string, unknown>()
+  return {
+    id: 'inline-memory',
+    async get<T>(ns: StorageNamespaceId, key: string): Promise<T | undefined> {
+      return map.get(`${String(ns)}\u0000${key}`) as T | undefined
+    },
+    async set(ns: StorageNamespaceId, key: string, value: unknown): Promise<void> {
+      map.set(`${String(ns)}\u0000${key}`, value)
+    },
+    async remove(ns: StorageNamespaceId, key: string): Promise<void> {
+      map.delete(`${String(ns)}\u0000${key}`)
+    },
+    async list(ns: StorageNamespaceId): Promise<string[]> {
+      const prefix = `${String(ns)}\u0000`
+      return [...map.keys()].filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length))
+    },
+  }
+}
+
 async function verifyCounts(
   label: string,
   layers: PatchOverlay[],
@@ -44,7 +68,15 @@ async function verifyCounts(
   expectRoutesPath?: string,
 ): Promise<void> {
   const boot = new Boot()
-  await boot.mountFromLayers(layers, resolver, (m) => console.log(`  [patch] ${m}`))
+  // 与 sidecar 装配同一纪律：core 先行 → 附加 storage Provider（demo 消费）→ 装配其余插件。
+  const rows = composeEntries(layers, (m) => console.log(`  [patch] ${m}`))
+  const coreRows = rows.filter((r) => r.name === '@berkshire/core')
+  const rest = rows.filter((r) => r.name !== '@berkshire/core')
+  for (const row of coreRows) await boot.install(row, resolver)
+  let detachProvider: (() => void) | undefined
+  if (coreRows.length > 0) detachProvider = boot.ctx.storage.register(inlineStorageProvider())
+  for (const row of rest) await boot.install(row, resolver)
+
   const mods = boot.ctx.clientModules.list()
   const routes = boot.ctx.slots.routes()
   if (mods.length !== expectModules) fail(`${label}: 期望 ${expectModules} 个 client 模块，got ${mods.length}`)
@@ -55,6 +87,7 @@ async function verifyCounts(
   console.log(`✓ ${label}: clientModules=${mods.length} routes=${routes.length}`)
   if (mods.length) console.log(`    modules=${JSON.stringify(mods.map((m) => ({ id: m.id, slot: m.slot, url: m.url, exportName: m.exportName ?? 'default' })))}`)
   if (routes.length) console.log(`    routes=${JSON.stringify(routes)}`)
+  detachProvider?.()
   await boot.dispose()
 }
 

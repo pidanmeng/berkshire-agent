@@ -1,0 +1,76 @@
+/* Toast + ToastRegion 的 CSS Modules（@berkshire/ui）。 */
+.region {
+  position: fixed;
+  top: var(--bk-space-4);
+  right: var(--bk-space-4);
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-2);
+  pointer-events: none;
+}
+.region > * {
+  pointer-events: auto;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--bk-space-2);
+  min-width: 220px;
+  max-width: 340px;
+  padding: var(--bk-space-3) var(--bk-space-4);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-md);
+  box-shadow: var(--bk-shadow-sm);
+}
+
+/* kind 强调圆点 + 边框取对应状态令牌。 */
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.3em;
+  border-radius: 50%;
+  background: var(--bk-color-info);
+}
+.success .dot {
+  background: var(--bk-color-success);
+}
+.error .dot {
+  background: var(--bk-color-danger);
+}
+.warning .dot {
+  background: var(--bk-color-warning);
+}
+.success {
+  border-color: var(--bk-color-success);
+}
+.error {
+  border-color: var(--bk-color-danger);
+}
+.warning {
+  border-color: var(--bk-color-warning);
+}
+
+.message {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.close {
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0 var(--bk-space-1);
+  color: var(--bk-color-fg-muted);
+  font-size: 1.1em;
+  line-height: 1;
+  cursor: pointer;
+}
+.close:hover {
+  color: var(--bk-color-fg);
+}

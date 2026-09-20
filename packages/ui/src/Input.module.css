@@ -1,0 +1,53 @@
+/* Input 的 CSS Modules（@berkshire/ui）。 */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+}
+
+.label {
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-muted);
+}
+
+.input {
+  height: 32px;
+  padding: 0 var(--bk-space-3);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-md);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--bk-color-accent);
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+.input::placeholder {
+  color: var(--bk-color-fg-subtle);
+}
+.inputDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.hint {
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+}
+
+.error {
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-danger);
+}
+
+.fieldError .input {
+  border-color: var(--bk-color-danger);
+}
+.fieldError .input:focus {
+  border-color: var(--bk-color-danger);
+  box-shadow: 0 0 0 2px var(--bk-color-danger-soft);
+}

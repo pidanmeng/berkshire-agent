@@ -1,0 +1,48 @@
+/* Badge 的 CSS Modules（@berkshire/ui）。 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-1);
+  padding: 0 var(--bk-space-2);
+  height: 20px;
+  border: 1px solid transparent;
+  border-radius: var(--bk-radius-pill);
+  font-size: var(--bk-font-size-sm);
+  font-weight: 550;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 统一淡底 + 语义色前景。 */
+.neutral {
+  background: var(--bk-color-neutral-soft);
+  color: var(--bk-color-neutral);
+}
+.info {
+  background: var(--bk-color-info-soft);
+  color: var(--bk-color-info);
+}
+.success {
+  background: var(--bk-color-success-soft);
+  color: var(--bk-color-success);
+}
+.warning {
+  background: var(--bk-color-warning-soft);
+  color: var(--bk-color-warning);
+}
+.danger {
+  background: var(--bk-color-danger-soft);
+  color: var(--bk-color-danger);
+}
+.accent {
+  background: var(--bk-color-accent-soft);
+  color: var(--bk-color-accent);
+}
+.bull {
+  background: var(--bk-color-bull-soft);
+  color: var(--bk-color-bull);
+}
+.bear {
+  background: var(--bk-color-bear-soft);
+  color: var(--bk-color-bear);
+}

@@ -35,6 +35,7 @@ import { createLineWriter } from './writer'
 import { handleLine, handleProvisionLine, type HandleLineDeps, type HandleLineResult } from './protocol'
 import { attachEventPusher } from './events'
 import { attachDevWatcher } from './dev_watch'
+import { createFileStorageProvider } from './storage-provider'
 import type { LineWriter } from './writer'
 
 /** 仓库根（dev 态插件热更 watcher 用）：packages/sidecar/src → ../../../。 */
@@ -110,7 +111,21 @@ async function main(): Promise<void> {
   const resolver: Resolver = (name) => importPlugin(name, { nodeModulesDir: nmDir, baseUrl: bkHome })
 
   const boot = new Boot()
-  await boot.installAll(rows, resolver)
+  // 持久化能力缝（WP-2）：`ctx.storage` 的 Definition 由 core 提供，故先装 core 行（若声明了），
+  // 再附加文件 Provider（读写 $BK_HOME/state/<ns>），随后装配其余插件——保证 Consumer 插件
+  // （如 demo 挂载时读写配置）挂上时已有 provider。core 缺声明则 storage 不可用，消费者 fail-closed。
+  const coreRows = rows.filter((r) => r.name === '@berkshire/core')
+  const rest = rows.filter((r) => r.name !== '@berkshire/core')
+  for (const row of coreRows) {
+    await boot.install(row, resolver)
+  }
+  let detachStorage: (() => void) | undefined
+  if (coreRows.length > 0) {
+    detachStorage = boot.ctx.storage.register(createFileStorageProvider(bkHome))
+  }
+  for (const row of rest) {
+    await boot.install(row, resolver)
+  }
   process.stderr.write(`[sidecar] booted from ${bkHome}/cordis.yml; active=${boot.activeCount}\n`)
 
   const writer = createLineWriter(process.stdout)
@@ -133,6 +148,7 @@ async function main(): Promise<void> {
 
   const teardown = async () => {
     detachDevReload?.()
+    detachStorage?.() // 摘文件 Provider（root ctx effect；boot.dispose 亦会兜底清理）
     detachEvents()
     const order = await boot.dispose() // 逆序清理：后装先卸（v1 §8 已验证语义）。
     process.stderr.write(`[sidecar] shutdown: dispose order = ${order.join(' -> ')}\n`)

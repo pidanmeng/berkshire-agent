@@ -41,7 +41,7 @@
 | `ctx.ai` | seam | LLM 适配器注册表 + 流式 | `ai-deepseek`、`ai-openai-compat`、`ai-ollama` | `ctx.analysis`、刷屏报告、AI 复盘 |
 | `ctx.notifier` | seam | 通知渠道 | `notify-tray`、`notify-wecom`、`notify-telegram`、`notify-webhook` | 监控、同步告警、AI 复盘 |
 | `ctx.monitor` | seam | 监控规则引擎 + 告警记录 | `monitor-rule-engine` | `ctx.notifier` |
-| `ctx.storage` | seam | 非行情持久状态（watchlist/策略文件/报告/设置） | `storage-duckdb`、`storage-file` | 各服务 |
+| `ctx.storage` | seam | 非行情持久状态（watchlist/策略文件/报告/设置） | **`storage-file`（已落地 v1：`$BK_HOME/state/` JSON）**、`storage-duckdb`（目标态） | 各服务 |
 | `ctx.jobs` | seam | 后台任务注册表（长任务/矿工/回测） | `jobs-local` | 工具/前端 |
 | `ctx.quotes` | seam | 实时行情摄入 + 扇出（批量/定节奏） | `quotes-poll`、`quotes-push` | 前端图表、`ctx.monitor` |
 | `ctx.python` / `ctx.subprocess` | seam | 拉起 Python/子进程 provider（AkShare、脚本） | `runner-local` | `ctx.dataSources`（python 源）、脚本型策略 |
@@ -68,13 +68,14 @@
 - **已实现（v1，可直接 import）**：接口权威定义在 `packages/core`——
   - `ctx.notifier`：消费/供给方从 **`@berkshire/core`** import 共享类型（`NotifyService` 在 `packages/core/src/seams/notify.ts`；`NotifyProvider`/`NotifyPayload` 在 `packages/core/src/types.ts`），并经 **co-located** `declare module 'cordis'` 读 `ctx.notifier`（增强就在 `packages/core/src/seams/notify.ts` 本文件；B 级已把各服务/事件增强分散到所属文件）。v1 直接增强 `cordis` 官方包；目标态 `@berkshire/cordis` vendor 落地后换模块名即可。
   - `ctx.slots` / `ctx.clientModules`：定义在 `packages/core/src/services/{slots,clientModules}.ts`（`Slots`/`ClientModules`/`FrontendSlotRegistration`/`ClientModuleRegistration`），`ctx.slots` 增强在 `services/slots.ts`、`ctx.clientModules` 增强在 `services/clientModules.ts`，而 **`client/changed` 为跨服务共享事件**（Slots 与 ClientModules 都发出）在 `packages/core/src/events.ts`；`@berkshire/core` 根入口导出全部服务类型，插件（如 `@berkshire/plugin-demo`）经 `inject: ['slots','clientModules']` 消费，需要单服务粒度的可按 `@berkshire/core` 的子路径导出导入。跨边界 wire 类型（sidecar `client/list`/webview `api.ts` 的复刻）仍为 v2 共享类型层债务，勿复制签名。
-- **目标态（未落地，不得 import 当已存在）**：`ctx.ai`/`ctx.dataSources`/`ctx.storage`/`ctx.backtest`/`ctx.chart` 等仍为设计承诺，未见上方归属表外的落地文件；落地后在此登记各自 Definition 的权威文件路径。
+  - `ctx.storage`（WP-2 已落地 v1）：Definition 在 `packages/core/src/seams/storage.ts`（`StorageService` + `ctx.storage` + `storage/changed` 事件；`StorageProvider` 在 `packages/core/src/types.ts`、`StorageNamespaceId` 在 `brand.ts`）。**Provider** 由 sidecar 的 `packages/sidecar/src/storage-provider.ts`（`createFileStorageProvider(bkHome)`）实现，读写 `$BK_HOME/state/<ns>/<key>.json`（防越权 + 原子改名写 + 串行写 + 坏文件 fail-closed，明确**不是 DuckDB**）。**Consumer** 示范为 demo 插件（`@berkshire/plugin-demo`，`inject` 含 `storage`，挂载时读写 `demo` 命名空间）。跨边界：sidecar `storage/get|set|remove|list` 协议 + Rust `storage_*` command + webview `lib/api.ts` 薄客户端。
+- **目标态（未落地，不得 import 当已存在）**：`ctx.ai`/`ctx.dataSources`/`ctx.backtest`/`ctx.chart` 等仍为设计承诺，未见上方归属表外的落地文件；落地后在此登记各自 Definition 的权威文件路径。
 
 依赖此单一家，**同类型图内**（sidecar 插件生态、同一 `tsc` 编译）改破坏性接口时，Consumer 与 Provider 两端即时静态报错；**跨图边界**或**单独构建/运行时加载**的插件不受此保证（见下「跨边界警示」）。
 
 ### 跨边界警示（webview 与独立插件）
 
-- **webview（React）边界**：当前 `apps/berkshire-agent/src/lib/api.ts` **本地复刻** `NotifyPayload`/`Capability`/`CapabilityId`（刻意不 import `@berkshire/core`，以免把 core 拉进 webview 类型图）。因此 Owner 改接口，sidecar 端会报、**webview 端不会静态感知**——属已知缺口。补法是用 rspc/specta **typed bridge**（单一事实源生成两端类型），**仍为目标态**；落地前改接口需人工同步两处。
+- **webview（React）边界**：当前 `apps/berkshire-agent/src/lib/api.ts` **本地复刻** `Capability`/`CapabilityId`/`ClientModuleId` 等 wire 类型（刻意不 import `@berkshire/core`，以免把 core 拉进 webview 类型图；`NotifyPayload` 的 webview 复刻随宿主 demo 面板清理（WP-4）移除，webview 当前无 notify 消费方）。因此 Owner 改接口，sidecar 端会报、**webview 端不会静态感知**——属已知缺口。补法是用 rspc/specta **typed bridge**（单一事实源生成两端类型），**仍为目标态**；落地前改接口需人工同步两处。
 - **独立构建 / 运行时加载插件**（`.js` 配置、单独打包 bundle、`any` 强转）：不在同一类型图，TS 摸不到，改接口靠运行时 fail-closed/fail-fast 兜底。
 - **结构性类型“放宽”不报错**：接口放宽（字段可选/类型加宽）不会触发两端报错，仅“破坏性变更”可静态拦截，靠评审纪律补。
 

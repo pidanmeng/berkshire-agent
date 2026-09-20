@@ -1,0 +1,23 @@
+/* Modal 的 CSS Modules（@berkshire/ui）。 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--bk-space-5);
+  background: var(--bk-scrim);
+}
+
+.dialog {
+  width: min(480px, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  padding: var(--bk-space-5);
+  background: var(--bk-color-bg-elevated);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-dialog);
+  box-shadow: var(--bk-shadow-sm);
+  color: var(--bk-color-fg);
+}

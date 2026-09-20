@@ -20,6 +20,7 @@ export const MODULES: readonly BkModule[] = [
   { name: "@berkshire/boot", dir: "boot", pluginChain: true },
   { name: "@berkshire/sidecar", dir: "sidecar", pluginChain: false },
   { name: "@berkshire/theme", dir: "theme", pluginChain: true },
+  { name: "@berkshire/ui", dir: "ui", pluginChain: true },
   { name: "@berkshire/ui-slots", dir: "ui-slots", pluginChain: true },
   { name: "@berkshire/plugin-notify-console", dir: "plugins/notify-console", pluginChain: true },
   { name: "@berkshire/plugin-demo", dir: "plugins/demo", pluginChain: true },

@@ -46,6 +46,10 @@
     "./seams/notify": {
       "types": "./dist/seams/notify.d.ts",
       "default": "./dist/seams/notify.js"
+    },
+    "./seams/storage": {
+      "types": "./dist/seams/storage.d.ts",
+      "default": "./dist/seams/storage.js"
     }
   },
   "scripts": {

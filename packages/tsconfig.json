@@ -8,6 +8,7 @@
   "compilerOptions": {
     "composite": false,
     "outDir": "./.out",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
     "paths": {
       "@berkshire/cordis": ["./cordis-vendor/src/index.ts"],
@@ -16,6 +17,7 @@
       "@berkshire/boot": ["./boot/src/index.ts"],
       "@berkshire/sidecar": ["./sidecar/src/index.ts"],
       "@berkshire/theme": ["./theme/src/index.ts"],
+      "@berkshire/ui": ["./ui/src/index.ts"],
       "@berkshire/ui-slots": ["./ui-slots/src/index.ts"],
       "@berkshire/plugin-notify-console": ["./plugins/notify-console/src/index.ts"],
       "@berkshire/plugin-demo": ["./plugins/demo/src/index.ts"],

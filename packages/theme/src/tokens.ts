@@ -54,6 +54,7 @@ export const STATIC_TOKENS = [
   { id: "color-fg", group: "color", light: "#0f0f0f", dark: "#f6f6f6", label: "前景（正文）" },
   { id: "color-fg-muted", group: "color", light: "#555555", dark: "#b3b3b3", label: "弱化前景（次要）" },
   { id: "color-fg-subtle", group: "color", light: "#888888", dark: "#9a9a9a", label: "更弱前景（hint）" },
+  { id: "color-fg-invert", group: "color", light: "#ffffff", dark: "#ffffff", label: "前景反转（实底/强调上文字）" },
   { id: "color-primary", group: "color", light: "#646cff", dark: "#8b93ff", label: "主色（链接/强调）" },
   { id: "color-primary-hover", group: "color", light: "#535bf2", dark: "#24c8db", label: "主色 hover" },
   { id: "color-primary-soft", group: "color", light: "rgba(100,108,255,0.12)", dark: "rgba(139,147,255,0.14)", label: "主色弱化底" },
@@ -72,11 +73,22 @@ export const STATIC_TOKENS = [
   { id: "color-brand-react", group: "color", light: "#61dafb", dark: "#61dafb", label: "品牌 React（logo 辉光）" },
   { id: "color-brand-tauri", group: "color", light: "#24c8db", dark: "#24c8db", label: "品牌 Tauri（logo 辉光）" },
 
+  // ── 强调/价格语义（design.md §2.1：accent 仅交互/高亮；bull/bear 仅价格/涨跌）──
+  { id: "color-accent", group: "color", light: "#3B82F6", dark: "#3B82F6", label: "强调色（交互/高亮，电光蓝）" },
+  { id: "color-accent-hover", group: "color", light: "#2f6df0", dark: "#60a5fa", label: "强调色 hover" },
+  { id: "color-accent-soft", group: "color", light: "rgba(59,130,246,0.12)", dark: "rgba(59,130,246,0.16)", label: "强调色弱化底" },
+  { id: "color-accent-focus", group: "color", light: "rgba(59,130,246,0.35)", dark: "rgba(96,165,250,0.40)", label: "强调色焦点环" },
+  { id: "color-bull", group: "color", light: "#F04438", dark: "#F04438", label: "红涨（价格/涨跌语义）" },
+  { id: "color-bull-soft", group: "color", light: "rgba(240,68,56,0.12)", dark: "rgba(240,68,56,0.16)", label: "红涨弱化底" },
+  { id: "color-bear", group: "color", light: "#12B76A", dark: "#12B76A", label: "绿跌（价格/涨跌语义）" },
+  { id: "color-bear-soft", group: "color", light: "rgba(18,183,106,0.10)", dark: "rgba(18,183,106,0.14)", label: "绿跌弱化底" },
+
   // ── 边框/交互态（透明度叠层，叠加任意背景成立；不新造实色灰）──────────
   { id: "border", group: "color", light: "rgba(15,15,15,0.10)", dark: "rgba(235,235,235,0.18)", label: "边框/分隔（透明度叠层）" },
   { id: "border-strong", group: "color", light: "rgba(15,15,15,0.16)", dark: "rgba(235,235,235,0.26)", label: "强化边框（透明度叠层）" },
   { id: "hover", group: "color", light: "rgba(15,15,15,0.06)", dark: "rgba(235,235,235,0.08)", label: "悬停叠层" },
   { id: "active", group: "color", light: "rgba(15,15,15,0.10)", dark: "rgba(235,235,235,0.14)", label: "按下叠层" },
+  { id: "scrim", group: "color", light: "rgba(0,0,0,0.45)", dark: "rgba(0,0,0,0.55)", label: "模态遮罩（backdrop）" },
 
   // ── spacing（间距 4 的倍数：0.25/0.5/0.75/1/1.5/2rem）────────────────────
   { id: "space-1", group: "spacing", light: "0.25rem", dark: "0.25rem", label: "间距 1 (4px)" },
@@ -92,9 +104,11 @@ export const STATIC_TOKENS = [
   { id: "radius-lg", group: "radius", light: "8px", dark: "8px", label: "圆角 大" },
   { id: "radius-xl", group: "radius", light: "14px", dark: "14px", label: "圆角 特大" },
   { id: "radius-pill", group: "radius", light: "999px", dark: "999px", label: "圆角 胶囊" },
+  { id: "radius-dialog", group: "radius", light: "12px", dark: "12px", label: "圆角 弹窗面板" },
 
   // ── font（字号语义档位 + 成对行高；主字体 token）────────────────────────
   { id: "font-sans", group: "font", light: "Inter, Avenir, Helvetica, Arial, sans-serif", dark: "Inter, Avenir, Helvetica, Arial, sans-serif", label: "正文字体" },
+  { id: "font-mono", group: "font", light: "'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", dark: "'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", label: "等宽数字/代码字体" },
   { id: "font-size-sm", group: "font", light: "0.85em", dark: "0.85em", label: "字号 小" },
   { id: "font-size-md", group: "font", light: "0.9em", dark: "0.9em", label: "字号 中" },
   { id: "font-size-base", group: "font", light: "1em", dark: "1em", label: "字号 基准" },
@@ -129,6 +143,7 @@ export const THEME_TOKENS = [
   { id: "color-fg", ref: "color-fg", group: "color", label: "前景（正文）" },
   { id: "color-fg-muted", ref: "color-fg-muted", group: "color", label: "弱化前景（次要）" },
   { id: "color-fg-subtle", ref: "color-fg-subtle", group: "color", label: "更弱前景（hint）" },
+  { id: "color-fg-invert", ref: "color-fg-invert", group: "color", label: "前景反转（实底/强调上文字）" },
   { id: "color-primary", ref: "color-primary", group: "color", label: "主色（链接/强调）" },
   { id: "color-primary-hover", ref: "color-primary-hover", group: "color", label: "主色 hover" },
   { id: "color-primary-soft", ref: "color-primary-soft", group: "color", label: "主色弱化底" },
@@ -146,12 +161,21 @@ export const THEME_TOKENS = [
   { id: "color-brand-vite", ref: "color-brand-vite", group: "color", label: "品牌 Vite（logo 辉光）" },
   { id: "color-brand-react", ref: "color-brand-react", group: "color", label: "品牌 React（logo 辉光）" },
   { id: "color-brand-tauri", ref: "color-brand-tauri", group: "color", label: "品牌 Tauri（logo 辉光）" },
+  { id: "color-accent", ref: "color-accent", group: "color", label: "强调色（交互/高亮）" },
+  { id: "color-accent-hover", ref: "color-accent-hover", group: "color", label: "强调色 hover" },
+  { id: "color-accent-soft", ref: "color-accent-soft", group: "color", label: "强调色弱化底" },
+  { id: "color-accent-focus", ref: "color-accent-focus", group: "color", label: "强调色焦点环" },
+  { id: "color-bull", ref: "color-bull", group: "color", label: "红涨（价格/涨跌语义）" },
+  { id: "color-bull-soft", ref: "color-bull-soft", group: "color", label: "红涨弱化底" },
+  { id: "color-bear", ref: "color-bear", group: "color", label: "绿跌（价格/涨跌语义）" },
+  { id: "color-bear-soft", ref: "color-bear-soft", group: "color", label: "绿跌弱化底" },
 
   // ── 边框/交互态透明度叠层 ───────────────────────────────────────────────
   { id: "border", ref: "border", group: "color", label: "边框/分隔（透明度叠层）" },
   { id: "border-strong", ref: "border-strong", group: "color", label: "强化边框（透明度叠层）" },
   { id: "hover", ref: "hover", group: "color", label: "悬停叠层" },
   { id: "active", ref: "active", group: "color", label: "按下叠层" },
+  { id: "scrim", ref: "scrim", group: "color", label: "模态遮罩（backdrop）" },
 
   // ── spacing / radius / font / shadow（语义档位，兼容现状宿主）───────────
   { id: "space-1", ref: "space-1", group: "spacing", label: "间距 1" },
@@ -165,7 +189,9 @@ export const THEME_TOKENS = [
   { id: "radius-lg", ref: "radius-lg", group: "radius", label: "圆角 大" },
   { id: "radius-xl", ref: "radius-xl", group: "radius", label: "圆角 特大" },
   { id: "radius-pill", ref: "radius-pill", group: "radius", label: "圆角 胶囊" },
+  { id: "radius-dialog", ref: "radius-dialog", group: "radius", label: "圆角 弹窗面板" },
   { id: "font-sans", ref: "font-sans", group: "font", label: "正文字体" },
+  { id: "font-mono", ref: "font-mono", group: "font", label: "等宽数字/代码字体" },
   { id: "font-size-sm", ref: "font-size-sm", group: "font", label: "字号 小" },
   { id: "font-size-md", ref: "font-size-md", group: "font", label: "字号 中" },
   { id: "font-size-base", ref: "font-size-base", group: "font", label: "字号 基准" },

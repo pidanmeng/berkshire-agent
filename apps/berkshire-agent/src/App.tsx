@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { Link, Route, Routes } from "react-router-dom";
 import styles from "./App.module.css";
-import SidecarPanel from "./components/SidecarPanel";
 import { ExtensionSlot } from "@berkshire/ui-slots";
 import ClientModuleHost from "./client/ClientModuleHost";
 import RouteSync from "./routes/RouteSync";
@@ -15,29 +14,12 @@ import { useAppPhase } from "./onboarding/useAppPhase";
 // base-ui 壳帧 = 共享 `root` 槽的 single 项：装配即注册（注册即效应），宿主改从 root 槽挂载。
 registerRootShell();
 
-/** 核心路由 `/`：主界面（slot 演示 + sidebar 面板）。 */
+/** 核心路由 `/`：主界面（产品落地页骨架）。页面内容由插件经 slot/route 注入，宿主只做路由宿主。 */
 function HomePage() {
   return (
     <main className={styles.container}>
       <h1>Berkshire Agent</h1>
-      <p className={styles.hint}>
-        A 股投研桌面工作台（应用壳 demo）——左侧可扩展侧边栏 + 右侧路由区 + 顶部状态栏 + 底部设置入口。
-      </p>
-
-      {/* slot 宿主 demo（T0/能力块 A）：无插件注册此槽时正常渲染空、宿主页不崩。 */}
-      <section className={styles.slotDemo}>
-        <h2>slot 宿主 demo（stock-preview.footer）</h2>
-        <p className={styles.hint}>
-          bridge 可用时此处会出现 <code>@berkshire/plugin-demo</code> 贡献的底部组件（fund-flow）及其
-          scoped 样式；不可用时为空（fail-closed），卸下插件后样式一并移除。
-        </p>
-        <ExtensionSlot
-          name="stock-preview.footer"
-          context={{ symbol: "000001.SZ", name: "平安银行", view: "daily" }}
-        />
-      </section>
-
-      <SidecarPanel />
+      <p className={styles.hint}>A 股投研桌面工作台——左侧侧边栏 + 右侧路由区 + 顶部状态栏 + 底部设置入口。</p>
     </main>
   );
 }

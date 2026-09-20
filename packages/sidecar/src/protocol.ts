@@ -11,7 +11,7 @@
  */
 import type { Context } from '@berkshire/cordis'
 import '@berkshire/core'
-import type { CapabilityId } from '@berkshire/core'
+import type { CapabilityId, StorageNamespaceId } from '@berkshire/core'
 import type { NotifyPayload } from '@berkshire/core'
 
 /** 简版 JSON-RPC 2.0 错误码（T0 协议）。 */
@@ -138,6 +138,55 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
       // 动态路由/导航快照（能力块 B/页面，路由契约化）：所有带 `route` 声明的已排序导航项
       // （任意 slot，含 slot 归属；静态路径、不覆盖核心、全局唯一）。
       return ctx.slots.routes()
+
+    case 'storage/get': {
+      // 读一个键（$BK_HOME/state JSON 持久化，WP-2）。缺失返回 null；坏文件/越权 fail-closed → APP。
+      const { ns, key } = params
+      if (typeof ns !== 'string' || ns === '') throw new ProtocolError(ESC.PARAMS, 'storage/get requires non-empty string "ns"')
+      if (typeof key !== 'string' || key === '') throw new ProtocolError(ESC.PARAMS, 'storage/get requires non-empty string "key"')
+      try {
+        return (await ctx.storage.get(ns as StorageNamespaceId, key)) ?? null
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+    }
+
+    case 'storage/set': {
+      const { ns, key, value } = params
+      if (typeof ns !== 'string' || ns === '') throw new ProtocolError(ESC.PARAMS, 'storage/set requires non-empty string "ns"')
+      if (typeof key !== 'string' || key === '') throw new ProtocolError(ESC.PARAMS, 'storage/set requires non-empty string "key"')
+      // `value` 必须显式提供（可为任何 JSON，含 null）——缺值属调用方 bug，fail-closed。
+      if (!('value' in params)) throw new ProtocolError(ESC.PARAMS, 'storage/set requires "value"')
+      try {
+        await ctx.storage.set(ns as StorageNamespaceId, key, value)
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+      // 成功：返回 null（payload 已在 set 内广播 storage/changed）。
+      return null
+    }
+
+    case 'storage/remove': {
+      const { ns, key } = params
+      if (typeof ns !== 'string' || ns === '') throw new ProtocolError(ESC.PARAMS, 'storage/remove requires non-empty string "ns"')
+      if (typeof key !== 'string' || key === '') throw new ProtocolError(ESC.PARAMS, 'storage/remove requires non-empty string "key"')
+      try {
+        await ctx.storage.remove(ns as StorageNamespaceId, key)
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+      return null
+    }
+
+    case 'storage/list': {
+      const { ns } = params
+      if (typeof ns !== 'string' || ns === '') throw new ProtocolError(ESC.PARAMS, 'storage/list requires non-empty string "ns"')
+      try {
+        return await ctx.storage.list(ns as StorageNamespaceId)
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+    }
 
     default:
       throw new ProtocolError(ESC.METHOD, `unknown method "${method}"`)

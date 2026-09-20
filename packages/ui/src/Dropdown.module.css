@@ -1,0 +1,42 @@
+/* Dropdown 的 CSS Modules（@berkshire/ui）。 */
+.root {
+  position: relative;
+  display: inline-block;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + var(--bk-space-1));
+  left: 0;
+  min-width: 160px;
+  margin: 0;
+  padding: var(--bk-space-1);
+  list-style: none;
+  background: var(--bk-color-bg-elevated);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  box-shadow: var(--bk-shadow-sm);
+}
+
+.item {
+  display: block;
+  width: 100%;
+  padding: var(--bk-space-2) var(--bk-space-3);
+  border: none;
+  border-radius: var(--bk-radius-sm);
+  background: transparent;
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.item:not(:disabled):hover,
+.item:focus-visible {
+  outline: none;
+  background: var(--bk-hover);
+}
+.itemDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,10 +1,10 @@
 /**
  * webview ←→ Rust 桥的薄客户端：包装有消费者的 Tauri command + 订阅 `sidecar://*` 事件。
  *
- * 当前包装的命令为 `capabilities_list`/`notify_send`/`log_list`/`client_list`/`routes_list`；
- * 订阅 Rust 侧透传的 Tauri event（`sidecar://notify/request`、`sidecar://capabilities/changed`、
- * `sidecar://client/changed`）。T2 命令面中的 `capabilities_usable` 目前无 webview 消费者，
- * 故薄客户端不包装（Rust 侧命令面保持完整，需用时再补包装）。
+ * 当前包装的命令为 `capabilities_list`/`client_list`/`routes_list`；订阅 Rust 侧透传的 Tauri event
+ * （`sidecar://capabilities/changed`、`sidecar://client/changed`）。T2 命令面中的 `notify_send`/`log_list`
+ * （支撑 `ctx.notifier`/`ctx.log`）与 `capabilities_usable` 目前无 webview 消费者，薄客户端不包装
+ * （Rust 侧命令面保持完整，需用时再按同一模板补包装——此前 T3 demo 面板消费它们，随宿主 demo 清理移除）。
  *
  * 跨边界 payload 用品牌 id：`CapabilityId` 镜像 @berkshire/core 的 brand（为避免把 core
  * 拉进 webview 的类型图，这里本地复刻同样的 Branded 结构；真正的生态落地在 v2 共享类型层）。
@@ -19,19 +19,13 @@ type Branded<T, S extends string> = T & { readonly __brand: S };
 export type CapabilityId = Branded<string, "capability">;
 /** client 模块 id：跨边界 opaque（镜像 @berkshire/core 的 ClientModuleId）。 */
 export type ClientModuleId = Branded<string, "client-module">;
+/** 存储命名空间 id：跨边界 opaque（镜像 @berkshire/core 的 StorageNamespaceId）。 */
+export type StorageNamespaceId = Branded<string, "storage-namespace">;
 
 export interface Capability {
   id: CapabilityId;
   label: string;
   usable: boolean;
-}
-
-export type NotifyLevel = "info" | "warn" | "error";
-
-export interface NotifyPayload {
-  message: string;
-  level?: NotifyLevel;
-  channel?: string;
 }
 
 export interface CapabilitiesChangedEvent {
@@ -67,13 +61,6 @@ export interface RouteEntry {
   section?: string;
 }
 
-export interface LogEntry {
-  id: number;
-  event: string;
-  data: unknown;
-  at: number;
-}
-
 const DEFAULT_TIMEOUT_MS = 4000;
 
 function withTimeout<T>(p: Promise<T>, what: string, ms: number = DEFAULT_TIMEOUT_MS): Promise<T> {
@@ -94,18 +81,6 @@ function withTimeout<T>(p: Promise<T>, what: string, ms: number = DEFAULT_TIMEOU
 
 export function capabilitiesList(): Promise<Capability[]> {
   return withTimeout(invoke<Capability[]>("capabilities_list"), "capabilities_list");
-}
-
-export function notifySend(
-  message: string,
-  level?: NotifyLevel,
-  channel?: string,
-): Promise<string[]> {
-  return withTimeout(invoke<string[]>("notify_send", { message, level, channel }), "notify_send");
-}
-
-export function logList(event?: string): Promise<LogEntry[]> {
-  return withTimeout(invoke<LogEntry[]>("log_list", { event }), "log_list");
 }
 
 /** 拉取 client 插件图快照（T1：`client/list` → ClientModuleHost 挂载）。 */
@@ -135,18 +110,57 @@ export function onClientChanged(cb: (payload: ClientChangedEvent) => void): Prom
   ).then((unlisten) => unlisten);
 }
 
-/** 订阅 sidecar 透传的 `notify/request` 事件；返回退订函数。 */
-export function onNotifyRequest(cb: (payload: NotifyPayload) => void): Promise<() => void> {
-  return listen<NotifyPayload>("sidecar://notify/request", (e) => cb(e.payload)).then(
-    (unlisten) => unlisten,
-  );
-}
-
 /** 订阅 sidecar 透传的 `capabilities/changed` 事件；返回退订函数。 */
 export function onCapabilitiesChanged(
   cb: (payload: CapabilitiesChangedEvent) => void,
 ): Promise<() => void> {
   return listen<CapabilitiesChangedEvent>("sidecar://capabilities/changed", (e) =>
+    cb(e.payload),
+  ).then((unlisten) => unlisten);
+}
+
+// ---- `$BK_HOME` 轻量持久化（WP-2 能力缝：storage_get/set/remove/list + storage/changed）----
+
+/** `storage/set` / `storage/remove` 事件载荷（经 sidecar：`storage/changed` → Rust → webview）。 */
+export interface StorageChangedEvent {
+  ns: StorageNamespaceId;
+  key: string;
+}
+
+/** 读一个键：缺失返回 `null`（sidecar 归一化）；坏文件/越权 fail-closed（invoke reject）。 */
+export function storageGet<T = unknown>(
+  ns: StorageNamespaceId,
+  key: string,
+): Promise<T | null> {
+  return withTimeout(invoke<T | null>("storage_get", { ns: String(ns), key }), "storage_get");
+}
+
+/** 写一个键（JSON 序列化 + 原子改名写；成功即持久化）。 */
+export function storageSet(ns: StorageNamespaceId, key: string, value: unknown): Promise<void> {
+  return withTimeout(invoke<void>("storage_set", { ns: String(ns), key, value }), "storage_set");
+}
+
+/** 删除一个键（缺失视为成功 no-op）。 */
+export function storageRemove(ns: StorageNamespaceId, key: string): Promise<void> {
+  return withTimeout(
+    invoke<void>("storage_remove", { ns: String(ns), key }),
+    "storage_remove",
+  );
+}
+
+/** 列出某命名空间下全部键名。 */
+export function storageList(ns: StorageNamespaceId): Promise<string[]> {
+  return withTimeout(
+    invoke<string[]>("storage_list", { ns: String(ns) }),
+    "storage_list",
+  );
+}
+
+/** 订阅 sidecar 透传的 `storage/changed` 事件（set/remove 后触发）；返回退订函数。 */
+export function onStorageChanged(
+  cb: (payload: StorageChangedEvent) => void,
+): Promise<() => void> {
+  return listen<StorageChangedEvent>("sidecar://storage/changed", (e) =>
     cb(e.payload),
   ).then((unlisten) => unlisten);
 }

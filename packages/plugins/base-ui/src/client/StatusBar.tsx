@@ -13,7 +13,7 @@ import { ExtensionSlot } from "@berkshire/ui-slots"
 import type { ShellRouteInfo } from "./AppShell"
 import styles from "./StatusBar.module.css"
 
-/** 核心路由显示名（壳自有）。 */
+/** 核心路由显示名（壳自有）。`/theme` 为 dev 工具路由，不在主导航但可地址访问，仍给标题。 */
 const CORE_TITLES: Record<string, string> = {
   "/": "首页",
   "/theme": "主题",

@@ -2,7 +2,7 @@
 
 > 本文是 **T0 定稿的桥接契约**：在 T1–T3 接线前，把「Bun sidecar ↔ Tauri Rust 宿主 ↔ React webview」三者的边界、消息格式与能力路由定死成一份可复现的协议，避免各方自造。
 >
-> **诚实标注**：本文件描述的是**目标协议契约**。其中 **T1（sidecar 长驻进程 + stdio JSON-RPC，即 `packages/sidecar/src`）已落地、可运行**——复现见下文「复现与验收」（`bun run packages/sidecar/examples/smoke.ts`）；**T2（Rust `bridge.rs` 拉起/restart + 事件转发为 Tauri event）**与 **T3（webview 薄客户端，`apps/berkshire-agent/src/lib/api.ts` + `components/SidecarPanel.tsx`）**也已落地 v1。**仍未落地的**：持久化（DuckDB）、rspc/specta 迁移。不得把仍未落地部分当作可 import 的实现。
+> **诚实标注**：本文件描述的是**目标协议契约**。其中 **T1（sidecar 长驻进程 + stdio JSON-RPC，即 `packages/sidecar/src`）已落地、可运行**——复现见下文「复现与验收」（`bun run packages/sidecar/examples/smoke.ts`）；**T2（Rust `bridge.rs` 拉起/restart + 事件转发为 Tauri event）**与 **T3（webview 薄客户端 `apps/berkshire-agent/src/lib/api.ts`；其 demo 面板 `components/SidecarPanel.tsx` 已于 WP-4 宿主清理移除）**也已落地 v1。**WP-2 已落地**：`$BK_HOME` 轻量持久化能力缝（`ctx.storage`，`storage/get|set|remove|list`，写 `$BK_HOME/state/` JSON——明确**不是 DuckDB**）。**仍未落地的**：DuckDB、rspc/specta 迁移。不得把仍未落地部分当作可 import 的实现。
 
 ## 定位
 
@@ -10,7 +10,7 @@
 
 ## Summary
 
-协议用**换行分隔 JSON（`application/x-ndjson`）**跑在 sidecar 的 **stdio** 上：`stdout` 只承载协议（sidecar 发给宿主的响应 + 事件推送），`stdin` 只收宿主发来的请求，`stderr` 仅供日志、绝不混协议。报文是**简版 JSON-RPC 2.0 子集**（请求 `{id,method,params}`、响应 `{id,result|error}`、宿主主动事件 `{event,payload}`），第一批方法面只盖住 v1 能力（`capabilities/list`、`capabilities/usable`、`notify/send`、`log/list`、`client/list`、`routes/list` + 生命周期 `shutdown`），够证明「结构对」即可，不贪多。sidecar 上报一个内部事件就推一行事件，宿主再决定是否转成 Tauri event 给 webview。
+协议用**换行分隔 JSON（`application/x-ndjson`）**跑在 sidecar 的 **stdio** 上：`stdout` 只承载协议（sidecar 发给宿主的响应 + 事件推送），`stdin` 只收宿主发来的请求，`stderr` 仅供日志、绝不混协议。报文是**简版 JSON-RPC 2.0 子集**（请求 `{id,method,params}`、响应 `{id,result|error}`、宿主主动事件 `{event,payload}`），第一批方法面只盖住 v1 能力（`capabilities/list`、`capabilities/usable`、`notify/send`、`log/list`、`client/list`、`routes/list` + **WP-2 持久化 `storage/get|set|remove|list`** + 生命周期 `shutdown`），够证明「结构对」即可，不贪多。sidecar 上报一个内部事件就推一行事件，宿主再决定是否转成 Tauri event 给 webview。
 
 主要代价：它是**一次性进程契约**，跨进程只传 JSON、无类型化编解码（rspc/specta typed bridge 标 v2，见 [secondary-development.md §8](../../docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊)）；持续高频行情不推荐逐 tick 走这条桥（见 [architecture.md §2](../../docs/architecture.md#2-运行时拓扑) 高吞吐路径）。
 
@@ -22,7 +22,7 @@
 | **进程 A · Tauri Rust 宿主** | 薄原生宿主 + 桥 | `spawn/restart` sidecar、按 `id` 做请求-响应配表、把事件转发为 Tauri event（T2） |
 | **进程 C · React webview** | 消费者 | 薄客户端包装命令 + 订阅事件；坏桥不崩页（T3） |
 
-能力缝纪律（[AGENTS.md](../../AGENTS.md)）：sidecar 侧一律经 `ctx.*` 服务调用（`ctx.capabilities` / `ctx.notifier` / `ctx.log`），**禁止直接 import 插件实现裸调**；跨边界 id 用 `Branded<T>`（v1 已落 `CapabilityId`，见 [core/src/brand.ts](../core/src/brand.ts)）。
+能力缝纪律（[AGENTS.md](../../AGENTS.md)）：sidecar 侧一律经 `ctx.*` 服务调用（`ctx.capabilities` / `ctx.notifier` / `ctx.log` / `ctx.storage`），**禁止直接 import 插件实现裸调**；跨边界 id 用 `Branded<T>`（v1 已落 `CapabilityId`/`StorageNamespaceId`，见 [core/src/brand.ts](../core/src/brand.ts)）。
 
 ## 传输层（ndjson + stdio 分工）
 
@@ -86,6 +86,10 @@
 | `log/list` | `{ event? }` | `LogEntry[]` | 追加式只读快照；`event` 缺省返回全量，否则按事件名过滤 |
 | `client/list` | `{}` | `{ id, slot, bundle, style? }[]` | client 插件图快照（T1）：slot → bundle 清单，直接投 `ctx.clientModules` 注册表；`id` 品牌化 `ClientModuleId`、`slot` 为 `SlotName`、`style` 为 scoped 样式字符串 |
 | `routes/list` | `{}` | `{ id, order, title, path, slot }[]` | 动态路由/导航快照（能力块 B，路由契约化）：**任意 slot** 上带 `route` 声明的已排序导航项（含 `slot` 归属），直接投 `ctx.slots.routes()`（每个 path 均静态、不覆盖核心路由、URL 空间全局唯一）；webview 据此生成导航 + 路由 |
+| `storage/get` | `{ ns, key }` | `T \| null` | 读一个键（`$BK_HOME/state/<ns>/<key>.json`，WP-2 持久化）；缺失返回 `null`；坏文件/越权 fail-closed → `-32000`。`ns` 为品牌化命名空间 id `StorageNamespaceId` |
+| `storage/set` | `{ ns, key, value }` | `null` | 写一个键（JSON 序列化 + 原子改名写）；成功后经 `storage/changed` 事件推送。值可为任意 JSON |
+| `storage/remove` | `{ ns, key }` | `null` | 删除一个键（缺失视为成功 no-op）；成功后经 `storage/changed` 推送 |
+| `storage/list` | `{ ns }` | `string[]` | 列出某命名空间下全部键名（`<key>.json` → 去后缀）；目录缺失返回 `[]` |
 | `shutdown` | `{}` | `null` | 触发 boot 逆序销毁后 `process.exit(0)`（见生命周期） |
 
 参数/返回类型对齐 v1 类型（[core/src/types.ts](../core/src/types.ts)）：`message: string`、`level?: 'info'|'warn'|'error'`、`channel?: string`；`LogEntry = { id, event, data, at }`。
@@ -95,6 +99,7 @@
 ### fail-closed 映射
 
 - `notify/send` 在**无 provider** 时 `ctx.notifier.send()` 抛错 → 桥把异常转成 `{ id, error: { code:-32000, message } }` 返回，**不吞、不静默返回看似合理的结果**（[AGENTS.md](../../AGENTS.md) fail-closed）。
+- `storage/*` 在**无 provider** / 命名空间越权 / 坏文件时由 `ctx.storage` 抛错 → 桥转 `-32000`（应用错误）返回，**绝不静默返回「看似合理」的持久化结果**。
 - `capabilities/usable` 未知 id 返回 `false`（门控语义即 fail-closed，不是错误）。
 - 解析失败 / 未知 method → 对应标准错误码返回，绝不停机或静默跳过。
 
@@ -107,14 +112,15 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 | `capabilities/changed` | `{ capability: CapabilityId, usable: boolean }` | emit | 能力注册（`usable:true`）/卸除（`usable:false`） |
 | `notify/request` | `NotifyPayload`（`{ message, level?, channel? }`） | emit | 每次 `notify/send` 广播 |
 | `client/changed` | `{ kind: 'slots' \| 'clientModules' }` | emit | `ctx.slots`/`ctx.clientModules` 注册或卸除时（T1；webview 收到后重拉 `client/list`） |
+| `storage/changed` | `{ ns: StorageNamespaceId, key: string }` | emit | `storage/set`/`storage/remove` 成功后（WP-2；webview 可据此重拉快照） |
 
-事件定义见 [core/src/events.ts](../core/src/events.ts)，均标 `@mode emit`。
+事件定义见 [core/src/events.ts](../core/src/events.ts) 与 co-locate 的 [core/src/seams/storage.ts](../core/src/seams/storage.ts)（`storage/changed`），均标 `@mode emit`。
 
 **诚实边界（不可见事件 ⇏ webview 可见）**：sidecar 只负责把事件推到 `stdout`；**是否把某事件透传成 Tauri event 给 webview，由宿主决定（T2）**。本协议先只「推」，不承诺全量订阅。
 
 ## 生命周期
 
-- **启动**：sidecar 被 `bun run packages/sidecar/src/index.ts` 拉起后，先在**第一条消息前**完成装配（`boot.mountFromLayers([baseBundle, override], resolver)`，内部即 `composeEntries` → `installAll`，mount core + notify-console，并覆盖 notify-console 的 `echo:false`），再进入 ndjson 读循环。
+- **启动**：sidecar 被 `bun run packages/sidecar/src/index.ts` 拉起后，先在**第一条消息前**完成装配（从 `$BK_HOME/cordis.yml` 读行 → **先装 core** → 附加 storage 文件 Provider（`ctx.storage`，WP-2，`$BK_HOME/state/`）→ 装其余插件（并覆盖 notify-console 的 `echo:false`）），再进入 ndjson 读循环。
 - **shutdown**：宿主发一行请求 `{"id":N,"method":"shutdown","params":{}}` → sidecar 先 `boot.dispose()`（逆序清理，清理顺序写进 `stderr` 日志），再 `process.exit(0)`。
 - **restart**：`restart` 是**宿主侧行为（T2）**，非 sidecar 方法——宿主负责杀掉并重新 spawn 子进程。
 
@@ -144,7 +150,7 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 
 ## 诚实边界（T0 不做的）
 
-- **不接 DuckDB**：`ctx.log` 仍为进程内内存日志；`sessions_log` 持久化标 v2 目标态。
+- **不接 DuckDB**：`ctx.storage`（WP-2 已落地）是 `$BK_HOME/state/` 的**轻量 JSON 持久化**，明确**不是 DuckDB**；`ctx.log` 仍为进程内内存日志，`sessions_log` 持久化标 v2 目标态。
 - **不接 rspc/specta**：本次用 Tauri 原生 command + Tauri events；rspc typed bridge 属 v2 差异（与 [secondary-development.md §8](../../docs/secondary-development.md#8-v1-落地说明已实现的-headless-最小核心脊) 的 v2 标注一致）。
 - **notify-console 单 provider**；per-channel 路由、并行 mode 仍 v2。
 - `dump-config`、`!!js`、isolate/group、HMR 仍 v2 之后。
@@ -153,8 +159,8 @@ sidecar 订阅内部事件，以 `{ event, payload }` 推送（payload 即事件
 ## 复现与验收
 
 - **T0 契约**：本文含「一个请求 + 一个事件推送」两段原始 ndjson 字节样例（见上，与 T1 实测输出一致）。
-- **T3 demo 插件落地复现**（已跑通）：`bun run packages/sidecar/examples/smoke.ts` —— 六方法 round-trip（`capabilities/list`、`notify/send`、`capabilities/usable`、`log/list`、`client/list`、`routes/list`）+ 事件推送 `notify/request` + 未知方法 fail-closed（`-32601`）+ shutdown 退出码 0，并隐式校验 stdout 只承载协议。sidecar 启动时经 bundle 层叠入 `@berkshire/plugin-demo`，`client/list` 给出 demo 插件 3 条注册（`demo-fund-flow` → `stock-preview.footer`、`demo-watchlist-toolbar` → `watchlist.toolbar`、`demo-money-flow` → `analysis.menu`，各带 scoped 样式），`routes/list` 给出 `demo-money-flow` → `/analysis/money-flow`（slot `analysis.menu`，路由契约化：任意 slot 的 `route` 声明）。boot 级 enable/disable 复现见 `bun run packages/plugins/demo/examples/smoke.ts`。
-- **仍未落地**：持久化（DuckDB）。（T2 Rust 桥、T3 webview 薄客户端均已落地 v1，见 [architecture.md §11](../../docs/architecture.md#11-关键文件索引现状--目标)。）
+- **T3 demo 插件落地复现**（已跑通）：`bun run packages/sidecar/examples/smoke.ts` —— 六方法 round-trip（`capabilities/list`、`notify/send`、`capabilities/usable`、`log/list`、`client/list`、`routes/list`）+ **WP-2 持久化 storage/set→get + storage/changed 事件** + 事件推送 `notify/request` + 未知方法 fail-closed（`-32601`）+ shutdown 退出码 0，并隐式校验 stdout 只承载协议。sidecar 启动时经 bundle 层叠入 `@berkshire/plugin-demo`，`client/list` 给出 demo 插件 3 条注册（`demo-fund-flow` → `stock-preview.footer`、`demo-watchlist-toolbar` → `watchlist.toolbar`、`demo-money-flow` → `analysis.menu`，各带 scoped 样式），`routes/list` 给出 `demo-money-flow` → `/analysis/money-flow`（slot `analysis.menu`，路由契约化：任意 slot 的 `route` 声明）。boot 级 enable/disable 复现见 `bun run packages/plugins/demo/examples/smoke.ts`。
+- **仍未落地**：DuckDB。（T2 Rust 桥、T3 webview 薄客户端均已落地 v1，见 [architecture.md §11](../../docs/architecture.md#11-关键文件索引现状--目标)。）
 
 ## 交叉引用
 

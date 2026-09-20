@@ -78,7 +78,9 @@ function main(): number {
   const clientTsFiles = walkFiles(join(ROOT, "packages", "plugins"), [".ts"])
   // 插件侧 `.module.css`（P3：插件独立打包 CSS Modules）也在扫描面内——同样只许 var(--bk-*)。
   const pluginCssFiles = walkFiles(join(ROOT, "packages", "plugins"), [".module.css"])
-  const targets = [...cssFiles, ...clientTsFiles, ...pluginCssFiles]
+  // 原子组件库 `@berkshire/ui` 的 `.module.css` 同纪律（禁魔法色值，只许 var(--bk-*)）。
+  const uiCssFiles = walkFiles(join(ROOT, "packages", "ui"), [".module.css"])
+  const targets = [...cssFiles, ...clientTsFiles, ...pluginCssFiles, ...uiCssFiles]
 
   let allFindings: Finding[] = []
   for (const f of targets) allFindings = allFindings.concat(lintFile(f))

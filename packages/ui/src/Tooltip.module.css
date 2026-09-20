@@ -1,0 +1,55 @@
+/* Tooltip 的 CSS Modules（@berkshire/ui）。 */
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  display: inline-flex;
+}
+
+.tip {
+  position: absolute;
+  z-index: 1100;
+  max-width: 220px;
+  padding: var(--bk-space-1) var(--bk-space-2);
+  background: var(--bk-color-bg-elevated);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-sm);
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-sm);
+  box-shadow: var(--bk-shadow-sm);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.wrap:hover .tip,
+.wrap:focus-within .tip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 定位：top 默认在上方居中。 */
+.top {
+  bottom: calc(100% + var(--bk-space-1));
+  left: 50%;
+  transform: translateX(-50%);
+}
+.bottom {
+  top: calc(100% + var(--bk-space-1));
+  left: 50%;
+  transform: translateX(-50%);
+}
+.left {
+  right: calc(100% + var(--bk-space-1));
+  top: 50%;
+  transform: translateY(-50%);
+}
+.right {
+  left: calc(100% + var(--bk-space-1));
+  top: 50%;
+  transform: translateY(-50%);
+}

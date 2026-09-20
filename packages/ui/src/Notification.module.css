@@ -1,0 +1,46 @@
+/* Notification 的 CSS Modules（@berkshire/ui）。 */
+.notification {
+  padding: var(--bk-space-3) var(--bk-space-4);
+  border: 1px solid var(--bk-border);
+  border-left-width: 3px;
+  border-radius: var(--bk-radius-md);
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-md);
+}
+
+.title {
+  font-weight: 600;
+  margin-bottom: var(--bk-space-1);
+  color: var(--bk-color-info);
+}
+.success .title {
+  color: var(--bk-color-success);
+}
+.error .title {
+  color: var(--bk-color-danger);
+}
+.warning .title {
+  color: var(--bk-color-warning);
+}
+
+.success {
+  border-left-color: var(--bk-color-success);
+  background: var(--bk-color-success-soft);
+}
+.error {
+  border-left-color: var(--bk-color-danger);
+  background: var(--bk-color-danger-soft);
+}
+.warning {
+  border-left-color: var(--bk-color-warning);
+  background: var(--bk-color-warning-soft);
+}
+.info {
+  border-left-color: var(--bk-color-info);
+  background: var(--bk-color-info-soft);
+}
+
+.body {
+  color: var(--bk-color-fg-muted);
+}

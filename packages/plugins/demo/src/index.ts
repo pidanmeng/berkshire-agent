@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { Context } from '@berkshire/cordis'
-import type { ClientModuleId } from '@berkshire/core'
+import type { ClientModuleId, StorageNamespaceId } from '@berkshire/core'
 // 插件独立打包阶段编译产物（P3：CSS Modules → 哈希类名 + 注入代码，lightningcss）。
 // 同一份文件也供 `.tsx` webview 半身拿哈希类名——sidecar 只取 `css` 作为注入代码交给 host。
 import { fundFlow, moneyFlow, watchlistToolbar, navExtra, statusItem, settingsCard } from './client/styles.generated'
@@ -52,7 +52,7 @@ const CLIENT_ENTRY_URL = (() => {
  */
 export const name = 'demo'
 
-export const inject = ['slots', 'clientModules', 'log'] as string[]
+export const inject = ['slots', 'clientModules', 'log', 'storage'] as string[]
 
 export const Config = z.object({
   /** 是否注册 `stock-preview.footer` 底部组件（能力块 A）。 */
@@ -69,8 +69,8 @@ export type Config = z.infer<typeof Config>
 /** `analysis.menu` 页（能力块 B）的静态路径；core `CORE_ROUTE_PATHS` 不含此路径（可注册）。 */
 export const MONEY_FLOW_PATH = '/analysis/money-flow'
 
-export function apply(ctx: Context, config: Config): () => void {
-  return ctx.effect(() => {
+export async function apply(ctx: Context, config: Config): Promise<() => void> {
+  const reg = ctx.effect(() => {
     const disposers: Array<() => void> = []
 
     // A+C：`stock-preview.footer` 底部组件 + scoped 样式。
@@ -182,4 +182,15 @@ export function apply(ctx: Context, config: Config): () => void {
       for (let i = disposers.length - 1; i >= 0; i--) disposers[i]!()
     }
   })
+
+  // 持久化能力缝 Consumer 演示（WP-2）：挂载时读改写 `demo` 命名空间的一条配置，restart 后仍可读回。
+  const ns = 'demo' as StorageNamespaceId
+  const previous = await ctx.storage.get<number>(ns, 'lastBootAt')
+  await ctx.storage.set(ns, 'lastBootAt', Date.now())
+  ctx.log.append('demo/storage', { ns: String(ns), key: 'lastBootAt', previous: previous ?? null })
+
+  // 卸载：撤销 UI/路由注册（storage 键值留在磁盘，交持久化能力缝供重启后读回）。
+  return () => {
+    reg()
+  }
 }

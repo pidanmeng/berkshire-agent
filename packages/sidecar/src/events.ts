@@ -22,9 +22,13 @@ export function attachEventPusher(ctx: Context, emit: EventPusher): () => void {
   const offClient = ctx.on('client/changed', (payload) => {
     emit(JSON.stringify({ event: 'client/changed', payload }))
   })
+  const offStorage = ctx.on('storage/changed', (payload) => {
+    emit(JSON.stringify({ event: 'storage/changed', payload }))
+  })
   return () => {
     offNotify()
     offCaps()
     offClient()
+    offStorage()
   }
 }

@@ -1,0 +1,75 @@
+/* Button 的 CSS Modules（@berkshire/ui：构建期哈希、类名自动唯一，camelCase）。 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bk-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--bk-radius-md);
+  font-size: var(--bk-font-size-md);
+  font-weight: 550;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* primary：强调色实底，文字走前景反转令牌。 */
+.primary {
+  background: var(--bk-color-accent);
+  color: var(--bk-color-fg-invert);
+}
+.primary:not(:disabled):hover {
+  background: var(--bk-color-accent-hover);
+}
+
+/* ghost：透明描边，悬停用透明度叠层。 */
+.ghost {
+  background: transparent;
+  color: var(--bk-color-fg);
+  border-color: var(--bk-border);
+}
+.ghost:not(:disabled):hover {
+  background: var(--bk-hover);
+}
+
+/* danger：危险实底，文字走前景反转令牌。 */
+.danger {
+  background: var(--bk-color-danger);
+  color: var(--bk-color-fg-invert);
+}
+.danger:not(:disabled):hover {
+  filter: brightness(0.95);
+}
+
+/* size */
+.sm {
+  height: 26px;
+  padding: 0 var(--bk-space-3);
+  font-size: var(--bk-font-size-sm);
+}
+.md {
+  height: 32px;
+  padding: 0 var(--bk-space-4);
+}
+.lg {
+  height: 38px;
+  padding: 0 var(--bk-space-5);
+}
+
+/* loading spinner：细圆环旋转，用前景反转作环色（衬强调/危险实底）。 */
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--bk-color-fg-invert);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: bk-button-spin 0.7s linear infinite;
+}
+@keyframes bk-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

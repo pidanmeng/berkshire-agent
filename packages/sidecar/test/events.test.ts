@@ -9,7 +9,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import * as core from '@berkshire/core'
-import type { ClientModuleId } from '@berkshire/core'
+import type { ClientModuleId, StorageNamespaceId, StorageProvider } from '@berkshire/core'
 import { Boot } from '@berkshire/boot'
 import type { Resolver } from '@berkshire/boot'
 import { attachEventPusher } from '../src/events'
@@ -22,6 +22,50 @@ async function mount(): Promise<Boot> {
   await boot.install({ id: 'core', name: '@berkshire/core' }, resolver)
   return boot
 }
+
+/** 内存 Provider：让 `storage/changed` 推送用例不触碰磁盘。 */
+function inlineProvider(): StorageProvider {
+  const map = new Map<string, unknown>()
+  return {
+    id: 'inline',
+    async get<T>(ns: StorageNamespaceId, key: string): Promise<T | undefined> {
+      return map.get(`${String(ns)}\u0000${key}`) as T | undefined
+    },
+    async set(ns: StorageNamespaceId, key: string, value: unknown): Promise<void> {
+      map.set(`${String(ns)}\u0000${key}`, value)
+    },
+    async remove(ns: StorageNamespaceId, key: string): Promise<void> {
+      map.delete(`${String(ns)}\u0000${key}`)
+    },
+    async list(ns: StorageNamespaceId): Promise<string[]> {
+      const prefix = `${String(ns)}\u0000`
+      return [...map.keys()].filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length))
+    },
+  }
+}
+
+describe('attachEventPusher · storage/changed 推送（WP-2）', () => {
+  test('storage/set → 推 {event,payload:{ns,key}}；remove 再推一次', async () => {
+    const boot = await mount()
+    boot.ctx.storage.register(inlineProvider())
+    const lines: string[] = []
+    const detach = attachEventPusher(boot.ctx, (l) => lines.push(l))
+
+    await boot.ctx.storage.set('demo' as StorageNamespaceId, 'k', 1)
+    expect(lines).toContainEqual(
+      JSON.stringify({ event: 'storage/changed', payload: { ns: 'demo', key: 'k' } }),
+    )
+
+    lines.length = 0
+    await boot.ctx.storage.remove('demo' as StorageNamespaceId, 'k')
+    expect(lines).toContainEqual(
+      JSON.stringify({ event: 'storage/changed', payload: { ns: 'demo', key: 'k' } }),
+    )
+
+    detach()
+    await boot.dispose()
+  })
+})
 
 describe('attachEventPusher · client/changed 推送（T1）', () => {
   test('clientModules.register → 推 {event,payload:{kind:clientModules}}；卸载再推一次', async () => {

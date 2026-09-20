@@ -4,9 +4,11 @@
  * 诚实边界（目标态 vs 已实现）：
  * - **必装**（用户不可关）：`@berkshire/core`——headless 核心脊，`ctx.log/ctx.capabilities/
  *   ctx.notifier/ctx.slots/ctx.clientModules` 的能力缝 Definition 都由它提供；壳 base-ui 是宿主
- *   静态半身，不在此列。v1 先只放开两个证明性选项。
- * - 可选项（默认开）：`@berkshire/plugin-notify-console`（通知控制台）、`@berkshire/plugin-demo`
- *   （资金流向示例页 + 组件 + 样式）。
+ *   静态半身，不在此列。
+ * - 可选项（默认开）：`@berkshire/plugin-notify-console`（通知控制台）。
+ * - **产品不再预装 demo**：`@berkshire/plugin-demo` 是开发/验证用的 demo 插件（能力块 A/B/C/布局
+ *   挂点），不作为默认装配进产品；它仍在 `packages/plugins/demo` 保留源码，经 dev 的 demo bundle
+ *   （`packages/bundle/{demo,demo-off}`）装载，不进入首启引导的选择项。
  * - 生产安装时插件需落到 `$BK_HOME/node_modules`（`bun add`）；**v1 依赖 dev workspace 解析**
  *   （boot 的 importPlugin 找不到 home 内包时回退 `import(name)` 命中 workspace 包），不跑 bun add。
  *   数据源 provider / AI 适配器等选项随插件生态落地后再加进此表。
@@ -26,13 +28,6 @@ export const DEFAULT_PLUGIN_OPTIONS: readonly DefaultPluginOption[] = [
     name: "@berkshire/plugin-notify-console",
     label: "通知控制台",
     description: "把 ctx.notifier 的通知转发到控制台并留 log（最小证明插件）。",
-    defaultOn: true,
-  },
-  {
-    id: "demo",
-    name: "@berkshire/plugin-demo",
-    label: "示例插件（资金流向 demo）",
-    description: "注册 stock-preview 底部组件 + watchlist 工具栏 + 资金流向页 + 壳布局挂点（含 scoped 样式）。",
     defaultOn: true,
   },
 ];

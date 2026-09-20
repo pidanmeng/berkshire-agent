@@ -9,12 +9,18 @@
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 import { createInterface } from 'node:readline'
-import { resolve } from 'node:path'
+import { resolve, join } from 'node:path'
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { setBkHome } from '@berkshire/boot'
 
 const ENTRY = resolve(import.meta.dir, '../src/index.ts')
-// 冒烟从夹具 $BK_HOME/cordis.yml（core+notify+demo）装配；真实用户 home 由宿主在 M3 提供初值。
-setBkHome(resolve(import.meta.dir, '../test/fixtures/bk-home'))
+// 冒烟从夹具 cordis.yml（core+notify+demo）装配，但持久化写到**临时** $BK_HOME，
+// 避免 WP-2 storage 写入污染仓库 fixtures。真实用户 home 由宿主在 M3 提供初值。
+const FIXTURE = resolve(import.meta.dir, '../test/fixtures/bk-home')
+const HOME = mkdtempSync(join(tmpdir(), 'bk-sidecar-smoke-'))
+writeFileSync(join(HOME, 'cordis.yml'), readFileSync(join(FIXTURE, 'cordis.yml'), 'utf8'))
+setBkHome(HOME)
 
 interface PushMsg {
   event: string
@@ -167,6 +173,15 @@ async function main(): Promise<void> {
   }
   console.log('✓ routes/list →', JSON.stringify(rarr))
 
+  // storage 持久化（WP-2）：set → get 读回 + storage/changed 事件。
+  const sset = await s.request('storage/set', { ns: 'demo', key: 'smoke', value: { t: 1 } })
+  if (sset.error) fail(`storage/set error: ${sset.error.message}`)
+  const sget = await s.request('storage/get', { ns: 'demo', key: 'smoke' })
+  if (sget.error) fail(`storage/get error: ${sget.error.message}`)
+  if (JSON.stringify(sget.result) !== JSON.stringify({ t: 1 })) fail(`storage/get 应读回 {t:1}，got ${JSON.stringify(sget.result)}`)
+  await s.waitEvent((e) => e.event === 'storage/changed' && e.payload?.key === 'smoke')
+  console.log('✓ storage/set+get+changed →', JSON.stringify(sget.result))
+
   const bogus = await s.request('no/such/method')
   if (!bogus.error || bogus.error.code !== -32601) fail(`未知方法应返回 -32601，got ${JSON.stringify(bogus)}`)
   console.log(`✓ 未知方法 fail-closed → -32601`)
@@ -178,6 +193,7 @@ async function main(): Promise<void> {
   console.log('✓ shutdown → 退出码 0')
 
   console.log(`✔ 冒烟通过（${Date.now() - started}ms）`)
+  rmSync(HOME, { recursive: true, force: true })
 }
 
 void main().catch((err) => fail(String(err)))

@@ -315,6 +315,44 @@ impl Bridge {
         }
         Ok(out)
     }
+
+    // ---- `$BK_HOME` 轻量持久化（WP-2 能力缝：`$BK_HOME/state/<ns>/<key>.json`）----
+    // 所有读写经 sidecar `ctx.storage`（文件 Provider）落盘；跨边界 id `ns` 品牌化在薄客户端侧复刻。
+
+    /// 读一个键（缺省/缺失返回 JSON `null`）。坏文件/越权 → 显式错误（fail-closed）。
+    pub fn storage_get(&self, ns: String, key: String) -> Result<Value, String> {
+        self.call("storage/get", serde_json::json!({ "ns": ns, "key": key }))
+            .map_err(|e| e.message)
+    }
+
+    /// 写一个键（JSON 序列化 + 原子改名写）；成功即持久化，供重启后读回。
+    pub fn storage_set(&self, ns: String, key: String, value: Value) -> Result<(), String> {
+        self.call("storage/set", serde_json::json!({ "ns": ns, "key": key, "value": value }))
+            .map_err(|e| e.message)?;
+        Ok(())
+    }
+
+    /// 删除一个键（缺失视为成功 no-op）。
+    pub fn storage_remove(&self, ns: String, key: String) -> Result<(), String> {
+        self.call("storage/remove", serde_json::json!({ "ns": ns, "key": key }))
+            .map_err(|e| e.message)?;
+        Ok(())
+    }
+
+    /// 列出某命名空间下全部键名。
+    pub fn storage_list(&self, ns: String) -> Result<Vec<String>, String> {
+        let v = self
+            .call("storage/list", serde_json::json!({ "ns": ns }))
+            .map_err(|e| e.message)?;
+        let arr = v.as_array().ok_or_else(|| "storage/list 返回非数组".to_string())?;
+        arr.iter()
+            .map(|x| {
+                x.as_str()
+                    .map(str::to_string)
+                    .ok_or_else(|| "storage/list 含非字符串元素".to_string())
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]

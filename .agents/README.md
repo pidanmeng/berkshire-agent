@@ -25,6 +25,7 @@
 | `dsh-merging-stacked-prs` | [`bk-merging-stacked-prs`](skills/bk-merging-stacked-prs/SKILL.md) | 落地 GitHub PR stack | ⚠️ 不适用/待实现（`gh stack` 未确认启用） |
 | `dsh-archive-agent-notes` | [`bk-archive-agent-notes`](skills/bk-archive-agent-notes/SKILL.md) | 决策记录生命周期维护 | ✅ 已落地（`[.agents/notes/](notes/README.md)` 中文单语体系 + bun 门禁） |
 | —（仓库自建，无 dsh 对应） | [`bk-release`](skills/bk-release/SKILL.md) | 发版流程（同步版本号 → 打 v* tag → 触发 CI 正式发布 → 核验下载链接） | ✅ 已落地（release.yml tag 触发驱动） |
+| —（仓库自建，无 dsh 对应） | [`bk-generate-plan`](skills/bk-generate-plan/SKILL.md) | 收到一批需求后不直接实现，先通读项目拆成可并行开发的「自包含提示词」+ 执行顺序 | ✅ 已落地 |
 | `record-browser-gif` | —（不交付） | GUI 演示 GIF 录制/发布 | ❌ 取舍：不交付（见下方说明） |
 
 **不做对照、明确不交付的技能**：

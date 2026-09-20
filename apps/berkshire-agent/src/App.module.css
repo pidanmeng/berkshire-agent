@@ -21,9 +21,3 @@
   font-size: var(--bk-font-size-sm);
   margin: 0;
 }
-
-.slotDemo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--bk-space-3);
-}

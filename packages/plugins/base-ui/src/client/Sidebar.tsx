@@ -3,7 +3,7 @@
  *
  * 结构（顶→底）：
  * - 品牌区（折叠/展开开关 + 名称）；
- * - 导航区：核心路由（`/`、`/theme`）pinned + 插件路由按 `section` 分组（经 prop `routes` 注入）；
+ * - 导航区：核心路由（`/`）pinned + 插件路由按 `section` 分组（经 prop `routes` 注入）；
  * - `layout.navigation.extra` 槽：插件在导航区追加项/分组；
  * - 底部：`layout.sidebar.footer` 槽（插件在设置入口上方追加控制项）+ 固定设置入口（`/settings`）。
  *
@@ -18,11 +18,12 @@ import { ExtensionSlot } from "@berkshire/ui-slots"
 import type { ShellRouteInfo } from "./AppShell"
 import styles from "./Sidebar.module.css"
 
-/** 核心 pinned 导航（壳自有，插件不可覆盖；/settings 走底部固定入口）。 */
-const CORE_NAV = [
-  { path: "/", title: "首页" },
-  { path: "/theme", title: "主题" },
-] as const
+/**
+ * 核心 pinned 导航（壳自有，插件不可覆盖；/settings 走底部固定入口）。
+ * 产品取舍（WP-4）：`/theme`（主题对照页）是设计/开发期的主题验证工具，移出消费者导向的
+ * 主导航；它仍是受核心路由保护的、可地址访问的 dev 工具路由（见 core `CORE_ROUTE_PATHS`）。
+ */
+const CORE_NAV = [{ path: "/", title: "首页" }] as const
 
 export function Sidebar({ routes }: { routes: readonly ShellRouteInfo[] }) {
   const [collapsed, setCollapsed] = useState(false)

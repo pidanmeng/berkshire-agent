@@ -25,3 +25,6 @@ export type SymbolId = Branded<string, 'symbol'>
 
 /** client 插件（前端 bundle）id：跨 sidecar/Rust/webview 的 client 模块标识（T1 落地）。 */
 export type ClientModuleId = Branded<string, 'client-module'>
+
+/** 存储命名空间 id：基于插件 id → `$BK_HOME/state/<ns>/` 目录映射（WP-2 持久化能力缝）。 */
+export type StorageNamespaceId = Branded<string, 'storage-namespace'>

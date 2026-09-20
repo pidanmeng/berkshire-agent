@@ -9,15 +9,30 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createInterface } from 'node:readline'
-import { resolve } from 'node:path'
-import { describe, expect, test } from 'bun:test'
+import { resolve, join } from 'node:path'
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { describe, expect, test, beforeAll, afterAll } from 'bun:test'
 
 const ENTRY = resolve(import.meta.dir, '../src/index.ts')
-// 让被拉起的真实 sidecar 从本夹具 `$BK_HOME/cordis.yml` 装配（core + notify-console + demo）。
-// 用 setBkHome 写成环境变量，spawn 时被子进程继承（BK_HOME 是轻量夹具路径，非真实用户 home）。
+// 装配由夹具 `$BK_HOME/cordis.yml`（core + notify-console + demo）驱动，但持久化写到**临时** home，
+// 避免 storage 写入污染仓库 fixtures（KP2 持久化 demo 落 `$BK_HOME/state/`）。
+// 用 setBkHome 写成环境变量，spawn 时被子进程继承（BK_HOME 是临时夹具路径，非真实用户 home）。
 import { setBkHome } from '@berkshire/boot'
 const FIXTURE_BK_HOME = resolve(import.meta.dir, 'fixtures/bk-home')
-setBkHome(FIXTURE_BK_HOME)
+
+let TEMP_HOME: string
+beforeAll(() => {
+  TEMP_HOME = mkdtempSync(join(tmpdir(), 'bk-sidecar-test-'))
+  writeFileSync(
+    join(TEMP_HOME, 'cordis.yml'),
+    readFileSync(join(FIXTURE_BK_HOME, 'cordis.yml'), 'utf8'),
+  )
+  setBkHome(TEMP_HOME)
+})
+afterAll(() => {
+  if (TEMP_HOME) rmSync(TEMP_HOME, { recursive: true, force: true })
+})
 
 interface Push {
   event: string
@@ -126,6 +141,18 @@ describe('sidecar 进程端到端', () => {
 
       const logs = await s.request('log/list')
       expect((logs.result as Array<{ event: string }>).some((e) => e.event === 'notify/request')).toBe(true)
+      // demo 插件（Consumer)挂载时经 ctx.storage 写一条 lastBootAt 并在 log 留痕（WP-2）。
+      expect((logs.result as Array<{ event: string }>).some((e) => e.event === 'demo/storage')).toBe(true)
+
+      // storage 持久化（WP-2）：set → get 读回 + storage/changed 事件推送。
+      const stSet = await s.request('storage/set', { ns: 'demo', key: 'kv', value: { a: 1, b: 'x' } })
+      expect(stSet.error).toBeUndefined()
+      const stGet = await s.request('storage/get', { ns: 'demo', key: 'kv' })
+      expect(stGet.error).toBeUndefined()
+      expect(stGet.result).toEqual({ a: 1, b: 'x' })
+      await s.waitEvent((e) => e.event === 'storage/changed' && e.payload?.key === 'kv')
+      const stList = await s.request('storage/list', { ns: 'demo' })
+      expect((stList.result as string[]).includes('kv')).toBe(true)
 
       const unknown = await s.request('no/such/method')
       expect(unknown.error?.code).toBe(-32601)
@@ -142,4 +169,28 @@ describe('sidecar 进程端到端', () => {
       s.stop()
     }
   }, 15000)
+
+  test('storage 跨重启持久化：写值 → shutdown → 重启同 home → 读回（DoD）', async () => {
+    const s1 = startSidecar()
+    try {
+      const st = await s1.request('storage/set', { ns: 'demo', key: 'persist', value: { kept: true } })
+      expect(st.error).toBeUndefined()
+      await s1.request('shutdown')
+      expect(await s1.waitExit()).toBe(0)
+    } finally {
+      s1.stop()
+    }
+
+    // 重启：新 sidecar 用同一 $BK_HOME → 磁盘值仍在（$BK_HOME/state/<ns>/<key>.json）。
+    const s2 = startSidecar()
+    try {
+      const got = await s2.request('storage/get', { ns: 'demo', key: 'persist' })
+      expect(got.error).toBeUndefined()
+      expect(got.result).toEqual({ kept: true })
+      await s2.request('shutdown')
+      expect(await s2.waitExit()).toBe(0)
+    } finally {
+      s2.stop()
+    }
+  }, 30000)
 })

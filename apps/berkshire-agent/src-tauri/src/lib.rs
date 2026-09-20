@@ -64,6 +64,41 @@ async fn routes_list(state: BridgeState<'_>) -> Result<Vec<bridge::RouteDto>, St
     bridge_call(state, Bridge::routes_list).await
 }
 
+// ---- `$BK_HOME` 轻量持久化（WP-2 能力缝：storage_get/set/remove/list）----
+
+#[tauri::command]
+async fn storage_get(
+    ns: String,
+    key: String,
+    state: BridgeState<'_>,
+) -> Result<serde_json::Value, String> {
+    bridge_call(state, move |b| b.storage_get(ns, key)).await
+}
+
+#[tauri::command]
+async fn storage_set(
+    ns: String,
+    key: String,
+    value: serde_json::Value,
+    state: BridgeState<'_>,
+) -> Result<(), String> {
+    bridge_call(state, move |b| b.storage_set(ns, key, value)).await
+}
+
+#[tauri::command]
+async fn storage_remove(
+    ns: String,
+    key: String,
+    state: BridgeState<'_>,
+) -> Result<(), String> {
+    bridge_call(state, move |b| b.storage_remove(ns, key)).await
+}
+
+#[tauri::command]
+async fn storage_list(ns: String, state: BridgeState<'_>) -> Result<Vec<String>, String> {
+    bridge_call(state, move |b| b.storage_list(ns)).await
+}
+
 /// 首启供给：sidecar 是否处于「待供给」阶段（无 cordis.yml）→ webview 显示首启引导。
 #[tauri::command]
 async fn provisioning_status(state: BridgeState<'_>) -> Result<bool, String> {
@@ -97,6 +132,10 @@ pub fn run() {
             log_list,
             client_list,
             routes_list,
+            storage_get,
+            storage_set,
+            storage_remove,
+            storage_list,
             provisioning_status,
             provision_bk_home
         ])

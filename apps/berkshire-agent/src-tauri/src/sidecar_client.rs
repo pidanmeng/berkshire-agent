@@ -222,6 +222,21 @@ mod tests {
             "log/list 应含 notify/request 记录"
         );
 
+        // storage 持久化（WP-2）：set → get 读回 → remove。
+        let sset = client
+            .request("storage/set", serde_json::json!({ "ns": "demo", "key": "rt", "value": { "v": 42 } }))
+            .unwrap();
+        assert!(sset.get("error").is_none(), "storage/set 应成功: {sset}");
+        let sget = client.request("storage/get", serde_json::json!({ "ns": "demo", "key": "rt" })).unwrap();
+        assert_eq!(sget["result"], serde_json::json!({ "v": 42 }));
+        let slist = client.request("storage/list", serde_json::json!({ "ns": "demo" })).unwrap();
+        assert!(
+            slist["result"].as_array().unwrap().iter().any(|k| k == "rt"),
+            "storage/list 应含 rt: {slist}"
+        );
+        let srm = client.request("storage/remove", serde_json::json!({ "ns": "demo", "key": "rt" })).unwrap();
+        assert!(srm.get("error").is_none(), "storage/remove 应成功: {srm}");
+
         // 未知方法 → 显式错误（fail-closed），不静默
         let unknown = client.request("no/such/method", Value::Object(Default::default()));
         assert!(unknown.is_err(), "未知方法应返回错误");
