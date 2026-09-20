@@ -1,0 +1,60 @@
+/* TokenSwatch 的 CSS Modules（base-ui：构建期哈希、类名自动唯一，camelCase）。 */
+.swatch {
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  padding: var(--bk-space-2);
+  background: var(--bk-color-bg-elevated);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 状态类：悬停/选中由 clsx 挂载，颜色仍走 --bk-* 别名层（透明度叠层）。 */
+.swatch:hover,
+.swatchSelected {
+  border-color: var(--bk-color-focus);
+  box-shadow: var(--bk-shadow-sm);
+}
+
+.swatchBlock {
+  display: flex;
+  border-radius: var(--bk-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--bk-border);
+}
+
+/* 条纹底色由 CSS 变量桥注入（--swatch-light/--swatch-dark），JS 不拼颜色。 */
+.swatchStripe {
+  flex: 1 1 0;
+  height: 48px;
+  background: var(--swatch-stripe);
+}
+.swatchStripe[data-tone="light"] {
+  --swatch-stripe: var(--swatch-light);
+}
+.swatchStripe[data-tone="dark"] {
+  --swatch-stripe: var(--swatch-dark);
+}
+
+.swatchMeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+  margin-top: var(--bk-space-2);
+  font-size: var(--bk-font-size-sm);
+}
+
+.swatchVar {
+  color: var(--bk-color-primary);
+  overflow-wrap: anywhere;
+}
+
+.swatchLabel {
+  color: var(--bk-color-fg-muted);
+}
+
+.swatchValues {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  color: var(--bk-color-fg-subtle);
+  overflow-wrap: anywhere;
+}

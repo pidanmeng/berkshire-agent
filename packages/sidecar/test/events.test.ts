@@ -32,7 +32,7 @@ describe('attachEventPusher · client/changed 推送（T1）', () => {
     const off = boot.ctx.clientModules.register({
       id: 'demo-minimal' as ClientModuleId,
       slot: 'stock-preview.footer',
-      bundle: 'client/demo-minimal.js',
+      url: 'bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js',
     })
     // 注册即推送（kind=clientModules）
     expect(lines).toContainEqual(
@@ -63,7 +63,7 @@ describe('attachEventPusher · client/changed 推送（T1）', () => {
     boot.ctx.clientModules.register({
       id: 'demo-b' as ClientModuleId,
       slot: 'watchlist.toolbar',
-      bundle: 'client/b.js',
+      url: 'bk:///node_modules/@berkshire/other/dist/client/index.js',
     })
     expect(lines).toContainEqual(
       JSON.stringify({ event: 'client/changed', payload: { kind: 'clientModules' } }),
@@ -84,7 +84,7 @@ describe('attachEventPusher · client/changed 推送（T1）', () => {
     boot.ctx.clientModules.register({
       id: 'x' as ClientModuleId,
       slot: 'stock-preview.footer',
-      bundle: 'a.js',
+      url: 'bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js',
     })
     expect(lines).toHaveLength(0)
 

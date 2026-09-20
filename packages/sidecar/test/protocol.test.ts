@@ -219,8 +219,8 @@ describe('handleLine · 四方法 round-trip（真实 ctx）', () => {
   })
 })
 
-describe('handleLine · client/list（T1 client 插件图快照）', () => {
-  test('未注册 → 空数组；注册后返回快照；disposer 卸载后消失', async () => {
+describe('handleLine · client/list（T1 client 插件图快照；bk:// 规范化归 Rust bridge）', () => {
+  test('未注册 → 空数组；注册后返回快照（含 url/exportName）；卸载后消失', async () => {
     const boot = await mount(true)
     const empty = await handleLine('{"id":1,"method":"client/list","params":{}}', { ctx: boot.ctx })
     expect(JSON.parse(empty.lines[0]!)).toEqual({ id: 1, result: [] })
@@ -229,27 +229,29 @@ describe('handleLine · client/list（T1 client 插件图快照）', () => {
     const offMod = boot.ctx.clientModules.register({
       id: 'demo-minimal' as ClientModuleId,
       slot: 'stock-preview.footer',
-      bundle: 'client/demo-minimal.js',
+      url: 'bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js',
+      exportName: 'DemoFundFlow',
       style: '.bk-demo-minimal{}',
     })
     const res = await handleLine('{"id":2,"method":"client/list","params":{}}', { ctx: boot.ctx })
     const arr = (
       JSON.parse(res.lines[0]!) as {
-        result: Array<{ id: string; slot: string; bundle: string; style?: string }>
+        result: Array<{ id: string; slot: string; url: string; exportName?: string; style?: string }>
       }
     ).result
     expect(arr).toHaveLength(1)
     expect(arr[0]).toMatchObject({
       id: 'demo-minimal',
       slot: 'stock-preview.footer',
-      bundle: 'client/demo-minimal.js',
+      url: 'bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js',
+      exportName: 'DemoFundFlow',
       style: '.bk-demo-minimal{}',
     })
 
     const offMod2 = boot.ctx.clientModules.register({
       id: 'demo-b' as ClientModuleId,
       slot: 'watchlist.toolbar',
-      bundle: 'client/b.js',
+      url: 'bk:///node_modules/@berkshire/other/dist/client/index.js',
     })
     const res2 = await handleLine('{"id":3,"method":"client/list","params":{}}', { ctx: boot.ctx })
     expect((JSON.parse(res2.lines[0]!) as { result: unknown[] }).result).toHaveLength(2)
@@ -269,13 +271,13 @@ describe('handleLine · client/list（T1 client 插件图快照）', () => {
     boot.ctx.clientModules.register({
       id: 'dup' as ClientModuleId,
       slot: 'stock-preview.footer',
-      bundle: 'a.js',
+      url: 'bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js',
     })
     expect(() =>
       boot.ctx.clientModules.register({
         id: 'dup' as ClientModuleId,
         slot: 'watchlist.toolbar',
-        bundle: 'b.js',
+        url: 'bk:///node_modules/@berkshire/other/dist/client/index.js',
       }),
     ).toThrow(/重复 id/)
     await boot.dispose()
@@ -287,7 +289,7 @@ describe('handleLine · client/list（T1 client 插件图快照）', () => {
       boot.ctx.clientModules.register({
         id: 'x' as ClientModuleId,
         slot: 'no/such' as never,
-        bundle: 'a.js',
+        url: 'bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js',
       }),
     ).toThrow(/未知 slot/)
     await boot.dispose()
@@ -304,16 +306,17 @@ describe('handleLine · routes/list（动态路由/导航，路由契约化）',
       id: 'demo',
       order: 30,
       title: 'Demo',
+      section: '分析',
       route: { path: '/analysis/demo' },
     })
     const res = await handleLine('{"id":2,"method":"routes/list","params":{}}', { ctx: boot.ctx })
     const arr = (
       JSON.parse(res.lines[0]!) as {
-        result: Array<{ id: string; order: number; title: string; path: string; slot: string }>
+        result: Array<{ id: string; order: number; title: string; path: string; slot: string; section?: string }>
       }
     ).result
     expect(arr).toEqual([
-      { id: 'demo', order: 30, title: 'Demo', path: '/analysis/demo', slot: 'analysis.menu' },
+      { id: 'demo', order: 30, title: 'Demo', path: '/analysis/demo', slot: 'analysis.menu', section: '分析' },
     ])
     await boot.dispose()
   })

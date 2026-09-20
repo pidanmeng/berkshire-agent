@@ -7,6 +7,20 @@
   ],
   "compilerOptions": {
     "composite": false,
-    "outDir": "./.out"
+    "outDir": "./.out",
+    "baseUrl": ".",
+    "paths": {
+      "@berkshire/cordis": ["./cordis/src/index.ts"],
+      "@berkshire/core": ["./core/src/index.ts"],
+      "@berkshire/core/*": ["./core/src/*"],
+      "@berkshire/boot": ["./boot/src/index.ts"],
+      "@berkshire/sidecar": ["./sidecar/src/index.ts"],
+      "@berkshire/theme": ["./theme/src/index.ts"],
+      "@berkshire/ui-slots": ["./ui-slots/src/index.ts"],
+      "@berkshire/plugin-notify-console": ["./plugins/notify-console/src/index.ts"],
+      "@berkshire/plugin-demo": ["./plugins/demo/src/index.ts"],
+      "@berkshire/plugin-demo/client": ["./plugins/demo/src/client/index.tsx"],
+      "@berkshire/base-ui/client": ["./plugins/base-ui/src/client/index.tsx"]
+    }
   }
 }

@@ -1,0 +1,17 @@
+/* demo 插件 webview 样式：设置卡片（应用壳 settings.cards，P3：CSS Modules）。 */
+.settingsCard {
+  display: block;
+  padding: var(--bk-space-3) var(--bk-space-4);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-lg);
+  color: var(--bk-color-fg);
+  background: var(--bk-color-bg-elevated);
+  font-size: var(--bk-font-size-md);
+}
+.settingsCardTitle {
+  font-weight: 600;
+  margin: 0 0 var(--bk-space-2);
+}
+.settingsCard code {
+  font-weight: 600;
+}

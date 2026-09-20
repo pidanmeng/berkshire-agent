@@ -1,18 +1,62 @@
 {
   "name": "@berkshire/core",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./brand": {
+      "types": "./dist/brand.d.ts",
+      "default": "./dist/brand.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    },
+    "./events": {
+      "types": "./dist/events.d.ts",
+      "default": "./dist/events.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "default": "./dist/core.js"
+    },
+    "./services/log": {
+      "types": "./dist/services/log.d.ts",
+      "default": "./dist/services/log.js"
+    },
+    "./services/capabilities": {
+      "types": "./dist/services/capabilities.d.ts",
+      "default": "./dist/services/capabilities.js"
+    },
+    "./services/slots": {
+      "types": "./dist/services/slots.d.ts",
+      "default": "./dist/services/slots.js"
+    },
+    "./services/clientModules": {
+      "types": "./dist/services/clientModules.d.ts",
+      "default": "./dist/services/clientModules.js"
+    },
+    "./seams/notify": {
+      "types": "./dist/seams/notify.d.ts",
+      "default": "./dist/seams/notify.js"
     }
   },
+  "scripts": {
+    "build": "bunx tsc -p tsconfig.build.json"
+  },
   "dependencies": {
+    "@berkshire/cordis": "workspace:*",
     "cordis": "4.0.0-rc.10",
     "zod": "^3.23.8"
+  },
+  "peerDependencies": {
+    "cordis": "4.0.0-rc.10"
   }
 }

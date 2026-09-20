@@ -39,11 +39,16 @@ export interface CapabilitiesChangedEvent {
   usable: boolean;
 }
 
-/** client 插件图快照项（T1：slot → bundle 清单）。 */
+/**
+ * client 插件图快照项（T1→M3：slot → 可动态 import 的 client 入口）。
+ * `url` 为插件自报的 client 入口 ESM URL（宿主经 `to_bk_url`（Rust bridge.rs）规范化成 `bk://` 供运行时
+ * `import()`），`exportName` 指出从该入口取哪个具名导出作为组件/页面（缺省 default）。宿主零硬编码。
+ */
 export interface ClientModule {
   id: ClientModuleId;
   slot: string;
-  bundle: string;
+  url: string;
+  exportName?: string;
   style?: string;
 }
 
@@ -58,6 +63,8 @@ export interface RouteEntry {
   title: string;
   path: string;
   slot: string;
+  /** 侧边栏分组键（应用壳 v1）：缺省单组。 */
+  section?: string;
 }
 
 export interface LogEntry {

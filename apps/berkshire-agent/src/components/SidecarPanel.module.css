@@ -1,0 +1,37 @@
+/* SidecarPanel（T3 demo 面板）。只写 var(--bk-*) 与结构，禁魔法值。 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-3);
+  text-align: left;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--bk-space-4);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  background: var(--bk-color-bg-muted);
+}
+
+.hint {
+  color: var(--bk-color-fg-subtle);
+  font-size: var(--bk-font-size-sm);
+  margin: 0;
+}
+
+.banner {
+  padding: var(--bk-space-2) var(--bk-space-3);
+  border: 1px solid var(--bk-color-danger);
+  border-radius: var(--bk-radius-md);
+  color: var(--bk-color-danger);
+  font-size: var(--bk-font-size-sm);
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--bk-space-3);
+}
+
+.logData {
+  color: var(--bk-color-fg-muted);
+}

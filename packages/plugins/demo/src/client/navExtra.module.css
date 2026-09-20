@@ -1,0 +1,15 @@
+/* demo 插件 webview 样式：sidebar 导航追加项（应用壳 layout.navigation.extra，P3：CSS Modules）。
+ * 只写 var(--bk-*)（别名层）与结构布局，禁魔法色值/间距/圆角；类名构建期哈希自动唯一。 */
+.navExtra {
+  display: block;
+  margin: var(--bk-space-2) 0;
+  padding: var(--bk-space-2) var(--bk-space-3);
+  border: 1px dashed var(--bk-color-neutral);
+  border-radius: var(--bk-radius-md);
+  color: var(--bk-color-fg-muted);
+  background: var(--bk-color-neutral-soft);
+  font-size: var(--bk-font-size-sm);
+}
+.navExtra code {
+  font-weight: 600;
+}

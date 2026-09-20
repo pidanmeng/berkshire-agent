@@ -11,9 +11,8 @@
  * slot 被多个带 `route` 的声明复用（多页面共用一个槽），各页会互相显示彼此的内容，且声明 id 与
  * 内容模块 id 只靠命名约定对应、无强制。此限制在 v-next 前不修复，先登记在此。
  */
-import { ExtensionBoundary } from "../lib/ExtensionBoundary"
-import ExtensionSlot from "../slots/ExtensionSlot"
-import { FRONTEND_SLOT_NAMES } from "../slots/types"
+import { ExtensionBoundary, ExtensionSlot, FRONTEND_SLOT_NAMES } from "@berkshire/ui-slots"
+import styles from "./ExtensionRoute.module.css"
 
 export default function ExtensionRoute({ title, slot }: { title: string; slot: string }) {
   // 路由宿主 fail-closed：sidecar 给的 slot 必须在已知槽位内，否则不渲染。
@@ -22,10 +21,10 @@ export default function ExtensionRoute({ title, slot }: { title: string; slot: s
     return null
   }
   return (
-    <section className="extension-page">
+    <section className={styles.page}>
       <h2>{title}</h2>
       <ExtensionBoundary>
-        <div className="analysis-page-content">
+        <div className={styles.content}>
           <ExtensionSlot name={slot as never} context={{} as never} />
         </div>
       </ExtensionBoundary>

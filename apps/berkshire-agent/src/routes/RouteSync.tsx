@@ -16,7 +16,13 @@ export default function RouteSync() {
         const items = await routesList()
         if (cancelled) return
         routesStore.replace(
-          items.map((r) => ({ id: r.id, title: r.title, path: r.path, slot: r.slot })),
+          items.map((r) => ({
+            id: r.id,
+            title: r.title,
+            path: r.path,
+            slot: r.slot,
+            section: r.section,
+          })),
         )
       } catch (e) {
         // bridge 断/超时：fail-closed，保留现有导航，不崩页。

@@ -1,0 +1,5 @@
+# config-home 测试夹具：Cordis.yml 声明 core + 一个"下载到 $BK_HOME/node_modules"的假插件。
+- id: core
+  name: '@berkshire/core'
+- id: faked
+  name: '@fake/plugin'

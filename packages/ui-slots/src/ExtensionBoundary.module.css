@@ -1,0 +1,8 @@
+/* ExtensionBoundary 默认降级横幅（共享缝引擎）。只写 var(--bk-*) 与结构，禁魔法值。 */
+.fallback {
+  padding: var(--bk-space-2) var(--bk-space-3);
+  border: 1px solid var(--bk-color-danger);
+  border-radius: var(--bk-radius-md);
+  color: var(--bk-color-danger);
+  font-size: var(--bk-font-size-sm);
+}

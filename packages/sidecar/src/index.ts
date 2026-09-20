@@ -2,53 +2,43 @@
  * @berkshire/sidecar 入口：把 v1 headless 核心脊变成可被宿主拉起、可对话的常驻进程。
  *
  * 协议见 ../README.md（T0 定稿）：ndjson stdio——stdout=响应+事件推送，stdin=请求，
- * stderr=日志。启动即按 `composeEntries([baseBundle, override])` 挂载 core + notify-console，
- * **第一条消息前**完成装配；随后进入逐行串行的 ndjson 读循环。
+ * stderr=日志。启动即按 `$BK_HOME/cordis.yml` 声明装配插件，**第一条消息前**完成；
+ * 随后进入逐行串行的 ndjson 读循环。
  *
  * 诚实边界：全内存实现（capabilities/log 均为进程内状态），持久化目标态；
- * 本入口只做「手动 bun run 冒烟 + 协议服务」，由宿主拉起/restart 属 T2。
+ * 本入口只做「手动 bun run 冒烟 + 协议服务」，由宿主拉起/restart 属 T2。配置持久化
+ * （写回 cordis.yml、`!!js` 惰性表达式）属 v2 目标态。
+ *
+ * 装载纪律（用户拍板）：加载**只由 `$BK_HOME/cordis.yml` + 下载的 npm 包驱动**——不 import、
+ * 不写死表单。resolver 用 `@berkshire/boot` 内置动态 `importPlugin`（npm 裸名 / 相对·绝对
+ * 路径 / `cordis:` 三分支），下载包经 `$BK_HOME/node_modules` 解析具体 dist 入口后绝对 import。
+ * 新增插件 = 「`bun add` 进 `$BK_HOME/node_modules` + cordis.yml 加一行」，sidecar 零改码。
  */
 import { createInterface } from 'node:readline'
-import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { parse } from 'yaml'
-import * as core from '@berkshire/core'
-import * as notify from '@berkshire/plugin-notify-console'
-import * as demo from '@berkshire/plugin-demo'
-import { Boot } from '@berkshire/boot'
-import type { PatchOverlay } from '@berkshire/boot'
+import { Boot, importPlugin, defaultBkHome, nodeModulesDir, readCordisYml } from '@berkshire/boot'
+import type { Resolver } from '@berkshire/boot'
 import { createLineWriter } from './writer'
 import { handleLine } from './protocol'
 import type { HandleLineDeps } from './protocol'
 import { attachEventPusher } from './events'
 import { attachDevWatcher } from './dev_watch'
 
-/** 仓库根：packages/sidecar/src → ../../../（bun 的 import.meta.dir 即本文件目录）。 */
+/** 仓库根（dev 态插件热更 watcher 用）：packages/sidecar/src → ../../../。 */
 const REPO = resolve(import.meta.dir, '../../..')
 
-const resolver = (name: string) =>
-  ({
-    '@berkshire/core': core,
-    '@berkshire/plugin-notify-console': notify,
-    '@berkshire/plugin-demo': demo,
-  })[name]
-
 async function main(): Promise<void> {
+  const bkHome = defaultBkHome()
+  const nmDir = nodeModulesDir(bkHome)
+  // 顶层装配入口：只从 $BK_HOME/cordis.yml 读「装哪些插件」（fail-closed，缺文件即报错）。
+  const rows = readCordisYml(bkHome)
+  // 内置动态 resolver：npm 下载包优先解析 $BK_HOME/node_modules 的 dist 入口绝对 import；
+  // 相对路径相对 $BK_HOME 解析；其余（workspace/registry 裸名）走 import(name)。
+  const resolver: Resolver = (name) => importPlugin(name, { nodeModulesDir: nmDir, baseUrl: bkHome })
+
   const boot = new Boot()
-
-  // base bundle 显式引用真实 patch 文件（T0：BaseBundle 由 sidecar 显式引用）。
-  const basePatch = parse(readFileSync(resolve(REPO, 'packages/bundle/base/cordis.patch.yml'), 'utf8')) as PatchOverlay
-  // T3：把 demo 插件 bundle 也叠进装配——装上即出现 footer/toolbar 组件 + 资金流向页 + scoped 样式。
-  // 要复现「卸下即消失」，把 demo-off bundle patch 叠进 layers（见 packages/plugins/demo/examples/smoke.ts）。
-  const demoPatch = parse(readFileSync(resolve(REPO, 'packages/bundle/demo/cordis.patch.yml'), 'utf8')) as PatchOverlay
-  // T0 协议：stdout 独占协议流。notify-console 默认 echo:true 会 console.log 到 stdout，
-  // 必须在装配时按 id 整体覆盖其 config 把 echo 关掉（composeEntries 的整行替换语义）。
-  const override: PatchOverlay = [{ id: 'notify-console', config: { channel: 'console', echo: false } }]
-
-  await boot.mountFromLayers([basePatch, demoPatch, override], resolver, (msg) =>
-    process.stderr.write(`[sidecar][patch] ${msg}\n`),
-  )
-  process.stderr.write(`[sidecar] booted; active=${boot.activeCount}\n`)
+  await boot.installAll(rows, resolver)
+  process.stderr.write(`[sidecar] booted from ${bkHome}/cordis.yml; active=${boot.activeCount}\n`)
 
   const writer = createLineWriter(process.stdout)
   // 事件订阅在装配完成后挂上：装配期间的能力注册不推送，host 用 capabilities/list 拉首次快照。

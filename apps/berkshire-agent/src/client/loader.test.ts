@@ -1,29 +1,98 @@
 /**
- * client 模块加载器单测（T1，bun test）。覆盖：bundle 名 → 本地模块解析、未知 bundle 返回
- * undefined（fail-closed）。不碰 DOM（只测纯函数）。scoped 样式注入路径（`injectModuleStyle`
- * 建 `<style data-bk-module>`）由 `ClientModuleHost` 端到端面覆盖。
+ * client 模块加载器单测（M3，bun test）。覆盖：
+ * - `importClientModule(url, exportName)`：运行时 `import(url)` + 取具名导出（真实文件夹具）；
+ *   缺导出 → fail-closed 抛错；
+ * - `buildSharedImportMap`（纯函数）：共享裸名 → URL 的映射组装（空映射合法）。
+ *   `injectSharedImportMap`（DOM 副作用）由 ClientModuleHost 端到端面覆盖。
  */
 import { describe, expect, test } from "bun:test"
-import { loadClientModule } from "./loader"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { pathToFileURL } from "node:url"
+import { importClientModule, injectModuleStyle, type ClientComponent } from "./loader"
+import { buildSharedImportMap, SHARED_IMPORTS } from "../lib/sharedImportMap"
 
-describe("loadClientModule（client/list 快照 → 本地模块）", () => {
-  test("已知 bundle → 返回本地模块定义", () => {
-    const footer = loadClientModule("client/demo-fund-flow.js")
-    expect(footer).toBeDefined()
-    expect(footer?.bundle).toBe("client/demo-fund-flow.js")
-    expect(typeof footer?.component).toBe("function")
-
-    const toolbar = loadClientModule("client/demo-watchlist-toolbar.js")
-    expect(toolbar?.bundle).toBe("client/demo-watchlist-toolbar.js")
-    expect(typeof toolbar?.component).toBe("function")
-
-    const menu = loadClientModule("client/demo-money-flow.js")
-    expect(menu?.bundle).toBe("client/demo-money-flow.js")
-    expect(typeof menu?.component).toBe("function")
+describe("importClientModule（运行时 import + 具名导出）", () => {
+  test("导入真实模块并取具名导出；缺省 default", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bk-loader-"))
+    const file = join(dir, "mod.ts")
+    writeFileSync(
+      file,
+      `export const Demo = (_: { context: unknown }) => "component-ok";\nexport default "default-export";`,
+    )
+    const url = pathToFileURL(file).href
+    try {
+      const named = await importClientModule<ClientComponent>(url, "Demo")
+      expect(typeof named).toBe("function")
+      const byDefault = await importClientModule<string>(url)
+      expect(byDefault).toBe("default-export")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
-  test("未知 bundle → undefined（调用方 fail-closed 降级）", () => {
-    expect(loadClientModule("client/not-registered.js")).toBeUndefined()
-    expect(loadClientModule("")).toBeUndefined()
+  test("缺具名导出 → 响亮抛错（fail-closed）", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "bk-loader-bad-"))
+    const file = join(dir, "mod.ts")
+    writeFileSync(file, `export const Only = 1;`)
+    const url = pathToFileURL(file).href
+    try {
+      await expect(importClientModule<unknown>(url, "Missing")).rejects.toThrow(/无具名导出/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe("injectModuleStyle（scoped 样式注入）", () => {
+  test("写入 <style data-bk-module> 到 head；disposer 移除它", () => {
+    interface FakeStyleEl {
+      attrs: Record<string, string>
+      textContent: string
+      setAttribute: (k: string, v: string) => void
+      remove: () => void
+    }
+    const created: FakeStyleEl[] = []
+    const removed: unknown[] = []
+    const fakeDoc = {
+      createElement: () => {
+        const el: FakeStyleEl = {
+          attrs: {},
+          textContent: "",
+          setAttribute(k, v) {
+            el.attrs[k] = v
+          },
+          remove() {
+            removed.push(el)
+          },
+        }
+        created.push(el)
+        return el
+      },
+      head: { appendChild: () => {} },
+    }
+    const prev = (globalThis as unknown as { document?: unknown }).document
+    ;(globalThis as unknown as { document?: unknown }).document = fakeDoc
+    try {
+      const off = injectModuleStyle("m1", ".x{}") // 真正调用，不再包成永不执行的闭包
+      expect(created).toHaveLength(1)
+      expect(created[0]!.attrs["data-bk-module"]).toBe("m1")
+      expect(created[0]!.textContent).toBe(".x{}")
+      expect(removed).toHaveLength(0)
+      off()
+      expect(removed).toHaveLength(1) // disposer 移除刚注入的 style
+    } finally {
+      ;(globalThis as unknown as { document?: unknown }).document = prev
+    }
+  })
+})
+
+describe("buildSharedImportMap（共享依赖 import-map 表）", () => {
+  test("空映射合法；填入项只包含 SHARED_IMPORTS 内裸名", () => {
+    expect(buildSharedImportMap()).toEqual({ imports: {} })
+    const map = buildSharedImportMap({ react: "/assets/react.js" })
+    expect(map.imports["react"]).toBe("/assets/react.js")
+    expect(Object.keys(map.imports).every((k) => (SHARED_IMPORTS as readonly string[]).includes(k))).toBe(true)
   })
 })

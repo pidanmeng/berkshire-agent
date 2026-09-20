@@ -1,6 +1,36 @@
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
+import { Service } from '@berkshire/cordis'
+import type { Context } from '@berkshire/cordis'
 import type { LogEntry } from '../types'
+
+// ctx.log —— 服务类型增强 co-locate 到这里（DSH「类型跟着服务走」，见 docs/capability-seams.md §1）
+declare module '@berkshire/cordis' {
+  interface Context {
+    log: LogService
+  }
+}
+
+/**
+ * `ctx.log` 的**插件组件**（路径 A：服务「随处定义随处消费」的示范）。
+ *
+ * 这让 `log` 成为一个**可独立装载的 Cordis 插件**（自注册 `ctx.log`）——不再需要透过
+ * `@berkshire/core` 的 `core.ts` 集中 `new`。任何装配方都能按需 `ctx.plugin(Log, {...})`，
+ * DSH 的 `TimerService` 正是这种「Service 类作为插件组件、随装配装载」的形态。
+ *
+ * `LogService` 仍是 `Service` 子类（构造即 `super(ctx,'log')` 自注册）；本插件只是把它
+ * 变成「谁需要谁装载」的装配单元。核心脊 `core.ts` 默认装载它（见 core.ts），故现有
+ * `inject:['log']` 消费方（boot/sidecar/notify-console/demo）无需任何改动。
+ */
+export const Log = {
+  name: '@berkshire/core/log',
+
+  inject: [] as string[],
+
+  Config: undefined,
+
+  apply(ctx: Context): void {
+    new LogService(ctx)
+  },
+}
 
 /**
  * `ctx.log` —— 追加式工作/事件日志（核心脊 sessions/log 的 v1 内存实现）。

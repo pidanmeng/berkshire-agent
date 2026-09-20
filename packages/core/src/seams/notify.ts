@@ -1,6 +1,22 @@
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
+import { Service } from '@berkshire/cordis'
+import type { Context } from '@berkshire/cordis'
 import type { NotifyPayload, NotifyProvider } from '../types'
+
+// ctx.notifier + 其自有事件 —— 能力缝三角色之「定义」的 Service Definition 增强 co-locate
+declare module '@berkshire/cordis' {
+  interface Context {
+    notifier: NotifyService
+  }
+  interface Events {
+    /**
+     * 一次通知请求的广播观察点（能力策略事件——策略/记录器在不改 provider
+     * 的前提下挂接，见 docs/quick-reference.md 事件域速查）。
+     * @mode emit
+     * @param payload 通道路由无关的通知负载
+     */
+    'notify/request'(payload: NotifyPayload): void
+  }
+}
 
 /**
  * `ctx.notifier` —— 通知能力缝的 **Service Definition**（三角色之「定义」）。

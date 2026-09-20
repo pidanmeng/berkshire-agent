@@ -1,7 +1,23 @@
-import { Service } from 'cordis'
-import type { Context } from 'cordis'
+import { Service } from '@berkshire/cordis'
+import type { Context } from '@berkshire/cordis'
 import type { CapabilityReg } from '../types'
 import type { CapabilityId } from '../brand'
+
+// ctx.capabilities + 其自有事件 —— 服务/事件类型增强 co-locate（@mode emit）
+declare module '@berkshire/cordis' {
+  interface Context {
+    capabilities: CapabilityRegistry
+  }
+  interface Events {
+    /**
+     * 能力可用性变化（注册或卸除后广播）。
+     * @mode emit
+     * @param payload.capability 变化的能力 id
+     * @param payload.usable 变化后的可用性
+     */
+    'capabilities/changed'(payload: { capability: CapabilityId; usable: boolean }): void
+  }
+}
 
 /**
  * `ctx.capabilities` —— 能力注册表与可用性门控（核心脊）。

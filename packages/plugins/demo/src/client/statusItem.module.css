@@ -1,0 +1,18 @@
+/* demo 插件 webview 样式：状态栏右侧状态项（应用壳 layout.statusbar.right，P3：CSS Modules）。 */
+.statusItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-1);
+  padding: var(--bk-space-1) var(--bk-space-2);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-pill);
+  color: var(--bk-color-fg-muted);
+  background: var(--bk-color-bg-elevated);
+  font-size: var(--bk-font-size-sm);
+}
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--bk-radius-pill);
+  background: var(--bk-color-neutral);
+}

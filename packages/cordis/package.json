@@ -1,0 +1,24 @@
+{
+  "name": "@berkshire/cordis",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bunx tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "cordis": "4.0.0-rc.10"
+  },
+  "peerDependencies": {
+    "cordis": "4.0.0-rc.10"
+  }
+}

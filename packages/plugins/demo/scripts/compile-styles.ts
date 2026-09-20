@@ -20,7 +20,7 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 const CLIENT = join(import.meta.dir, "..", "src", "client")
-const MODULES = ["fundFlow", "watchlistToolbar", "moneyFlow"] as const
+const MODULES = ["fundFlow", "watchlistToolbar", "moneyFlow", "navExtra", "statusItem", "settingsCard"] as const
 const OUT = join(CLIENT, "styles.generated.ts")
 
 interface CompiledModuleStyle {

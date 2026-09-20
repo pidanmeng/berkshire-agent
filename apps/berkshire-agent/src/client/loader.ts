@@ -1,38 +1,33 @@
 /**
- * client 模块加载器（T1 最小件，能力块 A+C 的 webview 侧）。
+ * client 模块加载器（M3：webview 半身动态拉取，去静态 import / LOCAL_MODULES 硬编码表）。
  *
- * 把 sidecar `client/list` 快照里的 bundle 名解析成 **webview 已打包进来的 React 组件**，
- * 并负责 scoped 样式注入（`<style data-bk-module={id}>`，卸载即删），保证不污染宿主与其它插件。
+ * sidecar `client/list` 快照里每条注册自带 `url`（`bk:///node_modules/<pkg>/dist/client/…`，
+ * sidecar 已按 `$BK_HOME` 规范化）与 `exportName`（从该入口取哪个具名导出作组件）。本文件只承担
+ * 宿主的两个最小职责：
+ * 1. `importClientModule(url, exportName)`：运行时 `import(url)` 并取出具名导出（组件/页面）；
+ * 2. `injectModuleStyle`：把插件声明的 scoped 样式塞进 `<style data-bk-module={id}>`（卸载即删）。
  *
- * 诚实边界：远程 bundle 经 `bk://` 协议动态拉取、HMR、生产样式分发包均标 v-next；
- * 本任务证明「sidecar 声明 → 插件包静态 import → 挂载 + scoped 样式」这条链路成立。
- * demo 的页面/组件 + 前端样式定义随 `@berkshire/plugin-demo` 打包进来（从 `./client` 入口取），
- * host 只做模块映射 + 样式注入宿主。
+ * 共享依赖（react / @berkshire/ui-slots / 主题 / 路由…）由宿主经 import-map 解析（见
+ * `sharedImportMap`），插件 bundle 只留 bare specifier —— 因此 `bk://` 动态 import 可解析。
+ * `/* @vite-ignore` 阻止 Vite 在构建期分析这个运行时 URL（它是插件包发布后才会存在的 bk:// 地址）。
  */
-import type { SlotComponent } from "../slots/registry"
-import { DemoFundFlow, DemoWatchlistToolbar, DemoMoneyFlow } from "@berkshire/plugin-demo/client"
+import type { SlotComponent } from "@berkshire/ui-slots"
 
-export interface ClientModuleDef {
-  /** bundle 名（与 sidecar `ClientModuleRegistration.bundle` 对应）。 */
-  bundle: string
-  /** 本地 React 组件（来自 `@berkshire/plugin-demo` 的 webview 半身，上下文按槽位契约解构）。 */
-  component: SlotComponent<object>
+/** 从 `url` 运行时 import 并把 `exportName` 导出取作组件（缺省 `default`）；失败抛错（fail-closed）。 */
+export async function importClientModule<T = unknown>(
+  url: string,
+  exportName = "default",
+): Promise<T> {
+  const mod: unknown = await import(/* @vite-ignore */ url)
+  const comp = (mod as Record<string, unknown>)[exportName]
+  if (comp === undefined || comp === null) {
+    throw new Error(`client 入口 ${url} 无具名导出 "${exportName}"（fail-closed）`)
+  }
+  return comp as T
 }
 
-/** 本地模块表：bundle 名 → 插件包提供的组件。新增 client 插件在此登记（组件的家在插件包，不在 host）。 */
-const LOCAL_MODULES: Record<string, ClientModuleDef> = {
-  "client/demo-fund-flow.js": { bundle: "client/demo-fund-flow.js", component: DemoFundFlow },
-  "client/demo-watchlist-toolbar.js": {
-    bundle: "client/demo-watchlist-toolbar.js",
-    component: DemoWatchlistToolbar,
-  },
-  "client/demo-money-flow.js": { bundle: "client/demo-money-flow.js", component: DemoMoneyFlow },
-}
-
-/** 按 bundle 名解析本地模块；未知 bundle 返回 undefined（调用方 fail-closed 降级）。 */
-export function loadClientModule(bundle: string): ClientModuleDef | undefined {
-  return LOCAL_MODULES[bundle]
-}
+/** 供外部校验一个 client 模块是否是有效组件导出（复用 SlotComponent 展示用形）。 */
+export type ClientComponent = SlotComponent<object>
 
 /** 构造一条 scoped 样式标签的 HTML（能力块 C；用 `data-bk-module={id}` 标记归属）。 */
 export function injectModuleStyle(id: string, css: string): () => void {

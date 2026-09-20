@@ -1,4 +1,7 @@
-// 类型化事件/服务增强（declare module 'cordis'）——仅导入即生效
+// 类型化事件/服务增强（declare module '@berkshire/cordis'）——仅导入即生效。
+// 各服务/事件的增强已 co-locate 到各自文件（services/*.ts、seams/notify.ts、events.ts），
+// 本入口只是把它们全部带入，使得 `import '@berkshire/core'` 一次性激活全部增强；
+// 需要单服务粒度的可按子路径导入（见 package.json exports）。
 import './events'
 
 export * from './brand'

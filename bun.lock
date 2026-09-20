@@ -14,8 +14,10 @@
       "name": "berkshire-agent",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/base-ui": "workspace:*",
         "@berkshire/plugin-demo": "workspace:*",
         "@berkshire/theme": "workspace:*",
+        "@berkshire/ui-slots": "workspace:*",
         "@tauri-apps/api": "^2",
         "@tauri-apps/plugin-opener": "^2",
         "clsx": "^2.1.1",
@@ -61,6 +63,7 @@
       "name": "@berkshire/boot",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "yaml": "^2.6.1",
@@ -69,23 +72,60 @@
         "@berkshire/plugin-notify-console": "workspace:*",
         "@types/bun": "latest",
       },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
     },
     "packages/bundle/base": {
       "name": "@berkshire/bundle-base",
       "version": "0.1.0",
     },
+    "packages/cordis": {
+      "name": "@berkshire/cordis",
+      "version": "0.1.0",
+      "dependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
+    },
     "packages/core": {
       "name": "@berkshire/core",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/cordis": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "zod": "^3.23.8",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
+    },
+    "packages/plugins/base-ui": {
+      "name": "@berkshire/base-ui",
+      "version": "0.1.0",
+      "dependencies": {
+        "@berkshire/theme": "workspace:*",
+        "@berkshire/ui-slots": "workspace:*",
+        "clsx": "^2.1.1",
+        "react": "^19.1.0",
+        "react-router-dom": "^7.9.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/react": "^19.1.8",
+      },
+      "peerDependencies": {
+        "react": "^19.1.0",
+        "react-router-dom": "^7.9.0",
       },
     },
     "packages/plugins/demo": {
       "name": "@berkshire/plugin-demo",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
         "@berkshire/theme": "workspace:*",
         "cordis": "4.0.0-rc.10",
@@ -94,15 +134,23 @@
       },
       "devDependencies": {
         "@types/react": "^19.1.8",
+        "lightningcss": "^1.33.0",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
       },
     },
     "packages/plugins/notify-console": {
       "name": "@berkshire/plugin-notify-console",
       "version": "0.1.0",
       "dependencies": {
+        "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "zod": "^3.23.8",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
       },
     },
     "packages/sidecar": {
@@ -110,7 +158,9 @@
       "version": "0.1.0",
       "dependencies": {
         "@berkshire/boot": "workspace:*",
+        "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
+        "@berkshire/plugin-demo": "workspace:*",
         "@berkshire/plugin-notify-console": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "yaml": "^2.6.1",
@@ -118,10 +168,27 @@
       "devDependencies": {
         "@types/bun": "latest",
       },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
     },
     "packages/theme": {
       "name": "@berkshire/theme",
       "version": "0.1.0",
+    },
+    "packages/ui-slots": {
+      "name": "@berkshire/ui-slots",
+      "version": "0.1.0",
+      "dependencies": {
+        "react": "^19.1.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/react": "^19.1.8",
+      },
+      "peerDependencies": {
+        "react": "^19.1.0",
+      },
     },
   },
   "packages": {
@@ -133,9 +200,13 @@
 
     "@base-ui/utils": ["@base-ui/utils@0.4.0", "", { "dependencies": { "@babel/runtime": "^7.29.7", "@floating-ui/utils": "^0.2.12", "reselect": "^5.2.0", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-bO9fz25kKtPf+aZVyfQrC0PDmJdmVni31W2hCS5/Owb+inwdIL3XU26pCPRPlt4LSxZrBgLwubXQXQlKaFEZzw=="],
 
+    "@berkshire/base-ui": ["@berkshire/base-ui@workspace:packages/plugins/base-ui"],
+
     "@berkshire/boot": ["@berkshire/boot@workspace:packages/boot"],
 
     "@berkshire/bundle-base": ["@berkshire/bundle-base@workspace:packages/bundle/base"],
+
+    "@berkshire/cordis": ["@berkshire/cordis@workspace:packages/cordis"],
 
     "@berkshire/core": ["@berkshire/core@workspace:packages/core"],
 
@@ -148,6 +219,8 @@
     "@berkshire/sidecar": ["@berkshire/sidecar@workspace:packages/sidecar"],
 
     "@berkshire/theme": ["@berkshire/theme@workspace:packages/theme"],
+
+    "@berkshire/ui-slots": ["@berkshire/ui-slots@workspace:packages/ui-slots"],
 
     "@emnapi/runtime": ["@emnapi/runtime@1.11.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA=="],
 

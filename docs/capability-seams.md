@@ -66,8 +66,8 @@
 每条缝的**接口契约（签名/类型）只有一个家**：Owner 的 Definition 类型声明（`super(ctx, '…')` 的 Service 子类 + `declare module` 增强 + 导出的 provider/payload 类型）。文档与各级 README 一律**指向这个家并 `import`，绝不复制签名**——复制即制造第二事实源，正是跨边界类型漂移的根源。
 
 - **已实现（v1，可直接 import）**：接口权威定义在 `packages/core`——
-  - `ctx.notifier`：消费/供给方从 **`@berkshire/core`** import 共享类型（`NotifyService` 在 `packages/core/src/seams/notify.ts`；`NotifyProvider`/`NotifyPayload` 在 `packages/core/src/types.ts`），并经 `declare module 'cordis'` 读 `ctx.notifier`（`packages/core/src/events.ts`）。v1 直接增强 `cordis` 官方包；目标态 `@berkshire/cordis` vendor 落地后换模块名即可。
-  - `ctx.slots` / `ctx.clientModules`：定义在 `packages/core/src/services/{slots,clientModules}.ts`（`Slots`/`ClientModules`/`FrontendSlotRegistration`/`ClientModuleRegistration`），`ctx.slots`/`ctx.clientModules` 类型增强与 `client/changed` 事件见 `packages/core/src/events.ts`；`@berkshire/core` 导出全部服务类型，插件（如 `@berkshire/plugin-demo`）经 `inject: ['slots','clientModules']` 消费。跨边界 wire 类型（sidecar `client/list`/webview `api.ts` 的复刻）仍为 v2 共享类型层债务，勿复制签名。
+  - `ctx.notifier`：消费/供给方从 **`@berkshire/core`** import 共享类型（`NotifyService` 在 `packages/core/src/seams/notify.ts`；`NotifyProvider`/`NotifyPayload` 在 `packages/core/src/types.ts`），并经 **co-located** `declare module 'cordis'` 读 `ctx.notifier`（增强就在 `packages/core/src/seams/notify.ts` 本文件；B 级已把各服务/事件增强分散到所属文件）。v1 直接增强 `cordis` 官方包；目标态 `@berkshire/cordis` vendor 落地后换模块名即可。
+  - `ctx.slots` / `ctx.clientModules`：定义在 `packages/core/src/services/{slots,clientModules}.ts`（`Slots`/`ClientModules`/`FrontendSlotRegistration`/`ClientModuleRegistration`），`ctx.slots` 增强在 `services/slots.ts`、`ctx.clientModules` 增强在 `services/clientModules.ts`，而 **`client/changed` 为跨服务共享事件**（Slots 与 ClientModules 都发出）在 `packages/core/src/events.ts`；`@berkshire/core` 根入口导出全部服务类型，插件（如 `@berkshire/plugin-demo`）经 `inject: ['slots','clientModules']` 消费，需要单服务粒度的可按 `@berkshire/core` 的子路径导出导入。跨边界 wire 类型（sidecar `client/list`/webview `api.ts` 的复刻）仍为 v2 共享类型层债务，勿复制签名。
 - **目标态（未落地，不得 import 当已存在）**：`ctx.ai`/`ctx.dataSources`/`ctx.storage`/`ctx.backtest`/`ctx.chart` 等仍为设计承诺，未见上方归属表外的落地文件；落地后在此登记各自 Definition 的权威文件路径。
 
 依赖此单一家，**同类型图内**（sidecar 插件生态、同一 `tsc` 编译）改破坏性接口时，Consumer 与 Provider 两端即时静态报错；**跨图边界**或**单独构建/运行时加载**的插件不受此保证（见下「跨边界警示」）。
@@ -119,3 +119,19 @@ declare module '@berkshire/cordis' {
 | `bail` | 否 | 同步竞态，任一确定即停 | `datasource/authenticate`（多个源都能认证）|
 
 事件域三层（耐久 / 在途 / 能力策略）见 [architecture.md §5](architecture.md#5-事件领域三层分明)。对 downstream 的约束（waterfall 必须 `next()` 等）见 [secondary-development.md](secondary-development.md)。
+
+## 6. 应用壳布局挂点（已实现：`@berkshire/base-ui` 壳插件 + 新布局 slot）
+
+应用壳把「挂点归中枢、内容归插件」落到具体的四个布局位置。**这些是 `ctx.slots` / `ctx.clientModules` 的扩展**（Definition 仍归中枢），不是新独立能力缝：
+
+| 槽（布局挂点） | 位置 | context | 说明 |
+| --- | --- | --- | --- |
+| `layout.navigation.extra` | 侧边栏导航区 | `{ collapsed: boolean; pathname: string }` | 插件在导航区追加项/分组 |
+| `layout.sidebar.footer` | 侧边栏底部（设置入口上方） | `{ collapsed: boolean }` | 插件追加控制项 |
+| `layout.statusbar.right` | 状态栏右侧 | `Record<string, never>` | 插件追加状态项（插件自持响应式） |
+| `settings.cards` | 设置页（`/settings`） | `Record<string, never>` | 插件追加设置卡片/分组 |
+
+- **三角色**：Definition 挂点（共享缝 `@berkshire/ui-slots` `FrontendSlotContextMap` + core `SLOT_NAMES`，两端同一契约）；Provider（插件经 `ctx.slots`/`ctx.clientModules` 挂载组件 + scoped 样式）；Consumer（`AppShell`/`Sidebar`/`StatusBar`/`SettingsPage` 内的 `ExtensionSlot`，每槽包 `ExtensionBoundary`）。
+- **共享 `root` 单例槽**：应用壳帧经 `@berkshire/ui-slots` 内置 `root` 槽（`SlotKind='single'`）挂载——`@berkshire/base-ui` 的 `RootShell` 是唯一 single 项（重复注册 fail-closed 拒绝），宿主 `App.tsx` 从 root 槽取壳帧。`root` 是 **webview 本地槽**、不在 core `SLOT_NAMES`（sidecar 不可注册壳帧），两端集合因此**有意不同**。
+- **侧边栏路由分组**：`RouteDescriptor.section?`（core `slots.ts`）使插件路由在侧边栏按组展示；缺省单组（兼容既有声明）。
+- **诚实边界**：紧凑 `page.header` 每页头槽、折叠态持久化（storage）、store 作用域、`bk://` 远程 bundle、壳经 sidecar 装配可 disable（note「host-to-base-ui」step 3b 余下）均 v-next。
