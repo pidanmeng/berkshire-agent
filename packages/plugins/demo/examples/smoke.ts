@@ -53,7 +53,7 @@ async function verifyCounts(
     fail(`${label}: 缺路由路径 ${expectRoutesPath}，got ${JSON.stringify(routes)}`)
   }
   console.log(`✓ ${label}: clientModules=${mods.length} routes=${routes.length}`)
-  if (mods.length) console.log(`    modules=${JSON.stringify(mods.map((m) => m.bundle))}`)
+  if (mods.length) console.log(`    modules=${JSON.stringify(mods.map((m) => ({ id: m.id, slot: m.slot, url: m.url, exportName: m.exportName ?? 'default' })))}`)
   if (routes.length) console.log(`    routes=${JSON.stringify(routes)}`)
   await boot.dispose()
 }

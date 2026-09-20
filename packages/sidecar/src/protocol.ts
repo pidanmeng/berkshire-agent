@@ -9,7 +9,7 @@
  * fail-closed：解析失败 / 未知方法 / 业务错误一律返回 `{ id, error }`，绝不吞、绝不写
  * 「看似合理」的结果。
  */
-import type { Context } from 'cordis'
+import type { Context } from '@berkshire/cordis'
 import '@berkshire/core'
 import type { CapabilityId } from '@berkshire/core'
 import type { NotifyPayload } from '@berkshire/core'
@@ -122,8 +122,8 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
     }
 
     case 'client/list':
-      // client 插件图快照（slot → bundle 清单）：直接投 `ctx.clientModules` 注册表，
-      // 跨边界 id 走品牌化 `ClientModuleId`，序列化为纯字符串给 Rust/webview。
+      // client 插件图快照（slot → 可动态 import 的 client 入口）：直接投 `ctx.clientModules` 注册表，
+      // 不含 $BK_HOME 逻辑（ROI：宿主 Rust bridge 把插件自报的绝对入口规范化成 `bk://`，见 bk_protocol.rs）。
       return ctx.clientModules.list()
 
     case 'routes/list':

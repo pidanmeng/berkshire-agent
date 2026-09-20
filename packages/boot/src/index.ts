@@ -1,11 +1,21 @@
-import { Context } from 'cordis'
-import type { Fiber, Plugin } from 'cordis'
+import { Context } from '@berkshire/cordis'
+import type { Fiber, Plugin } from '@berkshire/cordis'
 import '@berkshire/core'
 import type { EntryRow, Resolver } from './entries'
 import { composeEntries } from './entries'
+import { importPlugin } from './loader'
 
 export { composeEntries, applyEntryPatches, applyRow } from './entries'
 export type { EntryRow, PatchOverlay, Resolver } from './entries'
+export { importPlugin, unwrapExports, resolveDownloadedPackage } from './loader'
+export type { ImportPluginOptions } from './loader'
+export { defaultBkHome, cordisYmlPath, nodeModulesDir, setBkHome } from './bk-home'
+export {
+  BK_HOME_ENV,
+  BK_HOME_DIR_NAME,
+  CORDIS_YML,
+} from './bk-home'
+export { readCordisYml } from './entries-file'
 
 export interface Mounted {
   id: string
@@ -46,8 +56,11 @@ export class Boot {
   /**
    * 挂载一行。`disabled` 时跳过（能力不可用）；否则解析插件名、
    * 用插件自带 Config 校验 config（fail loud），再 `ctx.plugin()` 挂载。
+   *
+   * `resolver` 缺省用内置动态 `importPlugin`（P1：npm 名 / 相对路径 / `cordis:` 三条分支，
+   * 见 loader.ts）。兼容既有调用方显式传查表 resolver。
    */
-  async install(row: EntryRow, resolver: Resolver): Promise<void> {
+  async install(row: EntryRow, resolver: Resolver = defaultResolver): Promise<void> {
     if (this._disposed) {
       throw new Error('boot already disposed')
     }
@@ -107,3 +120,12 @@ export class Boot {
   /** 上次 dispose 的实际卸除顺序（后装先卸）。 */
   disposeOrder: string[] = []
 }
+
+/**
+ * 缺省 Resolver：走内置动态 `importPlugin`（相对路径 baseUrl 兜底到本模块目录）。
+ *
+ * 诚实边界：此缺省 resolver **只解析运行链上可找到的裸名/相对路径**（workspace、registry 包）。
+ * 它**不**解析 `$BK_HOME/node_modules` 下下载的插件——要解析下载包必须传带 `nodeModulesDir`
+ * 的显式 resolver（sidecar 正是这么做的：`importPlugin(name, { nodeModulesDir, baseUrl: bkHome })`）。
+ */
+const defaultResolver: Resolver = (name) => importPlugin(name)

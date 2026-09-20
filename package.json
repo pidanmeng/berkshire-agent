@@ -11,6 +11,7 @@
     "dev": "bun run --cwd apps/berkshire-agent dev",
     "dev:docs": "bun run --cwd apps/docs dev",
     "build": "bun run --cwd apps/berkshire-agent build",
+    "build:packages": "bun scripts/build-packages.ts",
     "build:docs": "bun run --cwd apps/docs build",
     "preview": "bun run --cwd apps/berkshire-agent preview",
     "headless": "bun run --cwd packages/boot examples/headless.ts",

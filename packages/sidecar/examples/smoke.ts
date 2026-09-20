@@ -10,8 +10,11 @@ import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { resolve } from 'node:path'
+import { setBkHome } from '@berkshire/boot'
 
 const ENTRY = resolve(import.meta.dir, '../src/index.ts')
+// 冒烟从夹具 $BK_HOME/cordis.yml（core+notify+demo）装配；真实用户 home 由宿主在 M3 提供初值。
+setBkHome(resolve(import.meta.dir, '../test/fixtures/bk-home'))
 
 interface PushMsg {
   event: string
@@ -121,18 +124,18 @@ async function main(): Promise<void> {
 
   const clients = await s.request('client/list')
   if (clients.error) fail(`client/list error: ${clients.error.message}`)
-  const carr = clients.result as Array<{ id: string; slot: string; bundle: string }>
+  const carr = clients.result as Array<{ id: string; slot: string; url: string; exportName?: string }>
   const byId = new Map(carr.map((c) => [c.id, c]))
   if (carr.length !== 6) fail(`T3 demo 插件应注册 6 个 client 模块，got ${JSON.stringify(carr)}`)
   const footer = byId.get('demo-fund-flow')
-  if (!footer || footer.slot !== 'stock-preview.footer' || footer.bundle !== 'client/demo-fund-flow.js') {
-    fail(`client/list 应含 demo-fund-flow → stock-preview.footer，got ${JSON.stringify(carr)}`)
+  if (!footer || footer.slot !== 'stock-preview.footer' || !footer.url || footer.exportName !== 'DemoFundFlow') {
+    fail(`client/list 应含 demo-fund-flow → stock-preview.footer(url/exportName)，got ${JSON.stringify(carr)}`)
   }
   if (!byId.has('demo-watchlist-toolbar')) {
     fail(`client/list 应含 demo-watchlist-toolbar，got ${JSON.stringify(carr)}`)
   }
   const menu = byId.get('demo-money-flow')
-  if (!menu || menu.slot !== 'analysis.menu' || menu.bundle !== 'client/demo-money-flow.js') {
+  if (!menu || menu.slot !== 'analysis.menu' || menu.exportName !== 'DemoMoneyFlow') {
     fail(`client/list 应含 demo-money-flow → analysis.menu，got ${JSON.stringify(carr)}`)
   }
   const navExtra = byId.get('demo-nav-extra')

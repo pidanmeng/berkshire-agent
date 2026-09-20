@@ -13,6 +13,11 @@ import { resolve } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 
 const ENTRY = resolve(import.meta.dir, '../src/index.ts')
+// 让被拉起的真实 sidecar 从本夹具 `$BK_HOME/cordis.yml` 装配（core + notify-console + demo）。
+// 用 setBkHome 写成环境变量，spawn 时被子进程继承（BK_HOME 是轻量夹具路径，非真实用户 home）。
+import { setBkHome } from '@berkshire/boot'
+const FIXTURE_BK_HOME = resolve(import.meta.dir, 'fixtures/bk-home')
+setBkHome(FIXTURE_BK_HOME)
 
 interface Push {
   event: string

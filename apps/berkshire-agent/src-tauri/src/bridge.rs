@@ -8,11 +8,13 @@
 //! docs/secondary-development.md §8）；本层用 Tauri 原生 command + Tauri events 最小接线。
 //! 所有请求-响应为**阻塞**调用（[SidecarClient::request]），由 `spawn_blocking` 托到
 //! 阻塞线程池执行，避免卡 Tauri 主/异步线程。
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
+use crate::bk_protocol::bk_home;
 use crate::sidecar_client::{default_entry_command, EventFn, SidecarClient, SidecarError};
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
@@ -22,12 +24,15 @@ pub struct CapabilityDto {
     pub usable: bool,
 }
 
-/// client 插件图快照（`client/list` 结果）：slot → bundle 清单，随 bundle 的可选 scoped 样式。
+/// client 插件图快照（`client/list` 结果）：slot → 可 import 的 client 入口 URL 清单，
+/// 随入口的具名导出（组件/页面）与可选 scoped 样式。宿主据此运行时动态 `import(url)`，零硬编码。
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub struct ClientModuleDto {
     pub id: String,
     pub slot: String,
-    pub bundle: String,
+    pub url: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub export_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style: Option<String>,
 }
@@ -41,6 +46,46 @@ pub struct RouteDto {
     pub title: String,
     pub path: String,
     pub slot: String,
+}
+
+/// 把插件自报的绝对 client 入口（file URL 或绝对路径）映射成 webview 可 `import()` 的 `bk://` URL。
+///
+/// 契约（bk_protocol.rs）：下载插件位于 `$BK_HOME/node_modules/<pkg>/`，故入口在 `$BK_HOME` 内时
+/// 映射成 `bk:///<rel>`；宿主零硬编码。映射是**地址改写**（非装载决策）：不在 `$BK_HOME` 内
+/// （如 dev 下的 workspace 插件未经 `bun add` 进 home）时原样透传 + 告警，交由 webview 按模块
+/// fail-closed 处理，避免整表 `client/list` 被一个未下载插件拖死。
+/// 把 `file://` URL 还原成本机路径字符串。覆盖两种盘符形态且不破坏 POSIX 绝对路径：
+/// - `file://C:/…`  → `C:/…`（旧形态）
+/// - `file:///C:/…` → `C:/…`（规范形态，`new URL(...).href` 总是产出它——先去掉前导 `/` 再判盘符）
+/// - `file:///home/…`（POSIX）→ 保留前导 `/` 的绝对路径（不加盘符逻辑）
+fn url_to_path_str(raw: &str) -> String {
+    // 没有盘符时原样返回（保持 POSIX 前导 `/`）。
+    let has_colon_at = |i: usize| 0 < i && i < raw.len() && raw.as_bytes().get(i) == Some(&b':');
+    if has_colon_at(1) {
+        return raw.to_string(); // file://C:/…
+    }
+    if raw.starts_with('/') && has_colon_at(2) && raw.as_bytes().get(1).is_some_and(|b| b.is_ascii_alphabetic()) {
+        return raw.trim_start_matches('/').to_string(); // file:///C:/…　→ C:/…
+    }
+    raw.to_string()
+}
+
+fn to_bk_url(url: &str, home: &Path) -> String {
+    if url.starts_with("bk://") || url.starts_with("http://") || url.starts_with("https://") {
+        return url.to_string();
+    }
+    let raw = url.strip_prefix("file://").unwrap_or(url);
+    let path_str = url_to_path_str(raw);
+    let p = PathBuf::from(path_str);
+    let Ok(rel) = p.strip_prefix(home) else {
+        eprintln!("[bridge] client 入口不在 $BK_HOME（{}）内，原样透传（先 bun add 进 home）: {url}", home.display());
+        return url.to_string();
+    };
+    let parts: Vec<String> = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    format!("bk:///{}", parts.join("/"))
 }
 
 pub struct Bridge {
@@ -202,13 +247,17 @@ impl Bridge {
             .ok_or_else(|| "log/list 返回非数组".to_string())
     }
 
-    /// client 插件图快照（T1）：`ctx.clientModules` 的 slot → bundle 清单，供 webview 挂载。
+    /// client 插件图快照（T1→M3）：`ctx.clientModules` 的 slot → 可动态 import 的 client 入口。
+    /// 把插件自报的绝对入口规范化成 `bk://`（webview 运行时 `import()`），宿主零硬编码。
     pub fn client_list(&self) -> Result<Vec<ClientModuleDto>, String> {
         let v = self.call("client/list", Value::Object(Default::default()))?;
         let arr = v.as_array().ok_or_else(|| "client/list 返回非数组".to_string())?;
+        let home = bk_home();
         let mut out = Vec::with_capacity(arr.len());
         for item in arr {
-            out.push(serde_json::from_value(item.clone()).map_err(|e| e.to_string())?);
+            let mut dto: ClientModuleDto = serde_json::from_value(item.clone()).map_err(|e| e.to_string())?;
+            dto.url = to_bk_url(&dto.url, &home);
+            out.push(dto);
         }
         Ok(out)
     }
@@ -222,5 +271,58 @@ impl Bridge {
             out.push(serde_json::from_value(item.clone()).map_err(|e| e.to_string())?);
         }
         Ok(out)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env::temp_dir;
+
+    #[test]
+    fn maps_under_home_to_bk_url() {
+        let home = temp_dir().join("bk-test-home");
+        let p = home
+            .join("node_modules")
+            .join("@berkshire/plugin-demo")
+            .join("dist")
+            .join("client")
+            .join("index.js");
+        let url = format!("file://{}", p.display());
+        assert_eq!(
+            to_bk_url(&url, &home),
+            "bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js"
+        );
+    }
+
+    /// Windows：注册表里插件自报的 `CLIENT_ENTRY_URL` 是新 `URL(...).href` 的规范形态
+    /// `file:///C:/…`（前导斜杠 + 正斜杠），此前会因判不到盘符而透传、`bk://` 永不命中。
+    #[cfg(windows)]
+    #[test]
+    fn maps_windows_canonical_file_url() {
+        let home = PathBuf::from("C:\\Users\\tester\\.bk");
+        let url = "file:///C:/Users/tester/.bk/node_modules/@berkshire/plugin-demo/dist/client/index.js";
+        assert_eq!(
+            to_bk_url(url, &home),
+            "bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js"
+        );
+        // 旧形态 `file://C:/…` 也应命中。
+        let url2 = "file://C:/Users/tester/.bk/node_modules/a/pkg/dist/index.js";
+        assert_eq!(to_bk_url(url2, &home), "bk:///node_modules/a/pkg/dist/index.js");
+        // 在 $BK_HOME 外 → 原样透传（不改地址）。
+        let outside = "file:///C:/elsewhere/x.js";
+        assert!(to_bk_url(outside, &home).starts_with("file://"), "应原样透传：{outside}");
+    }
+
+    #[test]
+    fn passthroughs_outside_home_and_foreign_schemes() {
+        let home = PathBuf::from("/nonexistent/home");
+        let outside = to_bk_url("file:///tmp/elsewhere/x.js", &home);
+        assert!(outside.starts_with("file://"), "应原样透传：{outside}");
+        assert_eq!(
+            to_bk_url("bk:///node_modules/a/pkg/dist/index.js", &home),
+            "bk:///node_modules/a/pkg/dist/index.js"
+        );
+        assert_eq!(to_bk_url("https://cdn.example/x.js", &home), "https://cdn.example/x.js");
     }
 }

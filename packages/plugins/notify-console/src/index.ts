@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import type { Context } from 'cordis'
+import type { Context } from '@berkshire/cordis'
 import type { CapabilityId, NotifyProvider } from '@berkshire/core'
 
 import '@berkshire/core'
-// 上方 `import '@berkshire/core'` 已把 `declare module 'cordis'` 的增强带入本模块，
+// 上方 `import '@berkshire/core'` 已把 `declare module '@berkshire/cordis'` 的增强带入本模块，
 // 使 `ctx.notifier` / `ctx.log` / `ctx.capabilities` 可用类型。
 
 /**

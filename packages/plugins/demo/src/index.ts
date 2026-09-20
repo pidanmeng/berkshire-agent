@@ -1,12 +1,21 @@
 import { z } from 'zod'
-import type { Context } from 'cordis'
+import type { Context } from '@berkshire/cordis'
 import type { ClientModuleId } from '@berkshire/core'
 // 插件独立打包阶段编译产物（P3：CSS Modules → 哈希类名 + 注入代码，lightningcss）。
 // 同一份文件也供 `.tsx` webview 半身拿哈希类名——sidecar 只取 `css` 作为注入代码交给 host。
 import { fundFlow, moneyFlow, watchlistToolbar, navExtra, statusItem, settingsCard } from './client/styles.generated'
 
 import '@berkshire/core'
-// 上方 `import '@berkshire/core'` 已把 `declare module 'cordis'` 的增强带入本模块，
+
+/**
+ * webview 半身的 **client 入口 URL**（M3）：本文件在运行期是插件的已构建 sidecar 半身
+ * （`dist/index.js`，`exports["."]` 指向 dist），相对它取 `./client/index.js` 即命中
+ * 已编译的 client 入口（`dist/client/index.js`，导出台面所有组件/页面）。插件只自报
+ * 自己的入口与具名导出，宿主零硬编码；宿主侧 `to_bk_url`（Rust bridge.rs）再按 `$BK_HOME` 规范化
+ * 成 `bk:///node_modules/@berkshire/plugin-demo/dist/client/index.js` 供 webview 动态 `import()`。
+ */
+const CLIENT_ENTRY_URL = new URL('./client/index.js', import.meta.url).href
+// 上方 `import '@berkshire/core'` 已把 `declare module '@berkshire/cordis'` 的增强带入本模块，
 // 使 `ctx.slots` / `ctx.clientModules` / `ctx.log` 可用类型（能力缝三角色：
 // core 提供 Service Definition，本插件作为 Consumer/Provider 把页面 + 组件 + 样式挂进槽位）。
 
@@ -18,11 +27,12 @@ import '@berkshire/core'
  *   - `stock-preview.footer` 底部组件（`demo-fund-flow`，能力块 A）
  *   - `watchlist.toolbar` 工具栏组件（`demo-watchlist-toolbar`，能力块 A）
  *   - `analysis.menu` 资金流向页 `money-flow`（`/analysis/money-flow`，能力块 B + A + C）
- * - **webview 半身随插件包走**：页面/组件 JSX 与前端 scoped 样式定义在 `./client/*`
- *   （组件经 `@berkshire/plugin-demo/client` 入口静态 import；样式是 **CSS Modules**——作者源
- *   `./client/*.module.css` 由插件独立打包阶段（`scripts/compile-styles.ts`，lightningcss）编译成
- *   `styles.generated.ts`，本文件从这里取 `css` 注入代码去注册，`.tsx` 从同一份拿哈希类名）。
- *   这是走向 `bk://` 远程 bundle 之前的现实中间步（仍静态打包）。
+ * - **webview 半身随插件包走 + 宿主运行时动态 import**：页面/组件 JSX 与前端 scoped 样式定义在
+ *   `./client/*`（**CSS Modules**——作者源 `./client/*.module.css` 由插件独立打包阶段
+ *   `scripts/compile-styles.ts`（lightningcss）编译成 `styles.generated.ts`，本文件从这里取 `css`
+ *   注入代码去注册，`.tsx` 从同一份拿哈希类名）。M3 起 host 不再静态 import `@berkshire/plugin-demo/client`，
+ *   而是按 `client/list` 快照里的 `url`+`exportName` **运行时 `import()` 已构建 client 入口**
+ *   （`CLIENT_ENTRY_URL`，宿主规范化成 `bk://`），宿主零硬编码。
  * - 可逆：全部注册经 `ctx.effect` 包裹并逐一记录 disposer，卸载时**逆序**撤销——
  *   装上即出现、卸下即消失且 scoped 样式不残留（由 webview `ClientModuleHost` 接 `client/changed` 同步）。
  * - 诚实：无 database（仍目标态），后端只走 `ctx.log` + 静态占位数据；样式中不出现真实行情，
@@ -58,7 +68,8 @@ export function apply(ctx: Context, config: Config): () => void {
         ctx.clientModules.register({
           id: 'demo-fund-flow' as ClientModuleId,
           slot: 'stock-preview.footer',
-          bundle: 'client/demo-fund-flow.js',
+          url: CLIENT_ENTRY_URL,
+          exportName: 'DemoFundFlow',
           style: fundFlow.css,
         }),
       )
@@ -73,7 +84,8 @@ export function apply(ctx: Context, config: Config): () => void {
         ctx.clientModules.register({
           id: 'demo-watchlist-toolbar' as ClientModuleId,
           slot: 'watchlist.toolbar',
-          bundle: 'client/demo-watchlist-toolbar.js',
+          url: CLIENT_ENTRY_URL,
+          exportName: 'DemoWatchlistToolbar',
           style: watchlistToolbar.css,
         }),
       )
@@ -95,7 +107,8 @@ export function apply(ctx: Context, config: Config): () => void {
         ctx.clientModules.register({
           id: 'demo-money-flow' as ClientModuleId,
           slot: 'analysis.menu',
-          bundle: 'client/demo-money-flow.js',
+          url: CLIENT_ENTRY_URL,
+          exportName: 'DemoMoneyFlow',
           style: moneyFlow.css,
         }),
       )
@@ -110,7 +123,8 @@ export function apply(ctx: Context, config: Config): () => void {
         ctx.clientModules.register({
           id: 'demo-nav-extra' as ClientModuleId,
           slot: 'layout.navigation.extra',
-          bundle: 'client/demo-nav-extra.js',
+          url: CLIENT_ENTRY_URL,
+          exportName: 'DemoNavExtra',
           style: navExtra.css,
         }),
       )
@@ -121,7 +135,8 @@ export function apply(ctx: Context, config: Config): () => void {
         ctx.clientModules.register({
           id: 'demo-status-item' as ClientModuleId,
           slot: 'layout.statusbar.right',
-          bundle: 'client/demo-status-item.js',
+          url: CLIENT_ENTRY_URL,
+          exportName: 'DemoStatusItem',
           style: statusItem.css,
         }),
       )
@@ -130,7 +145,8 @@ export function apply(ctx: Context, config: Config): () => void {
         ctx.clientModules.register({
           id: 'demo-settings-card' as ClientModuleId,
           slot: 'settings.cards',
-          bundle: 'client/demo-settings-card.js',
+          url: CLIENT_ENTRY_URL,
+          exportName: 'DemoSettingsCard',
           style: settingsCard.css,
         }),
       )

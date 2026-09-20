@@ -1,4 +1,4 @@
-import type { Context } from 'cordis'
+import type { Context } from '@berkshire/cordis'
 import '@berkshire/core'
 
 /** 订阅内部事件，把 `{ event, payload }` 即时序列化为 ndjson 推送行写到宿主。 */
