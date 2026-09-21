@@ -11,6 +11,6 @@
 export { DemoFundFlow } from "./demoFundFlow"
 export { DemoWatchlistToolbar } from "./demoWatchlistToolbar"
 export { DemoMoneyFlow } from "./demoMoneyFlow"
-export { DemoNavExtra, DemoStatusItem, DemoSettingsCard } from "./demoShellWidgets"
-export { fundFlow, watchlistToolbar, moneyFlow, navExtra, statusItem, settingsCard } from "./styles.generated"
+export { DemoNavExtra, DemoStatusItem, DemoSettingsCard, DemoSettingsSection } from "./demoShellWidgets"
+export { fundFlow, watchlistToolbar, moneyFlow, navExtra, statusItem, settingsCard, settingsSection } from "./styles.generated"
 export type { CompiledModuleStyle } from "./styles.generated"

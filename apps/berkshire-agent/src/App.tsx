@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useMemo } from "react";
 import { Link, Route, Routes } from "react-router-dom";
 import styles from "./App.module.css";
 import { ExtensionSlot } from "@berkshire/ui-slots";
@@ -6,9 +6,10 @@ import ClientModuleHost from "./client/ClientModuleHost";
 import RouteSync from "./routes/RouteSync";
 import { routesStore } from "./routes/routesStore";
 import ExtensionRoute from "./routes/ExtensionRoute";
-import { ThemePalettePage, SettingsPage, registerRootShell } from "@berkshire/base-ui/client";
+import { ThemePalettePage, registerRootShell } from "@berkshire/base-ui/client";
 import { useBridgeStatus } from "./lib/useBridgeStatus";
 import { useWindowControls } from "./lib/useWindowControls";
+import { createStorageHandle } from "./lib/storageHandle";
 import { OnboardingGate } from "./onboarding/OnboardingGate";
 import { useAppPhase } from "./onboarding/useAppPhase";
 
@@ -50,6 +51,8 @@ function App() {
   const bridgeOnline = useBridgeStatus(phase === "ready");
   // WP-5 自绘标题栏：宿主把 Rust window command 封装成控制器注入 root 槽 context（壳只呈现/拖拽）。
   const titleBar = useWindowControls();
+  // WP-7 设置持久化：宿主把 storage* 命令封装成 StorageHandle 注入 root 槽 context（壳/插件表单逐字段落 KV）。
+  const storage = useMemo(() => createStorageHandle(), []);
 
   // 首启供给：$BK_HOME 未初始化 → 全屏首启引导；探测中 → 轻量 splash（避免闪烁）。
   if (phase === "checking") {
@@ -87,11 +90,11 @@ function App() {
           routes,
           bridgeOnline,
           titleBar,
+          storage,
           renderApp: () => (
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/theme" element={<ThemePalettePage />} />
-              <Route path="/settings" element={<SettingsPage />} />
               {/* 插件自声明动态路由（静态路径、不覆盖核心、全局唯一）；每项按 route.slot 指向槽渲染器 + ExtensionBoundary。 */}
               {routes.map((r) => (
                 <Route key={r.path} path={r.path} element={<ExtensionRoute title={r.title} slot={r.slot} />} />

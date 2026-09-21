@@ -24,6 +24,9 @@ export const MODULES: readonly BkModule[] = [
   { name: "@berkshire/ui-slots", dir: "ui-slots", pluginChain: true },
   { name: "@berkshire/plugin-notify-console", dir: "plugins/notify-console", pluginChain: true },
   { name: "@berkshire/plugin-demo", dir: "plugins/demo", pluginChain: true },
+  { name: "@berkshire/plugin-data-manager", dir: "plugins/data-manager", pluginChain: true },
+  { name: "@berkshire/plugin-datasource-fuyao", dir: "plugins/datasource-fuyao", pluginChain: true },
+  { name: "@berkshire/plugin-datasource-csv", dir: "plugins/datasource-csv", pluginChain: true },
   { name: "@berkshire/base-ui", dir: "plugins/base-ui", pluginChain: true },
 ];
 

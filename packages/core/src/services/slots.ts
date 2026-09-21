@@ -25,16 +25,20 @@ export const SLOT_NAMES = [
   'layout.navigation.extra', // 侧边栏导航区追加项/分组
   'layout.sidebar.footer', // 侧边栏底部（设置入口上方）追加控制项
   'layout.statusbar.right', // 状态栏右侧追加状态项
-  'settings.cards', // 设置页追加设置卡片/分组
+  'settings.cards', // 设置弹窗追加设置卡片/分组
+  'settings.section', // 设置弹窗「插件设置」分组：插件贡献自己的设置表单面板（WP-6 设置 Seam）
+  // 数据管理页（WP：数据源能力缝落地）：页面注入载体，插件自声明路由的页面内容经此槽渲染。
+  'data.management',
 ] as const
 export type SlotName = (typeof SLOT_NAMES)[number]
 
 /**
  * 核心路由静态路径（能力块 B 的红线：插件注入的菜单路由**不得覆盖**）。
+ * WP-6：`/settings` 已改为设置弹窗（不再路由页），故从核心路由移除；仅剩 `/` 首页与 `/theme` 令牌对照 dev 工具页。
  * 与 webview 侧 `apps/berkshire-agent/src/App.tsx` 的核心 `<Route>` 集合保持同一契约；
  * 两端各有一份是 v2 共享类型层前的现状，改动必须同步。
  */
-export const CORE_ROUTE_PATHS = ['/', '/theme', '/settings'] as const
+export const CORE_ROUTE_PATHS = ['/', '/theme'] as const
 
 /**
  * 一条插件自声明的**路由**（能力块 B/页面，路由契约化）：插件在**任意 slot** 的占用声明上带

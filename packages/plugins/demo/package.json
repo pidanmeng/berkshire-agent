@@ -27,6 +27,7 @@
     "zod": "^3.23.8",
     "@berkshire/core": "workspace:*",
     "@berkshire/theme": "workspace:*",
+    "@berkshire/ui-slots": "workspace:*",
     "react": "^19.1.0"
   },
   "peerDependencies": {

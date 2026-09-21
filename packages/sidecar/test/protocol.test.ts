@@ -359,9 +359,9 @@ describe('handleLine · routes/list（动态路由/导航，路由契约化）',
     expect(() =>
       boot.ctx.slots.register('analysis.menu', { id: 'x', title: 'X', route: { path: '/stock/:id' } }),
     ).toThrow(/静态/)
-    // 覆盖核心路由 /settings
+    // 覆盖核心路由 /（首页）
     expect(() =>
-      boot.ctx.slots.register('analysis.menu', { id: 'x', title: 'X', route: { path: '/settings' } }),
+      boot.ctx.slots.register('analysis.menu', { id: 'x', title: 'X', route: { path: '/' } }),
     ).toThrow(/核心路由/)
     // 覆盖核心路由 /theme（令牌对照页也预留为核心）
     expect(() =>

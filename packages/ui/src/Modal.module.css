@@ -8,6 +8,9 @@
   justify-content: center;
   padding: var(--bk-space-5);
   background: var(--bk-scrim);
+  /* 蒙层高斯模糊：遮住背景同时保留通透感；数值非色值，不触碰「禁魔法色值」纪律。 */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .dialog {

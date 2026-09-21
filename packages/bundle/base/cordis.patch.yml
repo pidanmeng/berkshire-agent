@@ -1,4 +1,4 @@
-# base bundle 补丁：在最简 headless 树干上装上 核心脊 + 第一个插件（notify-console）。
+# base bundle 补丁：在最简 headless 树干上装上 核心脊 + 通知 + 数据源（fuyao/csv）+ 数据管理页。
 # 语义见 docs/config.md §4：`insert` 追加行；上层可再用 `{ id, config }` 按 id 整体覆盖。
 - insert:
     - id: core
@@ -8,3 +8,9 @@
       config:
         channel: console
         echo: true
+    - id: datasource-fuyao
+      name: '@berkshire/plugin-datasource-fuyao'
+    - id: datasource-csv
+      name: '@berkshire/plugin-datasource-csv'
+    - id: data-manager
+      name: '@berkshire/plugin-data-manager'

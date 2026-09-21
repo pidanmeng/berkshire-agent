@@ -19,7 +19,7 @@
  * `bk://` 远程 bundle、经 sidecar/root 槽装配（可 disable）仍目标态。
  */
 import type { ReactNode } from "react"
-import type { TitleBarController } from "@berkshire/ui-slots"
+import type { StorageHandle, TitleBarController } from "@berkshire/ui-slots"
 import { Sidebar } from "./Sidebar"
 import { StatusBar } from "./StatusBar"
 import { TitleBar } from "./TitleBar"
@@ -39,11 +39,13 @@ export interface AppShellProps {
   bridgeOnline?: boolean | null
   /** 自绘标题栏控制器（WP-5）：宿主经 Rust window command 封装后注入；壳只做呈现/拖拽。 */
   titleBar: TitleBarController
+  /** 持久化句柄（宿主经 root 槽注入）：设置弹窗/表单逐字段落 KV 用。 */
+  storage: StorageHandle
   /** 右侧内容区（宿主 `<Routes>` 渲染结果）。 */
   children: ReactNode
 }
 
-export function AppShell({ routes, bridgeOnline, titleBar, children }: AppShellProps): ReactNode {
+export function AppShell({ routes, bridgeOnline, titleBar, storage, children }: AppShellProps): ReactNode {
   return (
     <div className={styles.shell}>
       {/* grid-area titlebar：顶部自绘标题栏（跨两列，decorations:false 后代替原生栏）。 */}
@@ -52,7 +54,7 @@ export function AppShell({ routes, bridgeOnline, titleBar, children }: AppShellP
       </div>
       {/* grid-area sidebar：左导航，满高。 */}
       <aside className={styles.sidebarRegion}>
-        <Sidebar routes={routes} />
+        <Sidebar routes={routes} storage={storage} />
       </aside>
       {/* grid-area statusbar：右上顶栏。 */}
       <div className={styles.statusbarRegion}>

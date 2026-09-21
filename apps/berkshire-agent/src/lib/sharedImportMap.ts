@@ -22,6 +22,7 @@ export const SHARED_IMPORTS = [
   "react/jsx-dev-runtime",
   "@berkshire/ui-slots",
   "@berkshire/theme",
+  "@berkshire/ui",
   "react-router-dom",
   "clsx",
 ] as const

@@ -1,0 +1,55 @@
+/* DemoSettingsSection —— demo 插件贡献的设置表单面板（设置弹窗「插件设置」分组）。
+ * 应用壳，dark-first 终端风；只写 var(--bk-*)（WP-6 设置 Seam 证明）。 */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-2);
+  padding: var(--bk-space-3);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-lg);
+  background: var(--bk-color-bg-elevated);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--bk-font-size-md);
+  font-weight: 600;
+  color: var(--bk-color-fg);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bk-space-2);
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-muted);
+}
+
+/* 面板内的设置字段控件（对齐 @berkshire/ui Select 的视觉：边框/圆角/背景/焦点环，只写令牌）。 */
+.select {
+  min-width: 9rem;
+  padding: var(--bk-space-2) var(--bk-space-3);
+  font: inherit;
+  color: var(--bk-color-fg);
+  background: var(--bk-color-bg);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  outline: none;
+}
+.select:focus-visible {
+  border-color: var(--bk-color-accent);
+  box-shadow: 0 0 0 2px var(--bk-color-accent-soft);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+}

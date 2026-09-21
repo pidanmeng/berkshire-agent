@@ -28,3 +28,6 @@ export type ClientModuleId = Branded<string, 'client-module'>
 
 /** 存储命名空间 id：基于插件 id → `$BK_HOME/state/<ns>/` 目录映射（WP-2 持久化能力缝）。 */
 export type StorageNamespaceId = Branded<string, 'storage-namespace'>
+
+/** 数据源 provider id（`ctx.dataSources` 缝，WP：数据源能力缝落地）。 */
+export type DataSourceId = Branded<string, 'datasource'>

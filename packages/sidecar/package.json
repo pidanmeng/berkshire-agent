@@ -22,6 +22,7 @@
     "@berkshire/cordis": "workspace:*",
     "cordis": "4.0.0-rc.10",
     "yaml": "^2.6.1",
+    "@duckdb/node-api": "^1.5.5-r.5",
     "@berkshire/core": "workspace:*",
     "@berkshire/boot": "workspace:*",
     "@berkshire/plugin-notify-console": "workspace:*",

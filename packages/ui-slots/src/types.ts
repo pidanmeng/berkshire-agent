@@ -13,6 +13,7 @@
  * 品牌化为 `Branded<T>` 留 v2。
  */
 import type { ReactNode } from "react"
+import type { StorageHandle } from "./storage"
 
 /** 个股查看视角（stock-preview.footer 上下文之一）。 */
 export type PreviewView = "daily" | "intraday"
@@ -67,8 +68,30 @@ export interface FrontendSlotContextMap {
    * 真正设置弹窗/表单由 WP-6 消费，本 slot 只把分组骨架透传给卡片作消费面。
    */
   "settings.cards": {
-    /** 可用设置分组（占位骨架，`DEFAULT_SETTINGS_GROUPS` 在 `@berkshire/base-ui`）；UI 在 WP-6。 */
+    /** 可用设置分组（骨架，`DEFAULT_SETTINGS_GROUPS` 在 `@berkshire/base-ui`）。 */
     settingsGroups: readonly SettingsGroup[]
+  }
+  /**
+   * 设置弹窗「插件设置」分组（WP-6 设置 Seam）：插件贡献的**设置表单面板**经此槽挂进设置弹窗。
+   * 每个注册项是一个自包含的设置面板（自带标题/说明 + 表单字段），由 base-ui 弹窗放进
+   * 「插件设置」分组、每个包 `ExtensionBoundary`；装上即出现、卸下即消失（clientModule 注册即效应）。
+   * 面板按插件自身的持久化能力接线；宿主（设置弹窗）把共享 `storage` 句柄随 context 注入，
+   * 插件面板把**每个表单项落成一个 KV**（`$BK_HOME/state/<ns>/<key>.json`，见 ui-slots `storage.ts`）。
+   * 上下文携带 storage 句柄；面板仍自包含（宿主只给句柄，不做 dirty/save 编排）。
+   */
+  "settings.section": {
+    /** 持久化句柄（宿主经 `root` 槽注入壳，壳再注入本槽）：插件设置面板逐字段落 KV 用。 */
+    storage: StorageHandle
+  }
+  /**
+   * 数据管理页（数据源能力缝落地）：插件自声明路由 `/data` 的页面内容经此槽渲染。
+   * 页面**不自连桥**——宿主把数据管理 API 句柄（`lib/dataManagementApi.ts` 封装
+   * `data-sources/*` / `database/*` 命令 + `database/dataset-updated` 事件）随 context
+   * 注入，插件页只消费契约（对齐 `root` 槽注入 storage/titleBar 的同款姿势）。
+   */
+  "data.management": {
+    /** 数据管理 API（宿主注入；页面据此拉快照/改路由/探测凭据/触发采集/订阅落库事件）。 */
+    api: DataManagementApi
   }
   /**
    * 根（root）槽：应用壳帧挂载点（对齐 dsh `ui-layout` 在宿主内置 `root` 槽挂 `AppFrame`）。
@@ -88,6 +111,11 @@ export interface FrontendSlotContextMap {
     renderApp: () => ReactNode
     /** 自绘标题栏控制器（WP-5）：宿主经 Rust window command 封装后注入；壳只做呈现与拖拽。 */
     titleBar: TitleBarController
+    /**
+     * 持久化句柄（宿主经 `lib/api` storage* 封装后注入）：壳/插件表单经它把设置项落成
+     * `$BK_HOME/state/<ns>/<key>.json` 的一个 KV（设置弹窗接入持久化管线）。
+     */
+    storage: StorageHandle
   }
 }
 
@@ -139,6 +167,79 @@ export interface SettingsGroup {
 /** 已注册槽位的名字（即类型化 map 的键全集）。 */
 export type FrontendSlotName = keyof FrontendSlotContextMap
 
+// ---- 数据管理 API（`data.management` 槽 context 的契约，宿主注入、插件页消费）----
+// 载荷形状与 sidecar `data-sources/*` / `database/*` 快照**结构镜像**（ui-slots 不依赖
+// @berkshire/core，跨包用结构对齐，诚实登记：v2 共享类型层债务）。
+
+/** 一个 provider 对某 dataset 的可用性（不可用带原因，fail-closed 展示面）。 */
+export interface DataSourceAvailabilityDto {
+  available: boolean
+  reason?: string
+}
+
+/** `data-sources/list` 快照里的一个 provider 项。 */
+export interface DataSourceProviderDto {
+  id: string
+  label: string
+  datasets: Record<string, DataSourceAvailabilityDto>
+}
+
+/** 内置 dataset 声明（materialization: embedded 内嵌物化；parquet-view 仍目标态）。 */
+export interface DataManagementDatasetDto {
+  id: string
+  label: string
+  materialization: string
+  columns: string[]
+  /** 同步元信息（v1 仅登记窗口语义字符串供页面展示；cadence/incremental 仍目标态）。 */
+  sync?: { window?: string }
+}
+
+/** 本地库内嵌表（名称 + 行数）。 */
+export interface DataManagementTableDto {
+  name: string
+  rowCount: number
+}
+
+/** 数据管理页主快照（一次拉齐：providers/datasets/当前路由/本地库表/Key 是否已配置）。 */
+export interface DataManagementSnapshotDto {
+  providers: DataSourceProviderDto[]
+  datasets: DataManagementDatasetDto[]
+  /** dataset → 当前实际路由到的 provider（无候选/未配置 → null）。 */
+  resolved: Record<string, string | null>
+  tables: DataManagementTableDto[]
+  /** 扶摇 API Key 是否已配置（当前仅指环境变量 `FUYAO_API_KEY` 已提供；页面据此展示状态）。 */
+  apiKeyConfigured: boolean
+}
+
+/** 一次同步（采集）的结果（`database/dataset-updated` 载荷同形）。 */
+export interface DataManagementSyncResultDto {
+  dataset: string
+  rows: number
+  at: number
+}
+
+/**
+ * 数据管理 API 契约（宿主 `createDataManagementApi` 实现，随 `data.management` 槽 context 注入）。
+ *
+ * 全部调用 fail-closed：桥断/命令失败显式 reject，页面据此展示错误而非「看似合理」的空态。
+ * 凭据纪律（对齐 AGENTS.md §Secrets）：**不落盘明文密钥**——`probe` 只实探验证、绝不持久化
+ * Key 值；provider 运行期只从环境变量（如 `FUYAO_API_KEY`）取值，`ctx.credentials` 仍目标态。
+ */
+export interface DataManagementApi {
+  /** 拉取页面主快照（providers + datasets + 当前路由 + 本地库表 + Key 配置态）。 */
+  snapshot(): Promise<DataManagementSnapshotDto>
+  /** 把某 dataset 的路由偏好设为某 provider（校验候选，非法组合响亮失败）。 */
+  setPreference(dataset: string, provider: string): Promise<void>
+  /** 实探一个 provider 的凭据（如扶摇 API Key）；只探不存。 */
+  probe(providerId: string, apiKey: string): Promise<{ ok: boolean; reason?: string }>
+  /** 触发一次数据集采集（整表替换语义；`params` 如 { symbols, start, end } 透传给 provider）。 */
+  sync(dataset: string, params?: Record<string, unknown>): Promise<DataManagementSyncResultDto>
+  /** 本地库内嵌表清单（名称 + 行数）。 */
+  tables(): Promise<DataManagementTableDto[]>
+  /** 订阅 `database/dataset-updated`；返回同步退订函数。 */
+  onDatabaseUpdated(cb: (payload: DataManagementSyncResultDto) => void): () => void
+}
+
 /**
  * 运行时存在的槽位名，用于注册时的「未知 slot」校验（fail-closed）。与
  * {@link FrontendSlotContextMap} 的键保持一致。
@@ -152,4 +253,6 @@ export const FRONTEND_SLOT_NAMES: readonly FrontendSlotName[] = [
   "layout.sidebar.footer",
   "layout.statusbar.right",
   "settings.cards",
+  "settings.section",
+  "data.management",
 ]

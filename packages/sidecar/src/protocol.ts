@@ -11,8 +11,9 @@
  */
 import type { Context } from '@berkshire/cordis'
 import '@berkshire/core'
-import type { CapabilityId, StorageNamespaceId } from '@berkshire/core'
+import type { CapabilityId, DatasetId, DataSourceId, StorageNamespaceId } from '@berkshire/core'
 import type { NotifyPayload } from '@berkshire/core'
+import { runDatasetSync } from './sync'
 
 /** 简版 JSON-RPC 2.0 错误码（T0 协议）。 */
 export const ESC = {
@@ -183,6 +184,91 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
       if (typeof ns !== 'string' || ns === '') throw new ProtocolError(ESC.PARAMS, 'storage/list requires non-empty string "ns"')
       try {
         return await ctx.storage.list(ns as StorageNamespaceId)
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+    }
+
+    // ---- 数据源能力缝（dataSources/datasets/database）：数据管理页 + 同步编排 ----
+
+    case 'data-sources/list': {
+      // 数据管理页主快照：全部 provider（含逐 dataset 可用性）+ 全部 dataset 声明 + 每 dataset
+      // 当前解析结果（偏好路由）。无候选源 → resolved 为 null（页面据此展示缺源，fail-closed）。
+      const providers = await ctx.dataSources.list()
+      const datasets = ctx.datasets.list()
+      const resolved: Record<string, string | null> = {}
+      for (const d of datasets) {
+        try {
+          resolved[String(d.id)] = String((await ctx.dataSources.resolve(d.id)).id)
+        } catch {
+          resolved[String(d.id)] = null
+        }
+      }
+      return {
+        providers,
+        datasets: datasets.map((d) => ({
+          id: String(d.id),
+          label: d.label,
+          materialization: d.materialization,
+          columns: [...d.columns],
+          sync: d.sync,
+        })),
+        resolved,
+      }
+    }
+
+    case 'data-sources/candidates': {
+      const { dataset } = params
+      if (typeof dataset !== 'string' || dataset === '') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/candidates requires non-empty string "dataset"')
+      }
+      return (await ctx.dataSources.candidates(dataset as DatasetId) ).map((p) => String(p))
+    }
+
+    case 'data-sources/set-preference': {
+      const { dataset, provider } = params
+      if (typeof dataset !== 'string' || dataset === '') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/set-preference requires non-empty string "dataset"')
+      }
+      if (typeof provider !== 'string' || provider === '') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/set-preference requires non-empty string "provider"')
+      }
+      try {
+        return await ctx.dataSources.setPreference(dataset as DatasetId, provider as DataSourceId)
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+    }
+
+    case 'data-sources/probe': {
+      const { provider, apiKey } = params
+      if (typeof provider !== 'string' || provider === '') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/probe requires non-empty string "provider"')
+      }
+      if (apiKey !== undefined && typeof apiKey !== 'string') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/probe "apiKey" must be a string when present')
+      }
+      return await ctx.dataSources.probe(provider as DataSourceId, apiKey)
+    }
+
+    case 'data-sources/sync': {
+      const { dataset, params: syncParams } = params
+      if (typeof dataset !== 'string' || dataset === '') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/sync requires non-empty string "dataset"')
+      }
+      if (syncParams !== undefined && (typeof syncParams !== 'object' || syncParams === null || Array.isArray(syncParams))) {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/sync "params" must be an object when present')
+      }
+      try {
+        return await runDatasetSync(ctx, dataset as DatasetId, (syncParams ?? {}) as Record<string, unknown>)
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+    }
+
+    case 'database/tables': {
+      try {
+        return await ctx.database.tables()
       } catch (err) {
         throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
       }

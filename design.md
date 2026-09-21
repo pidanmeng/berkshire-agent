@@ -108,8 +108,8 @@ BK 前端采用**暗色优先**的专业交易终端风格，走**近黑基底 +
 
 ## 7. 页面与布局结构
 
-- 路由：宿主 `apps/berkshire-agent/src` 用 `react-router-dom` `HashRouter`，核心路由 `/`、`/theme`、`/settings` + 插件自声明动态路由（`src/routes/*`，路由契约化）。
-- 外壳：`@berkshire/ui-slots` 共享 `root` 槽挂 `@berkshire/base-ui` 壳帧（**grid 三区域骨架**：可扩展侧边栏 + 右顶栏 + 内容区；状态栏 + 设置页 + 布局挂点；复用 `@berkshire/ui` Button/Badge）。设置页承载「设置分组占位契约」（通用/模型，id/label/order，`DEFAULT_SETTINGS_GROUPS`），分组弹窗/表单为 WP-6 待实现。
+- 路由：宿主 `apps/berkshire-agent/src` 用 `react-router-dom` `HashRouter`，核心路由 `/`、`/theme` + 插件自声明动态路由（`src/routes/*`，路由契约化）；**设置是弹窗（WP-6），不是路由页**。
+- 外壳：`@berkshire/ui-slots` 共享 `root` 槽挂 `@berkshire/base-ui` 壳帧（**grid 三区域骨架**：可扩展侧边栏 + 右顶栏 + 内容区；状态栏 + 设置弹窗 + 布局挂点；复用 `@berkshire/ui` Button/Badge/Modal）。设置弹窗（WP-6）左分组〔通用/模型/插件设置〕右表单：通用/模型表单骨架用 `@berkshire/ui` Input/Select，模型 Key 字段只存 env 引用名（不落明文）；「插件设置」分组承接 `settings.section` 设置 Seam（插件贡献设置表单面板，每槽包 `ExtensionBoundary`），分组 id/label/order 契约 `DEFAULT_SETTINGS_GROUPS` 在 `@berkshire/base-ui` `settingsGroups.ts`。
 - 页面结构惯例：标题栏 → 内容区（卡片/表格/图表）。
 - 内核 k线/行情列表等深色图表区遵循 §1 的近黑基底与边框分层；虚拟滚动表格、列自定义等仍是**目标态**。
 
@@ -137,7 +137,7 @@ BK 前端采用**暗色优先**的专业交易终端风格，走**近黑基底 +
 | 样式令牌层（`--bk-*`，静态+别名） | [`packages/theme`](packages/theme)（`src/tokens.ts`；魔法色值 lint `scripts/lint-styles.ts`） |
 | 原子组件库 | [`packages/ui`](packages/ui)（`@berkshire/ui`，`src/*.tsx` + `*.module.css`；`scripts/build-client.ts` 产出 ESM + css） |
 | 共享 UI 缝引擎 | [`packages/ui-slots`](packages/ui-slots)（`SlotRegistry`/`ExtensionSlot`/`ExtensionBoundary`） |
-| 应用壳 webview 半身 | [`packages/plugins/base-ui/src/client/`](packages/plugins/base-ui/src/client/)（`AppShell`/`Sidebar`/`StatusBar`/`SettingsPage` + `installThemedRoot`） |
+| 应用壳 webview 半身 | [`packages/plugins/base-ui/src/client/`](packages/plugins/base-ui/src/client/)（`AppShell`/`Sidebar`/`StatusBar`/`SettingsDialog`（WP-6 设置弹窗）+ `installThemedRoot`） |
 | 前端宿主 | [`apps/berkshire-agent/src/`](apps/berkshire-agent/src/)（`main.tsx`/`App.tsx`/`lib/api.ts`/`routes/*`/`client/*`/`onboarding/*`） |
 | 图标/图表/查询层 | 目标态（见 §5.1/§6/§8，落地后登记此处） |
 

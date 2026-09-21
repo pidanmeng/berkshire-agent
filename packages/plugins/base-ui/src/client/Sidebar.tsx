@@ -6,7 +6,7 @@
  *   （WP-3：不再手写平行按钮）；品牌区克制分层、一个强调色 mark 作收敛的视觉锚。
  * - 导航区：核心路由（`/`）pinned + 插件路由按 `section` 分组（经 prop `routes` 注入）；
  * - `layout.navigation.extra` 槽：插件在导航区追加项/分组；
- * - 底部：`layout.sidebar.footer` 槽（插件在设置入口上方追加控制项）+ 固定设置入口（`/settings`）。
+ * - 底部：`layout.sidebar.footer` 槽（插件在设置入口上方追加控制项）+ 设置入口（点开**设置弹窗**，WP-6）。
  *
  * 每个槽项/可折叠态经 context 传给插件组件；每个槽组件包在 ExtensionBoundary（ExtensionSlot 内建）。
  * 从宿主 `apps/berkshire-agent/src/layout/Sidebar.tsx` 迁出下沉；插件路由改由 prop 注入（不依赖宿主
@@ -17,19 +17,21 @@ import { useState, type ReactNode } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { clsx } from "clsx"
 import { Button } from "@berkshire/ui"
-import { ExtensionSlot } from "@berkshire/ui-slots"
+import { ExtensionSlot, type StorageHandle } from "@berkshire/ui-slots"
 import type { ShellRouteInfo } from "./AppShell"
+import { SettingsDialog } from "./SettingsDialog"
 import styles from "./Sidebar.module.css"
 
 /**
- * 核心 pinned 导航（壳自有，插件不可覆盖；/settings 走底部固定入口）。
+ * 核心 pinned 导航（壳自有，插件不可覆盖；设置走底部入口打开弹窗，非路由）。
  * 产品取舍（WP-4）：`/theme`（主题对照页）是设计/开发期的主题验证工具，移出消费者导向的
  * 主导航；它仍是受核心路由保护的、可地址访问的 dev 工具路由（见 core `CORE_ROUTE_PATHS`）。
  */
 const CORE_NAV = [{ path: "/", title: "首页" }] as const
 
-export function Sidebar({ routes }: { routes: readonly ShellRouteInfo[] }) {
+export function Sidebar({ routes, storage }: { routes: readonly ShellRouteInfo[]; storage: StorageHandle }) {
   const [collapsed, setCollapsed] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { pathname } = useLocation()
 
   // 插件路由按 section 分组：缺省走单一默认组（兼容既有声明不配 section）。
@@ -96,16 +98,20 @@ export function Sidebar({ routes }: { routes: readonly ShellRouteInfo[] }) {
 
       <div className={styles.footer}>
         <ExtensionSlot name="layout.sidebar.footer" context={{ collapsed }} />
-        <Link
-          to="/settings"
-          className={clsx(styles.settingsEntry, isNavLinkActive("/settings") && styles.settingsActive)}
-          title={collapsed ? "设置" : undefined}
+        {/* WP-6：设置入口从路由页改为打开设置弹窗（/settings 路由已移除）。 */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className={clsx(styles.settingsEntry, collapsed && styles.settingsEntryCollapsed)}
+          onClick={() => setSettingsOpen(true)}
+          title={collapsed ? "设置" : "打开设置"}
         >
           <span className={styles.settingsIcon} aria-hidden>
             ⚙
           </span>
           {!collapsed && <span>设置</span>}
-        </Link>
+        </Button>
+        <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} storage={storage} />
       </div>
     </nav>
   )

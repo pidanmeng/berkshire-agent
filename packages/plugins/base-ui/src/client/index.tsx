@@ -1,7 +1,7 @@
 /**
  * `@berkshire/base-ui/client` —— webview 壳插件入口。
  *
- * 承载应用壳（AppShell 网格 + Sidebar 可扩展侧边栏 + StatusBar 状态栏 + SettingsPage 设置页）
+ * 承载应用壳（AppShell 网格 + Sidebar 可扩展侧边栏 + StatusBar 状态栏 + SettingsDialog 设置弹窗）
  * 与各自 CSS Modules。从宿主 `apps/berkshire-agent/src/layout/*` 迁出下沉：壳组件只依赖共享的
  * `@berkshire/ui-slots`（slot 引擎）与 `react-router-dom`/`clsx`，**不依赖宿主**——插件路由与桥接态
  * 由宿主经 prop 注入（见 `AppShellProps.routes` / `bridgeOnline`）。
@@ -16,7 +16,7 @@ export { Sidebar } from "./Sidebar"
 export { StatusBar } from "./StatusBar"
 export { TitleBar } from "./TitleBar"
 export type { TitleBarController } from "@berkshire/ui-slots"
-export { SettingsPage } from "./SettingsPage"
+export { SettingsDialog } from "./SettingsDialog"
 export { ThemePalettePage } from "./ThemePalettePage"
 export { TokenSwatch } from "./TokenSwatch"
 export { RootShell } from "./RootShell"

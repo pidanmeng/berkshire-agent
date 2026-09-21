@@ -21,7 +21,7 @@ injectSharedImportMap(buildSharedImportMap());
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    {/* T2：HashRouter 在 Tauri webview 内稳定（不依赖 history API/服务端回退）；核心路由 /、/settings + 动态分析菜单路由 */}
+    {/* T2：HashRouter 在 Tauri webview 内稳定（不依赖 history API/服务端回退）；核心路由 /、/theme（设置是弹窗，已非路由）+ 插件自声明动态路由 */}
     <HashRouter>
       <App />
     </HashRouter>

@@ -99,6 +99,45 @@ async fn storage_list(ns: String, state: BridgeState<'_>) -> Result<Vec<String>,
     bridge_call(state, move |b| b.storage_list(ns)).await
 }
 
+// ---- 数据源能力缝（data-sources/* + database/tables）：数据管理页 + 同步编排 ----
+
+#[tauri::command]
+async fn data_sources_list(state: BridgeState<'_>) -> Result<serde_json::Value, String> {
+    bridge_call(state, Bridge::data_sources_list).await
+}
+
+#[tauri::command]
+async fn data_sources_set_preference(
+    dataset: String,
+    provider: String,
+    state: BridgeState<'_>,
+) -> Result<serde_json::Value, String> {
+    bridge_call(state, move |b| b.data_sources_set_preference(dataset, provider)).await
+}
+
+#[tauri::command]
+async fn data_sources_probe(
+    provider: String,
+    api_key: Option<String>,
+    state: BridgeState<'_>,
+) -> Result<serde_json::Value, String> {
+    bridge_call(state, move |b| b.data_sources_probe(provider, api_key)).await
+}
+
+#[tauri::command]
+async fn data_sources_sync(
+    dataset: String,
+    params: Option<serde_json::Value>,
+    state: BridgeState<'_>,
+) -> Result<serde_json::Value, String> {
+    bridge_call(state, move |b| b.data_sources_sync(dataset, params)).await
+}
+
+#[tauri::command]
+async fn database_tables(state: BridgeState<'_>) -> Result<serde_json::Value, String> {
+    bridge_call(state, Bridge::database_tables).await
+}
+
 /// 首启供给：sidecar 是否处于「待供给」阶段（无 cordis.yml）→ webview 显示首启引导。
 #[tauri::command]
 async fn provisioning_status(state: BridgeState<'_>) -> Result<bool, String> {
@@ -187,6 +226,11 @@ pub fn run() {
             storage_set,
             storage_remove,
             storage_list,
+            data_sources_list,
+            data_sources_set_preference,
+            data_sources_probe,
+            data_sources_sync,
+            database_tables,
             provisioning_status,
             provision_bk_home,
             window_minimize,

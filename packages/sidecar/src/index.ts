@@ -36,6 +36,7 @@ import { handleLine, handleProvisionLine, type HandleLineDeps, type HandleLineRe
 import { attachEventPusher } from './events'
 import { attachDevWatcher } from './dev_watch'
 import { createFileStorageProvider } from './storage-provider'
+import { duckDbPath } from './duckdb-provider'
 import type { LineWriter } from './writer'
 
 /** 仓库根（dev 态插件热更 watcher 用）：packages/sidecar/src → ../../../。 */
@@ -123,6 +124,21 @@ async function main(): Promise<void> {
   if (coreRows.length > 0) {
     detachStorage = boot.ctx.storage.register(createFileStorageProvider(bkHome))
   }
+  // DuckDB Provider（WP：数据源能力缝落地）：惰性动态 import——原生绑定若在 Bun 下加载失败，
+  // 不崩 boot（装配期不拉起 duckdb），仅使 `ctx.database` 不可用；页面经 database/tables 显示
+  // 离线原因（fail-closed）。真正打开发生在首次调用（见 duckdb-provider.ts）。
+  let detachDatabase: (() => void) | undefined
+  if (coreRows.length > 0) {
+    try {
+      const { createDuckDbProvider } = await import('./duckdb-provider')
+      detachDatabase = boot.ctx.database.register(createDuckDbProvider(bkHome))
+    } catch (err) {
+      process.stderr.write(
+        `[sidecar][warn] DuckDB provider 装载失败（${duckDbPath(bkHome)}）: ` +
+          `${err instanceof Error ? err.message : String(err)}\n`,
+      )
+    }
+  }
   for (const row of rest) {
     await boot.install(row, resolver)
   }
@@ -149,6 +165,7 @@ async function main(): Promise<void> {
   const teardown = async () => {
     detachDevReload?.()
     detachStorage?.() // 摘文件 Provider（root ctx effect；boot.dispose 亦会兜底清理）
+    detachDatabase?.() // 摘 DuckDB Provider（连接随进程退出，无需显式 closeSync）
     detachEvents()
     const order = await boot.dispose() // 逆序清理：后装先卸（v1 §8 已验证语义）。
     process.stderr.write(`[sidecar] shutdown: dispose order = ${order.join(' -> ')}\n`)

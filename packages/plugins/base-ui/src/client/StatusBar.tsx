@@ -20,7 +20,6 @@ import styles from "./StatusBar.module.css"
 const CORE_TITLES: Record<string, string> = {
   "/": "首页",
   "/theme": "主题",
-  "/settings": "设置",
 }
 
 /** 兜底：连 context 也没有时的缺省标题。 */

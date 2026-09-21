@@ -3,7 +3,7 @@
  *
  * 契约类型 `SettingsGroup` 定义在共享缝 `@berkshire/ui-slots`（`settings.cards` 槽的上下文），
  * 本文件给出**缺省分组骨架**（`通用设置` / `模型设置`），并随 `settings.cards` 槽 context 透传给
- * 插件卡片（见 `SettingsPage`）。
+ * 插件卡片（见 `SettingsDialog`）。
  *
  * 诚实标注：这里是**占位 Seam**，不是已渲染的设置弹窗。「通用设置 / 模型设置」的分组上半身
  * （分组 UI、表单条目、弹窗本体）由 **WP-6** 消费并落地，本包只定义契约并渲染一个占位骨架；

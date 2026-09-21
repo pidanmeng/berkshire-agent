@@ -1,0 +1,165 @@
+/* SettingsDialog（WP-6 设置弹窗，base-ui 壳插件）—— 应用壳，dark-first 终端风。
+ * 只写 var(--bk-*) 与结构，禁魔法值。弹窗两栏 grid（左分组 / 右表单），分层用边框、少阴影。 */
+
+/* 弹窗面板本体尺寸（经 Modal 的 className 追加到 .dialog；对齐 radius-dialog 弹窗圆角）。
+ * 高度固定为 min(78vh, 640px)，不再随内容伸缩——由两栏各自纵向滚动消化溢出。 */
+.dialog {
+  width: min(760px, 92vw);
+  height: min(78vh, 640px);
+  display: flex;
+  flex-direction: column;
+  padding: var(--bk-space-4);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bk-space-3);
+  padding-bottom: var(--bk-space-3);
+  border-bottom: 1px solid var(--bk-border);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--bk-font-size-md);
+  font-weight: 600;
+  color: var(--bk-color-fg);
+}
+
+.close {
+  flex: none;
+}
+
+/* 两栏 grid：左分组（固定宽） / 右表单（自适应，独立滚动）。 */
+.body {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--bk-space-4);
+  margin-top: var(--bk-space-3);
+  min-height: 0;
+  flex: 1;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.groupItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--bk-space-2) var(--bk-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--bk-radius-lg);
+  background: transparent;
+  color: var(--bk-color-fg-muted);
+  cursor: pointer;
+}
+.groupItem:hover {
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg);
+}
+.groupItemActive {
+  background: var(--bk-color-accent-soft);
+  border-color: var(--bk-border-strong);
+  color: var(--bk-color-fg);
+}
+
+.groupItemLabel {
+  font-weight: 600;
+  font-size: var(--bk-font-size-md);
+  color: inherit;
+}
+
+.groupItemHint {
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+  word-break: break-word;
+}
+
+/* 右栏容器：内部垂直排布「滚动表单区 + 底部 action bar」。 */
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 右栏底部 action bar：随弹窗固定（不随表单滚动），承接保存/重置等操作。 */
+.actionBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--bk-space-3);
+  margin-top: var(--bk-space-3);
+  padding-top: var(--bk-space-3);
+  border-top: 1px solid var(--bk-border);
+}
+
+.actionNote {
+  margin: 0 0 0 auto;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-3);
+}
+
+.formTitle {
+  margin: 0;
+  font-size: var(--bk-font-size-md);
+  font-weight: 600;
+  color: var(--bk-color-fg);
+}
+
+.formDesc {
+  margin: 0;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-4);
+}
+
+/* 插件设置槽区与既有设置卡片区。 */
+.sections,
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-3);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--bk-space-3);
+  margin-top: var(--bk-space-1);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+}

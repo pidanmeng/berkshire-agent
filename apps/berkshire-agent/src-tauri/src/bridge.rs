@@ -353,6 +353,58 @@ impl Bridge {
             })
             .collect()
     }
+
+    // ---- 数据源能力缝（data-sources/* + database/tables）：数据管理页 + 同步编排 ----
+    // 快照/复合结果为 JSON Value 直通（页面消费形状，Rust 侧不做业务判定；fail-closed 在
+    // sidecar 协议层/服务层），单参命令仍按命令面逐一签名。
+
+    /// 数据源主快照（`data-sources/list`）：providers（含逐 dataset 可用性）+ datasets
+    /// 声明 + 当前路由（偏好解析）。无候选源 → resolved 为 null（页面据此展示缺源）。
+    pub fn data_sources_list(&self) -> Result<Value, String> {
+        self.call("data-sources/list", Value::Object(Default::default()))
+            .map_err(|e| e.message)
+    }
+
+    /// 切换某数据集的路由偏好（校验目标 provider 确为该数据集候选；非法组合响亮失败）。
+    /// 返回新偏好表（Record<dataset, providerId>）。
+    pub fn data_sources_set_preference(&self, dataset: String, provider: String) -> Result<Value, String> {
+        self.call(
+            "data-sources/set-preference",
+            serde_json::json!({ "dataset": dataset, "provider": provider }),
+        )
+        .map_err(|e| e.message)
+    }
+
+    /// 实探某 provider 的凭据（先探后存：本方法不落盘，由调用方决定是否存储）。
+    /// `api_key` 可选（缺省用 provider 当前已配置的 Key 实探）。
+    pub fn data_sources_probe(&self, provider: String, api_key: Option<String>) -> Result<Value, String> {
+        let mut p = serde_json::Map::new();
+        p.insert("provider".into(), provider.into());
+        if let Some(k) = api_key {
+            p.insert("apiKey".into(), k.into());
+        }
+        self.call("data-sources/probe", Value::Object(p))
+            .map_err(|e| e.message)
+    }
+
+    /// 触发一次数据集采集（整表替换语义：建表 → DELETE + 批量 INSERT → 广播落库事件）。
+    /// `params`（如 `{ symbols, start, end }`）可选透传给 provider。
+    pub fn data_sources_sync(&self, dataset: String, params: Option<Value>) -> Result<Value, String> {
+        let mut p = serde_json::Map::new();
+        p.insert("dataset".into(), dataset.into());
+        if let Some(pp) = params {
+            p.insert("params".into(), pp);
+        }
+        self.call("data-sources/sync", Value::Object(p))
+            .map_err(|e| e.message)
+    }
+
+    /// 本地库内嵌表清单（`database/tables`：名称 + 行数；`database/dataset-updated` 后
+    /// 页面据此刷新展示）。
+    pub fn database_tables(&self) -> Result<Value, String> {
+        self.call("database/tables", Value::Object(Default::default()))
+            .map_err(|e| e.message)
+    }
 }
 
 #[cfg(test)]

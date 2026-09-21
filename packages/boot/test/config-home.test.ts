@@ -11,9 +11,12 @@ import { importPlugin, resolveDownloadedPackage } from '../src/loader'
  * - readCordisYml：缺文件 / 非数组 / 行缺 name / config 非法 → fail-closed 响亮失败。
  * - 下载包：`resolveDownloadedPackage` 从 `$HK_HOME/node_modules/<name>` 取 exports/main 的
  *   dist 入口；`importPlugin(nodeModulesDir)` 用一条路径解析下载包（与 npm 裸名一视同仁）。
+ *
+ * 诚实标注（fixture 位置）：伪下载包放在 `fixtures/downloaded/`（**不在 `node_modules/` 目录内**，
+ * 否则会被 `bun install` 当作安装产物清掉——node_modules 属 bun 托管，目录内 fixture 不落库）。
  */
 const FIX_BK_HOME = resolve(import.meta.dir, 'fixtures/bk-home')
-const FIX_NM = resolve(import.meta.dir, 'fixtures/node_modules')
+const FIX_NM = resolve(import.meta.dir, 'fixtures/downloaded')
 
 describe('bk-home · 配置 home 解析', () => {
   test('环境变量 BK_HOME 优先；cordis.yml / node_modules 都落在其下', () => {

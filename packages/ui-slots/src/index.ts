@@ -20,5 +20,21 @@ export {
   type ShellRouteInfo,
   type SettingsGroup,
   type TitleBarController,
+  type DataManagementApi,
+  type DataManagementSnapshotDto,
+  type DataManagementDatasetDto,
+  type DataManagementSyncResultDto,
+  type DataManagementTableDto,
+  type DataSourceProviderDto,
+  type DataSourceAvailabilityDto,
 } from "./types"
 export type { PreviewView, WatchlistViewMode } from "./types"
+export {
+  type Branded,
+  type StorageNamespaceId,
+  type StorageChangedPayload,
+  type StorageHandle,
+  type PersistedField,
+  type PersistedFieldOptions,
+  usePersistedField,
+} from "./storage"

@@ -25,10 +25,14 @@ export function attachEventPusher(ctx: Context, emit: EventPusher): () => void {
   const offStorage = ctx.on('storage/changed', (payload) => {
     emit(JSON.stringify({ event: 'storage/changed', payload }))
   })
+  const offDatabase = ctx.on('database/dataset-updated', (payload) => {
+    emit(JSON.stringify({ event: 'database/dataset-updated', payload }))
+  })
   return () => {
     offNotify()
     offCaps()
     offClient()
     offStorage()
+    offDatabase()
   }
 }

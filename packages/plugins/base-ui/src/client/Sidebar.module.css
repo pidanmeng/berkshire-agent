@@ -113,10 +113,6 @@
   background: var(--bk-hover);
   color: var(--bk-color-fg);
 }
-.settingsActive {
-  background: var(--bk-active);
-  color: var(--bk-color-fg);
-}
 .settingsIcon {
   font-size: var(--bk-font-size-md);
 }

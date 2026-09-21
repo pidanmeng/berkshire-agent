@@ -31,6 +31,30 @@ const DOCUMENT_BASE_CSS = `
 body {
   margin: 0;
 }
+
+/* 全局滚动条：覆盖默认样式，改为不起眼的一次性滚动条（细、弱色、隐藏轨道）。
+ * 只写 var(--bk-*) 与结构，禁魔法色值；Firefox 走 scrollbar-width/color，WebKit 走伪元素。
+ * border + background-clip: content-box 让滑块两端留空隙，视觉更收敛。 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bk-color-fg-subtle) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--bk-color-fg-subtle);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--bk-color-fg-muted);
+}
 `
 
 /**

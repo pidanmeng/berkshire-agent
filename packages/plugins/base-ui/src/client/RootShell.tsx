@@ -20,6 +20,7 @@ export const RootShell: SlotComponent<FrontendSlotContextMap["root"]> = ({ conte
     routes={context.routes}
     bridgeOnline={context.bridgeOnline}
     titleBar={context.titleBar}
+    storage={context.storage}
   >
     {context.renderApp()}
   </AppShell>

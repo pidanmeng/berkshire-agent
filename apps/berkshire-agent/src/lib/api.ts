@@ -165,6 +165,105 @@ export function onStorageChanged(
   ).then((unlisten) => unlisten);
 }
 
+// ---- 数据源能力缝（data-sources/* + database/tables）：数据管理页 + 同步编排 ----
+// 快照载荷与 `@berkshire/ui-slots` 的 DataManagementApi DTO 结构镜像（见
+// `packages/ui-slots/src/types.ts`；宿主不依赖 core，跨包用结构对齐）。
+
+/** 一个 provider 对某 dataset 的可用性（不可用带原因，fail-closed 展示面）。 */
+export interface DataSourceAvailabilityDto {
+  available: boolean;
+  reason?: string;
+}
+
+/** `data-sources/list` 快照里的一个 provider 项。 */
+export interface DataSourceProviderDto {
+  id: string;
+  label: string;
+  datasets: Record<string, DataSourceAvailabilityDto>;
+}
+
+/** 内置 dataset 声明（materialization: embedded 内嵌物化；parquet-view 仍目标态）。 */
+export interface DataManagementDatasetDto {
+  id: string;
+  label: string;
+  materialization: string;
+  columns: string[];
+  sync?: { window?: string };
+}
+
+/** 本地库内嵌表（名称 + 行数）。 */
+export interface DataManagementTableDto {
+  name: string;
+  rowCount: number;
+}
+
+/** `data-sources/list` 主快照（providers + datasets + 当前路由）。 */
+export interface DataSourcesSnapshot {
+  providers: DataSourceProviderDto[];
+  datasets: DataManagementDatasetDto[];
+  /** dataset → 当前实际路由到的 provider（无候选/未配置 → null）。 */
+  resolved: Record<string, string | null>;
+}
+
+/** 一次同步（采集）的结果（`database/dataset-updated` 载荷同形）。 */
+export interface DataManagementSyncResultDto {
+  dataset: string;
+  rows: number;
+  at: number;
+}
+
+/** 拉取数据源主快照（`data-sources/list`）。 */
+export function dataSourcesList(): Promise<DataSourcesSnapshot> {
+  return withTimeout(invoke<DataSourcesSnapshot>("data_sources_list"), "data_sources_list");
+}
+
+/** 切换某数据集的路由偏好（校验候选；非法组合响亮失败）。 */
+export function dataSourcesSetPreference(dataset: string, provider: string): Promise<void> {
+  return withTimeout(
+    invoke<void>("data_sources_set_preference", { dataset, provider }),
+    "data_sources_set_preference",
+  );
+}
+
+/** 实探一个 provider 的凭据（只探不存，供校验）。 */
+export function dataSourcesProbe(
+  providerId: string,
+  apiKey?: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  return withTimeout(
+    invoke<{ ok: boolean; reason?: string }>("data_sources_probe", {
+      provider: providerId,
+      apiKey,
+    }),
+    "data_sources_probe",
+  );
+}
+
+/** 触发一次数据集采集（整表替换语义；`params` 透传给 provider）。 */
+export function dataSourcesSync(
+  dataset: string,
+  params?: Record<string, unknown>,
+): Promise<DataManagementSyncResultDto> {
+  return withTimeout(
+    invoke<DataManagementSyncResultDto>("data_sources_sync", { dataset, params }),
+    "data_sources_sync",
+  );
+}
+
+/** 本地库内嵌表清单（`database/tables`：名称 + 行数）。 */
+export function databaseTables(): Promise<DataManagementTableDto[]> {
+  return withTimeout(invoke<DataManagementTableDto[]>("database_tables"), "database_tables");
+}
+
+/** 订阅 sidecar 透传的 `database/dataset-updated` 事件（落库完成后触发）；返回退订函数。 */
+export function onDatabaseUpdated(
+  cb: (payload: DataManagementSyncResultDto) => void,
+): Promise<() => void> {
+  return listen<DataManagementSyncResultDto>("sidecar://database/dataset-updated", (e) =>
+    cb(e.payload),
+  ).then((unlisten) => unlisten);
+}
+
 // ---- WP-5：自绘标题栏窗口控制（Rust command 面，聚焦 Windows）----
 // 经 `tauri.conf.json` 的 `decorations:false` 去除原生标题栏后，webview 自绘标题栏据此调用窗口命令。
 // 这些命令不经过 sidecar（窗口级操作），仍经 `invoke` 直连 Rust。

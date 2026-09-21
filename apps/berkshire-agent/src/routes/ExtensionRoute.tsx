@@ -12,7 +12,12 @@
  * 内容模块 id 只靠命名约定对应、无强制。此限制在 v-next 前不修复，先登记在此。
  */
 import { ExtensionBoundary, ExtensionSlot, FRONTEND_SLOT_NAMES } from "@berkshire/ui-slots"
+import { createDataManagementApi } from "../lib/dataManagementApi"
 import styles from "./ExtensionRoute.module.css"
+
+// 数据管理页的桥接 API（宿主注入）：单例化一次，随 `data.management` 槽 context 交给插件页
+// （页面不自连桥，对齐 root 槽注入 storage/titleBar 的姿势）。
+const dataManagementApi = createDataManagementApi()
 
 export default function ExtensionRoute({ title, slot }: { title: string; slot: string }) {
   // 路由宿主 fail-closed：sidecar 给的 slot 必须在已知槽位内，否则不渲染。
@@ -20,12 +25,13 @@ export default function ExtensionRoute({ title, slot }: { title: string; slot: s
     console.warn(`[ExtensionRoute] 未知 slot '${slot}'，路由 '${title}' 不渲染`)
     return null
   }
+  const context = slot === "data.management" ? { api: dataManagementApi } : {}
   return (
     <section className={styles.page}>
       <h2>{title}</h2>
       <ExtensionBoundary>
         <div className={styles.content}>
-          <ExtensionSlot name={slot as never} context={{} as never} />
+          <ExtensionSlot name={slot as never} context={context as never} />
         </div>
       </ExtensionBoundary>
     </section>

@@ -58,6 +58,10 @@ dataset:
 
 继承 TSP [数据契约红线](reference/tick-stock-panel-contracts.md#8-data-contract) 并改写为 BK 语义。**边界跨层必须显式转换并有测试，禁止启发式。**
 
+> 已实现落点（跨 provider 共享的纯工具与红线校验，见 [packages/core/src/dataContract.ts](../packages/core/src/dataContract.ts) 与各 provider 单测）：
+> - `toFloat`/`volumeToHand`（股→手）/`derivePreClose`（窗口内 pre_close·change_pct **同源推导**，首行无前收 → null）为**单一实现**，fuyao/csv provider 共用，避免同口径各写一份而漂移；
+> - 扶摇 provider（[provider.ts](../packages/plugins/datasource-fuyao/src/provider.ts)）落地红线：change_pct 百分数→小数制（**/100**，见单测）、volume 股→手、daily **锁 adjust=none**（官方 forward 序列事件间有逐日漂移，禁止使用）、*ms 北京零点 +8h 换算、adj_factor 单事件比值（非累积）+ 涨跌停自检、空数据/缺 Key fail-closed 响亮报错（见 [test/](../packages/plugins/datasource-fuyao/test/)）；CSV provider（[provider.ts](../packages/plugins/datasource-csv/src/provider.ts)）按同一内部口径（volume 已按手填写），坏行跳过留痕。
+
 - **比例/百分比**：`change_pct`/`turnover_rate` 统一口径（小数制 vs 百分数值），跨边界显式转换，禁止“数值 <1 乘 100”。
 - **价格与复权**：enriched OHLC 前复权；`raw_*` 不复权原始价；涨跌停判断基于原始价；指标/收益序列价格口径与现有定义一致。除权因子语义：`adj = raw / Π(事件后 ex_factor)`，`ex_factor` 为逐事件非累积。
 - **日期/交易日/时区**：A 股统一北京时间（`CN_TZ`），分钟 `datetime` 为北京 naive 墙钟，入口强制归一（禁止 UTC 入库/下发）；窗口按实际交易日；股票/ETF/指数分存储路由，不凭代码格式猜资产类型。

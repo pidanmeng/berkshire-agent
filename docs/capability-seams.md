@@ -17,10 +17,10 @@
 
 | ctx key | 责任 | 说明 |
 | --- | --- | --- |
-| `ctx.database` | DuckDB 访问（Rust 侧桥接 seam） | 单写者；插件/前端经它读写。返回 `ds`/datatable，覆盖 dataset 视图 |
-| `ctx.datasets` | dataset/schema 注册表 | 声明 dataset_id、列定义、分区、物化策略、source、同步状态、generation marker |
+| `ctx.database` | DuckDB 访问（能力缝 **Definition，已落地**） | 单写者纪律：一切 DuckDB 写入只经 `exec`（v1 写路径在 sidecar Node 侧 `@duckdb/node-api`；Rust `duckdb-rs` 单写者仍目标态）。返回 `DatabaseProvider`（isReady/query/exec/tables），覆盖 dataset 视图；事件 `database/dataset-updated` |
+| `ctx.datasets` | dataset/schema 注册表（**已落地**） | 声明 dataset_id、列定义、物化策略（v1 `embedded`；分区/parquet-view/generation marker 目标态）、source、同步窗口 |
 | `ctx.capabilities` | 能力注册表与矩阵 | `CAPABILITY_REGISTRY` + `build_capability_matrix`；`usable` 是通用门控（继承 TSP） |
-| `ctx.market` | 市场环境 / 交易日历 / symbol 解析 / 行情扇出 | 交易日、A 股北京时间、symbol↔asset_type 归属 |
+| `ctx.market` | 市场环境 / 交易日历 / symbol 解析 / 行情扇出 | **目标态**；交易日、A 股北京时间、symbol↔asset_type 归属 |
 | `ctx.sessions` / `ctx.log` | 追加式工作/事件日志 | 在途工作耐久记录，跨重载存活 |
 | `ctx.slots` | 前端 slot 注册表 | 声明 UI slot（见 §5） |
 | `ctx.clientModules` | client 插件图宿主 | 需要富 UI 的插件注册前端 bundle，经 `bk://` 提供 |
@@ -32,7 +32,7 @@
 
 | ctx key | 角色 | 责任 | Providers（计划） | Consumers |
 | --- | --- | --- | --- | --- |
-| `ctx.dataSources` | seam | 行情/财务数据提供方统一接口 | `datasource-tickflow`、`datasource-fuyao`、`datasource-tushare`、`datasource-akshare`(python)、用户 YAML 通用 HTTP provider | 同步 job、`ctx.market`、backtest |
+| `ctx.dataSources` | seam | 行情/财务数据提供方统一接口（**Definition 已落地 v1**：core [seams/dataSources.ts](../packages/core/src/seams/dataSources.ts)，按功能分类逐数据集路由） | **`datasource-fuyao`（已落地：realtime/daily/adj_factor/financial；minute 声明未落地）**、**`datasource-csv`（已落地：最小第二 provider 证明多源路由）**、`datasource-tickflow`、`datasource-tushare`、`datasource-akshare`(python)、用户 YAML 通用 HTTP provider（计划） | 同步 job（sidecar `sync.ts` 已落地）、数据管理页（`@berkshire/plugin-data-manager` 已落地）、`ctx.market`、backtest |
 | `ctx.indicators` | seam | 指标/信号注册与现算 | `indicators-base`（内建 MA/EMA/MACD/BOLL/KDJ/ATR/RSI…）、用户自定义 | `ctx.screener`、`ctx.strategy`、`ctx.backtest`、图表 |
 | `ctx.screener` | seam | 选股引擎（预设 + 自定义 SQL） | `screener-sql` | 前端 `/screener` |
 | `ctx.strategy` | seam | 策略引擎（文件系统/注册表加载） | `strategy-builtin`、用户策略 | `ctx.backtest`、`ctx.monitor` |
@@ -68,6 +68,7 @@
 - **已实现（v1，可直接 import）**：接口权威定义在 `packages/core`——
   - `ctx.notifier`：消费/供给方从 **`@berkshire/core`** import 共享类型（`NotifyService` 在 `packages/core/src/seams/notify.ts`；`NotifyProvider`/`NotifyPayload` 在 `packages/core/src/types.ts`），并经 **co-located** `declare module 'cordis'` 读 `ctx.notifier`（增强就在 `packages/core/src/seams/notify.ts` 本文件；B 级已把各服务/事件增强分散到所属文件）。v1 直接增强 `cordis` 官方包；目标态 `@berkshire/cordis` vendor 落地后换模块名即可。
   - `ctx.slots` / `ctx.clientModules`：定义在 `packages/core/src/services/{slots,clientModules}.ts`（`Slots`/`ClientModules`/`FrontendSlotRegistration`/`ClientModuleRegistration`），`ctx.slots` 增强在 `services/slots.ts`、`ctx.clientModules` 增强在 `services/clientModules.ts`，而 **`client/changed` 为跨服务共享事件**（Slots 与 ClientModules 都发出）在 `packages/core/src/events.ts`；`@berkshire/core` 根入口导出全部服务类型，插件（如 `@berkshire/plugin-demo`）经 `inject: ['slots','clientModules']` 消费，需要单服务粒度的可按 `@berkshire/core` 的子路径导出导入。跨边界 wire 类型（sidecar `client/list`/webview `api.ts` 的复刻）仍为 v2 共享类型层债务，勿复制签名。
+  - `ctx.dataSources`（seam）/ `ctx.datasets` / `ctx.database`：定义在 `packages/core/src/seams/dataSources.ts`（`DataSources`/`DataSourceProvider`/`DatasetAvailability`/`DatasetRouteInfo`，增强在本文件）与 `packages/core/src/services/{datasets,database}.ts`（`Datasets`/`DatasetDeclaration`/`DatabaseService`/`DatabaseProvider`/`DatabaseTableInfo`，`database/dataset-updated` 事件在 `services/database.ts` 内 co-locate）；`ctx.datasets`/`ctx.database` 为 core 服务、`ctx.dataSources` 为能力缝 Definition。Provider 插件（`@berkshire/plugin-datasource-fuyao`/`-csv`）经 `inject: ['dataSources','log']` 消费注册；Consumer（sidecar `sync.ts`、数据管理页）经 `ctx.dataSources.resolve/fetch/setPreference` + `ctx.database.exec/query/tables` 消费。跨边界 wire 类型（sidecar `data-sources/*`/webview `DataManagementApi` 的 DTO）仍为 v2 共享类型层债务，勿复制签名。凭据：只读环境变量 `FUYAO_API_KEY`（`probe` 只探不存，**不落盘明文**，对齐 AGENTS.md 凭据红线）；`ctx.credentials` 仍目标态。
   - `ctx.storage`（WP-2 已落地 v1）：Definition 在 `packages/core/src/seams/storage.ts`（`StorageService` + `ctx.storage` + `storage/changed` 事件；`StorageProvider` 在 `packages/core/src/types.ts`、`StorageNamespaceId` 在 `brand.ts`）。**Provider** 由 sidecar 的 `packages/sidecar/src/storage-provider.ts`（`createFileStorageProvider(bkHome)`）实现，读写 `$BK_HOME/state/<ns>/<key>.json`（防越权 + 原子改名写 + 串行写 + 坏文件 fail-closed，明确**不是 DuckDB**）。**Consumer** 示范为 demo 插件（`@berkshire/plugin-demo`，`inject` 含 `storage`，挂载时读写 `demo` 命名空间）。跨边界：sidecar `storage/get|set|remove|list` 协议 + Rust `storage_*` command + webview `lib/api.ts` 薄客户端。
 - **目标态（未落地，不得 import 当已存在）**：`ctx.ai`/`ctx.dataSources`/`ctx.backtest`/`ctx.chart` 等仍为设计承诺，未见上方归属表外的落地文件；落地后在此登记各自 Definition 的权威文件路径。
 
@@ -130,9 +131,10 @@ declare module '@berkshire/cordis' {
 | `layout.navigation.extra` | 侧边栏导航区 | `{ collapsed: boolean; pathname: string }` | 插件在导航区追加项/分组 |
 | `layout.sidebar.footer` | 侧边栏底部（设置入口上方） | `{ collapsed: boolean }` | 插件追加控制项 |
 | `layout.statusbar.right` | 状态栏右侧 | `Record<string, never>` | 插件追加状态项（插件自持响应式） |
-| `settings.cards` | 设置页（`/settings`） | `Record<string, never>` | 插件追加设置卡片/分组 |
+| `settings.cards` | 设置弹窗「插件设置」分组（WP-6 起为弹窗） | `{ settingsGroups: SettingsGroup[] }` | 插件追加设置卡片/分组 |
+| `settings.section` | 设置弹窗「插件设置」分组（WP-6 设置 Seam） | `Record<string, never>` | 插件贡献自己的**设置表单面板**（装上即出现、卸下即消失；每槽包 `ExtensionBoundary`） |
 
-- **三角色**：Definition 挂点（共享缝 `@berkshire/ui-slots` `FrontendSlotContextMap` + core `SLOT_NAMES`，两端同一契约）；Provider（插件经 `ctx.slots`/`ctx.clientModules` 挂载组件 + scoped 样式）；Consumer（`AppShell`/`Sidebar`/`StatusBar`/`SettingsPage` 内的 `ExtensionSlot`，每槽包 `ExtensionBoundary`）。
+- **三角色**：Definition 挂点（共享缝 `@berkshire/ui-slots` `FrontendSlotContextMap` + core `SLOT_NAMES`，两端同一契约）；Provider（插件经 `ctx.slots`/`ctx.clientModules` 挂载组件 + scoped 样式）；Consumer（`AppShell`/`Sidebar`/`StatusBar`/`SettingsDialog` 内的 `ExtensionSlot`，每槽包 `ExtensionBoundary`）。`settings.section` 的消费者即 base-ui `SettingsDialog` 的「插件设置」分组——通用/模型设置是壳自有表单（`GeneralSettingsForm`/`ModelSettingsForm`，字段用 `@berkshire/ui`，持久化接线待 v-next 挂 storage 缝；模型密钥字段只存 env 引用名、不落明文）。
 - **共享 `root` 单例槽**：应用壳帧经 `@berkshire/ui-slots` 内置 `root` 槽（`SlotKind='single'`）挂载——`@berkshire/base-ui` 的 `RootShell` 是唯一 single 项（重复注册 fail-closed 拒绝），宿主 `App.tsx` 从 root 槽取壳帧。`root` 是 **webview 本地槽**、不在 core `SLOT_NAMES`（sidecar 不可注册壳帧），两端集合因此**有意不同**。
 - **侧边栏路由分组**：`RouteDescriptor.section?`（core `slots.ts`）使插件路由在侧边栏按组展示；缺省单组（兼容既有声明）。
 - **诚实边界**：紧凑 `page.header` 每页头槽、折叠态持久化（storage）、store 作用域、`bk://` 远程 bundle、壳经 sidecar 装配可 disable（note「host-to-base-ui」step 3b 余下）均 v-next。

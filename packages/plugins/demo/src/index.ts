@@ -5,7 +5,7 @@ import type { Context } from '@berkshire/cordis'
 import type { ClientModuleId, StorageNamespaceId } from '@berkshire/core'
 // 插件独立打包阶段编译产物（P3：CSS Modules → 哈希类名 + 注入代码，lightningcss）。
 // 同一份文件也供 `.tsx` webview 半身拿哈希类名——sidecar 只取 `css` 作为注入代码交给 host。
-import { fundFlow, moneyFlow, watchlistToolbar, navExtra, statusItem, settingsCard } from './client/styles.generated'
+import { fundFlow, moneyFlow, watchlistToolbar, navExtra, statusItem, settingsCard, settingsSection } from './client/styles.generated'
 
 import '@berkshire/core'
 
@@ -162,6 +162,21 @@ export async function apply(ctx: Context, config: Config): Promise<() => void> {
           style: settingsCard.css,
         }),
       )
+
+      // WP-6 设置 Seam：把 demo 的「设置表单面板」挂进设置弹窗「插件设置」分组（settings.section 槽）。
+      // 三角色之 Consumer 证明——装上即出现在弹窗对应分组、卸下即消失（slot + clientModule 注册即效应）。
+      disposers.push(
+        ctx.slots.register('settings.section', { id: 'demo-settings-section', order: 10 }),
+      )
+      disposers.push(
+        ctx.clientModules.register({
+          id: 'demo-settings-section' as ClientModuleId,
+          slot: 'settings.section',
+          url: CLIENT_ENTRY_URL,
+          exportName: 'DemoSettingsSection',
+          style: settingsSection.css,
+        }),
+      )
     }
 
     // 后端逻辑走已有能力缝：无 database，用 `ctx.log` 留痕（诚实：数据为占位，非真实行情）。
@@ -174,6 +189,7 @@ export async function apply(ctx: Context, config: Config): Promise<() => void> {
         config.enableShellWidgets ? 'layout.navigation.extra' : null,
         config.enableShellWidgets ? 'layout.statusbar.right' : null,
         config.enableShellWidgets ? 'settings.cards' : null,
+        config.enableShellWidgets ? 'settings.section' : null,
       ].filter((s): s is string => Boolean(s)),
     })
 

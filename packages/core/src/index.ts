@@ -13,6 +13,10 @@ export * from './seams/notify'
 export * from './seams/storage'
 export * from './services/slots'
 export * from './services/clientModules'
+export * from './services/datasets'
+export * from './seams/dataSources'
+export * from './services/database'
+export * from './dataContract'
 
 // core 脊装配插件（装载即提供核心服务）
 export * from './core'
