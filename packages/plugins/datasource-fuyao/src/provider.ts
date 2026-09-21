@@ -23,7 +23,7 @@
  */
 import { FuyaoClient, FuyaoError, type FetchLike } from './client'
 import { derivePreClose, toFloat, volumeToHand } from '@berkshire/core'
-import type { DataSourceId, DataSourceProvider, DatasetAvailability, DatasetId } from '@berkshire/core'
+import type { DataSourceId, DataSourceProvider, DatasetAvailability, DatasetId, TradeDayProbe } from '@berkshire/core'
 
 export interface FuyaoProviderDeps {
   /** 当前 API Key（取自 env `FUYAO_API_KEY`；空串 = 未配置）。 */
@@ -42,6 +42,13 @@ const HIST_INTERVAL_MS = 120 // 单标的请求节流
 const PREV_CLOSE_BACKDAYS = 30 // 因子推导：除权日前收盘回看天数
 const ADJ_DUMP_KIND = 'adjustment-factors'
 const API_KEY_ENV = 'FUYAO_API_KEY'
+
+/**
+ * PIT 财务（红线 3）：三张报表各保留近 N 期（季度），每期连同自己的 `period_end`/`announce_date`
+ * 落 EAV 行——**不丢历史、不预填**，消费方日后可按公告日做 as-of「取最新已披露值」。
+ * 跨期折叠（as-of 读面）仍目标态（docs/data-model.md §6）；此常量只保证写路径保历史。
+ */
+const FINANCIAL_HISTORY_PERIODS = 8
 
 // 项目财务表名 → 扶摇报表端点名
 const STATEMENT_ENDPOINTS = {
@@ -112,6 +119,122 @@ function dateOfMs(value: unknown): string | null {
 /** ISO 日期（yyyy-mm-dd）→ 扶摇 start/end 入参口径 ms（北京零点，不依赖本机时区）。 */
 function msOfDate(iso: string): number {
   return (Date.parse(iso) / 1000 - 28_800) * 1000
+}
+
+/* ─── 股票日历（calendar）口径 ───
+ *
+ * 扶摇 `trading-days`（/api/a-share/calendar/trading-days）返回**近一年的交易日序列**（`item`
+ * 数组，每行一个交易日）。本 provider 把它归一为 `CALENDAR_COLUMNS`（`trade_date/open/close/status`）
+ * 的 `calendar` 数据集。诚实声明：扶摇该接口的实际字段布局未在参考实现里封存，故这里是**防御性
+ * 归一化**（宽容多种常见字段名），单测用本项目自定义的 fixture 锁定契约；若真实接口字段不同，
+ * 属数据适配（data-adaptation）收尾，不改变 `calendar` 数据集的规范化列。
+ *
+ * 语义（docs/data-model.md §3）：`open`=是否开盘（交易日序列中通常 true）、`close`=收盘时刻（半天
+ * 市提前，缺省空）、`status`=标记（半天市/节假日/普通开盘）。
+ */
+
+/**
+ * 从一行原始记录里提取 `yyyy-mm-dd` 交易日（容错常见字段名与日期字段的北京零点 `*_ms`）。
+ * 找不到合法日期 → null（该行跳过，不伪造）。
+ */
+export function calendarDate(raw: Record<string, unknown>): string | null {
+  for (const k of ['trade_date', 'date', 'cal_date', 'trading_date', 'trade_date_ms', 'date_ms']) {
+    const v = raw[k]
+    if (typeof v === 'number') {
+      const d = dateOfMs(v)
+      if (d) return d
+      continue
+    }
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10)
+    if (v !== null && v !== undefined) {
+      const d = dateOfMs(Number(v))
+      if (d) return d
+    }
+  }
+  return null
+}
+
+/** 解释 `open` 字段（宽容布尔 / 0·1 / 是·否 / open·closed / 中英文）；无法判定 → null。 */
+function openFlag(raw: Record<string, unknown>): boolean | null {
+  for (const k of ['is_open', 'open', 'is_trading', 'trade_status']) {
+    const v = raw[k]
+    if (v === true || v === 1) return true
+    if (v === false || v === 0) return false
+    if (typeof v === 'string') {
+      const s = v.trim().toLowerCase()
+      if (['1', 'y', 'yes', 'true', 'open', '开盘', '是'].includes(s)) return true
+      if (['0', 'n', 'no', 'false', 'close', 'closed', '休市', '否'].includes(s)) return false
+    }
+  }
+  return null
+}
+
+/** 判断是否半天市（`is_half_day`/`half_day` 标记为真）。 */
+function halfDayFlag(raw: Record<string, unknown>): boolean {
+  for (const k of ['is_half_day', 'half_day', 'is_halfday']) {
+    const v = raw[k]
+    if (v === true || v === 1 || v === '1' || (typeof v === 'string' && ['y', 'yes', 'true', '是'].includes(v.trim().toLowerCase()))) return true
+  }
+  return false
+}
+
+/** 一条 `trading-days` 原始行 → `calendar` 行（`trade_date/open/close/status`）；日期非法 → null。 */
+export function calendarRow(raw: Record<string, unknown>): Record<string, unknown> | null {
+  const tradeDate = calendarDate(raw)
+  if (!tradeDate) return null
+  const open = openFlag(raw) ?? true // 交易日序列行默认开盘
+  const close = (typeof raw['close'] === 'string' ? raw['close'] : raw['close_time']) ?? null
+  const halfDay = halfDayFlag(raw)
+  const status =
+    (typeof raw['status'] === 'string' && raw['status'] !== '' ? raw['status'] : '') ||
+    (halfDay ? 'half-day' : open ? 'open' : 'closed')
+  return { trade_date: tradeDate, open: open, close: close, status: status }
+}
+
+/** 构造 `ctx.marketTime` 的**交易日探针**（走扶摇 `trading-days`，带窗口 TTL 缓存）。
+ * 用于 `market-time` 服务（`ctx.marketTime`）的「节假日探针 + TTL 缓存」降档链：周末直判只判周末，
+ * 非周末由本探针判定；若目标日期超出扶摇返回的交易日窗口则**抛错**触发降档。纯读、不落盘。 */
+export function createCalendarProbe(
+  deps: Pick<FuyaoProviderDeps, 'getApiKey' | 'fetchImpl'>,
+): TradeDayProbe {
+  const CACHE_TTL_MS = 60 * 60_000
+  let cache: { min: string; max: string; set: Set<string>; at: number } | null = null
+
+  async function ensureWindow(): Promise<{ min: string; max: string; set: Set<string> }> {
+    const now = Date.now()
+    if (cache && now - cache.at < CACHE_TTL_MS) return cache
+    const key = (await deps.getApiKey()).trim()
+    if (!key) throw new FuyaoError(`未配置 ${API_KEY_ENV}（无法确证交易日）`)
+    const client = new FuyaoClient({ apiKey: key, fetchImpl: deps.fetchImpl, timeoutMs: 20_000 })
+    const rows = await client.tradingDays()
+    const set = new Set<string>()
+    let min: string | null = null
+    let max: string | null = null
+    for (const r of rows) {
+      const d = calendarDate(r as Record<string, unknown>)
+      if (!d) continue
+      set.add(d)
+      if (!min || d < min) min = d
+      if (!max || d > max) max = d
+    }
+    if (!min || !max || set.size === 0) throw new FuyaoError('扶摇 trading-days 无可用交易日数据')
+    cache = { min, max, set, at: now }
+    return cache
+  }
+
+  return {
+    id: 'fuyao',
+    async probe(iso) {
+      const { min, max, set } = await ensureWindow()
+      if (iso < min || iso > max) {
+        // 目标日期不在扶摇窗口内 → 无法判定，抛错触发 market-time 降档（周几近似兜底）。
+        throw new FuyaoError(`日期 ${iso} 超出扶摇交易日窗口（${min}~${max}）`)
+      }
+      const trading = set.has(iso)
+      // 休市结论短 TTL 定期复探（日历可能更新）；交易日长 TTL 减少重探。
+      return { trading, ttlMs: trading ? 6 * 3_600_000 : 10 * 60_000 }
+    },
+  }
 }
 
 /** 交易所除权参考价（half-up 保留 2 位；denom≤0 → null）。 */
@@ -221,6 +344,7 @@ export function createFuyaoProvider(deps: FuyaoProviderDeps): DataSourceProvider
     daily: { available: true },
     adj_factor: { available: true },
     financial: { available: true },
+    calendar: { available: true },
     minute: { available: false, reason: 'minute（quota-h 私有网关）未落地，另行实现' },
   } as Partial<Record<DatasetId, DatasetAvailability>>
 
@@ -278,6 +402,8 @@ export function createFuyaoProvider(deps: FuyaoProviderDeps): DataSourceProvider
           return fetchAdjFactor(args)
         case 'financial':
           return fetchFinancial(args)
+        case 'calendar':
+          return fetchCalendar()
         case 'minute':
           throw new FuyaoError('扶摇 minute（quota-h）未落地（fail-closed）')
         default:
@@ -468,9 +594,12 @@ export function createFuyaoProvider(deps: FuyaoProviderDeps): DataSourceProvider
     const client = await requireClient()
     const out: Array<Record<string, unknown>> = []
     for (const symbol of symbols) {
+      let latestIncome: Array<Record<string, unknown>> = []
       for (const table of STATEMENT_TABLES) {
         const fieldMap = table === 'income' ? INCOME_FIELD_MAP : table === 'balance_sheet' ? BALANCE_FIELD_MAP : CASHFLOW_FIELD_MAP
-        const rows = await client.financialStatements(table, symbol, 1)
+        // PIT：取近 N 期，每期（period_end/announce_date）各落 EAV 行，保留历史已披露值。
+        const rows = await client.financialStatements(table, symbol, FINANCIAL_HISTORY_PERIODS)
+        if (table === 'income') latestIncome = rows
         for (const r of rows) {
           const periodEnd = dateOfMs(r['period_end_ms'])
           const announceDate = dateOfMs(r['report_date_ms'])
@@ -481,9 +610,9 @@ export function createFuyaoProvider(deps: FuyaoProviderDeps): DataSourceProvider
           }
         }
       }
-      // 指标（latest 期）：report 参数取利润表最新一期的 yyyy-N；未披露期接口报错 → 跳过。
-      const latest = await client.financialStatements('income', symbol, 1)
-      const firstRow = latest[0]
+      // 指标（latest 期）：report 参数取最新一期 income 的 yyyy-N（上面已取多期，第 0 行为最新）；
+      // 未披露期接口报错 → 跳过，不伪造。
+      const firstRow = latestIncome[0]
       if (firstRow) {
         const fy = toFloat(firstRow['fiscal_year'])
         const fp = String(firstRow['fiscal_period'] ?? '').toUpperCase()
@@ -512,6 +641,20 @@ export function createFuyaoProvider(deps: FuyaoProviderDeps): DataSourceProvider
     }
     deps.log?.('fuyao/financial', { symbols: symbols.length, rows: out.length })
     return out
+  }
+
+  // ---- calendar（股票日历/交易日）----
+
+  async function fetchCalendar(): Promise<Array<Record<string, unknown>>> {
+    const client = await requireClient()
+    const raw = await client.tradingDays()
+    const rows: Array<Record<string, unknown>> = []
+    for (const r of raw) {
+      const row = calendarRow(r as Record<string, unknown>)
+      if (row) rows.push(row)
+    }
+    deps.log?.('fuyao/calendar', { total: raw.length, rows: rows.length })
+    return rows
   }
 }
 

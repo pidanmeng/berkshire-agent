@@ -16,6 +16,9 @@ export * from './services/clientModules'
 export * from './services/datasets'
 export * from './seams/dataSources'
 export * from './services/database'
+export * from './services/marketTime'
+export * from './services/indicators'
+export * from './indicators'
 export * from './dataContract'
 
 // core 脊装配插件（装载即提供核心服务）

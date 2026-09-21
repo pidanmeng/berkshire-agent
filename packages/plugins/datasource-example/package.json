@@ -1,0 +1,33 @@
+{
+  "name": "@berkshire/plugin-datasource-example",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./datasets": {
+      "types": "./dist/datasets.d.ts",
+      "default": "./dist/datasets.js"
+    }
+  },
+  "scripts": {
+    "build": "bunx tsc -p tsconfig.build.json",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@berkshire/cordis": "workspace:*",
+    "cordis": "4.0.0-rc.10",
+    "zod": "^3.23.8",
+    "@berkshire/core": "workspace:*",
+    "@berkshire/boot": "workspace:*"
+  },
+  "peerDependencies": {
+    "cordis": "4.0.0-rc.10"
+  }
+}

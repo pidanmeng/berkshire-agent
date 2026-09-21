@@ -43,6 +43,14 @@
       "types": "./dist/services/clientModules.d.ts",
       "default": "./dist/services/clientModules.js"
     },
+    "./services/indicators": {
+      "types": "./dist/services/indicators.d.ts",
+      "default": "./dist/services/indicators.js"
+    },
+    "./indicators": {
+      "types": "./dist/indicators.d.ts",
+      "default": "./dist/indicators.js"
+    },
     "./seams/notify": {
       "types": "./dist/seams/notify.d.ts",
       "default": "./dist/seams/notify.js"

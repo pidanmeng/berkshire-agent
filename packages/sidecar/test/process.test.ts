@@ -154,6 +154,17 @@ describe('sidecar 进程端到端', () => {
       const stList = await s.request('storage/list', { ns: 'demo' })
       expect((stList.result as string[]).includes('kv')).toBe(true)
 
+      // 数据基座常驻（S1 升权）：即使用户 cordis.yml 不声明数据插件，数据平台也始终可用——
+      // data-sources/list 列出 fuyao/csv provider、client/list 含 data-manager 数据管理页。
+      const ds = await s.request('data-sources/list')
+      expect(ds.error).toBeUndefined()
+      const dsResult = ds.result as { providers: Array<{ id: string }> }
+      const providers = dsResult.providers.map((p) => p.id)
+      expect(providers).toContain('fuyao')
+      expect(providers).toContain('csv')
+      const cmods = await s.request('client/list')
+      expect((cmods.result as Array<{ id: string }>).some((m) => m.id === 'data-manager')).toBe(true)
+
       const unknown = await s.request('no/such/method')
       expect(unknown.error?.code).toBe(-32601)
 
@@ -163,8 +174,11 @@ describe('sidecar 进程端到端', () => {
       expect(await s.waitExit()).toBe(0)
 
       // 逆序销毁顺序写入 stderr（waitExit 等待 close，末帧已送达）。
-      // T3 起 base 里叠了 demo 插件行，故卸除顺序为 demo -> notify-console -> core（后装先卸）。
-      expect(s.stderrLines().join('')).toContain('dispose order = demo -> notify-console -> core')
+      // S1 升权后装配顺序 = core → [数据基座 fuyao/csv/data-manager] → notify-console → demo，
+      // 后装先卸故顺序为 demo -> notify-console -> data-manager -> csv -> fuyao -> core。
+      expect(s.stderrLines().join('')).toContain(
+        'dispose order = demo -> notify-console -> data-manager -> datasource-csv -> datasource-fuyao -> core',
+      )
     } finally {
       s.stop()
     }

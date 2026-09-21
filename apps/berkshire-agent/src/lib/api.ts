@@ -197,12 +197,14 @@ export interface DataManagementTableDto {
   rowCount: number;
 }
 
-/** `data-sources/list` 主快照（providers + datasets + 当前路由）。 */
+/** `data-sources/list` 主快照（providers + datasets + 当前路由 + 覆盖日期）。 */
 export interface DataSourcesSnapshot {
   providers: DataSourceProviderDto[];
   datasets: DataManagementDatasetDto[];
   /** dataset → 当前实际路由到的 provider（无候选/未配置 → null）。 */
   resolved: Record<string, string | null>;
+  /** 覆盖日期快照（S2 覆盖 seam）。 */
+  coverage: DataCoverageEntryDto[];
 }
 
 /** 一次同步（采集）的结果（`database/dataset-updated` 载荷同形）。 */
@@ -210,6 +212,36 @@ export interface DataManagementSyncResultDto {
   dataset: string;
   rows: number;
   at: number;
+}
+
+/**
+ * 覆盖日期登记快照项（`data-sources/coverage` / `data-sources/list.coverage`）：
+ * 每组数据的覆盖区间（min~max）、行数、来源与记录时刻；未登记 → covered:false。
+ */
+export interface DataCoverageEntryDto {
+  dataset: string;
+  label: string;
+  covered: boolean;
+  minDate: string | null;
+  maxDate: string | null;
+  tradingDays: number | null;
+  rows: number;
+  source: string | null;
+  materialization: string;
+  recordedAt: number | null;
+  coverageStart: string | null;
+  isComplete: boolean | null;
+}
+
+/** 覆盖缺洞自检结果（最小面：目标窗口 vs 实际覆盖的缺失区间）。 */
+export interface CoverageGapsResultDto {
+  dataset: string;
+  targetStart: string | null;
+  targetEnd: string | null;
+  actualMin: string | null;
+  actualMax: string | null;
+  missing: Array<{ start: string; end: string }>;
+  complete: boolean;
 }
 
 /** 拉取数据源主快照（`data-sources/list`）。 */
@@ -253,6 +285,31 @@ export function dataSourcesSync(
 /** 本地库内嵌表清单（`database/tables`：名称 + 行数）。 */
 export function databaseTables(): Promise<DataManagementTableDto[]> {
   return withTimeout(invoke<DataManagementTableDto[]>("database_tables"), "database_tables");
+}
+
+/** 覆盖日期登记快照（`data-sources/coverage`：全部已声明数据组的覆盖）。 */
+export function dataSourcesCoverage(): Promise<DataCoverageEntryDto[]> {
+  return withTimeout(invoke<DataCoverageEntryDto[]>("data_sources_coverage"), "data_sources_coverage");
+}
+
+/** 手动重算某数据集的覆盖（重扫实际落库表 + 重新登记），返回更新后的该数据集覆盖快照。 */
+export function dataSourcesCoverageRefresh(dataset: string): Promise<DataCoverageEntryDto> {
+  return withTimeout(
+    invoke<DataCoverageEntryDto>("data_sources_coverage_refresh", { dataset }),
+    "data_sources_coverage_refresh",
+  );
+}
+
+/** 覆盖缺洞自检（最小面：比对目标窗口 vs 实际覆盖，输出缺失区间）。 */
+export function dataSourcesCoverageGaps(
+  dataset: string,
+  start?: string,
+  end?: string,
+): Promise<CoverageGapsResultDto> {
+  return withTimeout(
+    invoke<CoverageGapsResultDto>("data_sources_coverage_gaps", { dataset, ...(start ? { start } : {}) , ...(end ? { end } : {}) }),
+    "data_sources_coverage_gaps",
+  );
 }
 
 /** 订阅 sidecar 透传的 `database/dataset-updated` 事件（落库完成后触发）；返回退订函数。 */

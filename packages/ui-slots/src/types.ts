@@ -200,13 +200,43 @@ export interface DataManagementTableDto {
   rowCount: number
 }
 
-/** 数据管理页主快照（一次拉齐：providers/datasets/当前路由/本地库表/Key 是否已配置）。 */
+/**
+ * 覆盖日期登记快照项（`data-sources/coverage` / `data-sources/list.coverage`，S2 覆盖 seam）：
+ * 每组数据的覆盖区间（min~max）、行数、来源与记录时刻。未登记 → `covered:false`（fail-closed，
+ * 不伪造「已覆盖」）。
+ */
+export interface DataCoverageEntryDto {
+  dataset: string
+  label: string
+  /** 是否已有覆盖登记（未同步 → false）。 */
+  covered: boolean
+  /** 已覆盖区间的起始日期（YYYY-MM-DD；未登记 → null）。 */
+  minDate: string | null
+  /** 已覆盖区间的截止日期（YYYY-MM-DD；未登记 → null）。 */
+  maxDate: string | null
+  /** 覆盖区间内的去重日期数（近交易日数；真实日历语义归 market-calendar）。 */
+  tradingDays: number | null
+  /** 覆盖区间内的实际行数（未登记 → 0）。 */
+  rows: number
+  /** 数据来源 provider id（未登记 → null）。 */
+  source: string | null
+  /** 物化策略。 */
+  materialization: string
+  /** 登记/最后刷新时刻（ms；未登记 → null）。 */
+  recordedAt: number | null
+  coverageStart: string | null
+  isComplete: boolean | null
+}
+
+/** 数据管理页主快照（一次拉齐：providers/datasets/当前路由/本地库表/覆盖日期/Key 是否已配置）。 */
 export interface DataManagementSnapshotDto {
   providers: DataSourceProviderDto[]
   datasets: DataManagementDatasetDto[]
   /** dataset → 当前实际路由到的 provider（无候选/未配置 → null）。 */
   resolved: Record<string, string | null>
   tables: DataManagementTableDto[]
+  /** 覆盖日期快照（每组数据的覆盖区间/行数/来源/记录时刻）。 */
+  coverage: DataCoverageEntryDto[]
   /** 扶摇 API Key 是否已配置（当前仅指环境变量 `FUYAO_API_KEY` 已提供；页面据此展示状态）。 */
   apiKeyConfigured: boolean
 }
@@ -236,6 +266,8 @@ export interface DataManagementApi {
   sync(dataset: string, params?: Record<string, unknown>): Promise<DataManagementSyncResultDto>
   /** 本地库内嵌表清单（名称 + 行数）。 */
   tables(): Promise<DataManagementTableDto[]>
+  /** 手动重算某数据集的覆盖（重扫实际落库表 + 重新登记），返回更新后的覆盖快照。 */
+  refreshCoverage(dataset: string): Promise<DataCoverageEntryDto>
   /** 订阅 `database/dataset-updated`；返回同步退订函数。 */
   onDatabaseUpdated(cb: (payload: DataManagementSyncResultDto) => void): () => void
 }

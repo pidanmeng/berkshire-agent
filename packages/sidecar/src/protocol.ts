@@ -14,6 +14,9 @@ import '@berkshire/core'
 import type { CapabilityId, DatasetId, DataSourceId, StorageNamespaceId } from '@berkshire/core'
 import type { NotifyPayload } from '@berkshire/core'
 import { runDatasetSync } from './sync'
+import { safeStringify } from './json-safe'
+import { coverageGapsFor, listCoverageEntries, rescanAndRecordCoverage } from './coverage-utils'
+import { META_SCOPE, type DatasetCache } from './cache'
 
 /** 简版 JSON-RPC 2.0 错误码（T0 协议）。 */
 export const ESC = {
@@ -84,7 +87,7 @@ const LEVELS = ['info', 'warn', 'error'] as const
 /** 桥接装配阶段（首启供给）：sidecar 是否已按 `$BK_HOME/cordis.yml` 装配完成。 */
 export type BootPhase = 'ready' | 'provisioning'
 
-async function dispatch(method: string, params: Record<string, unknown>, ctx: Context): Promise<unknown> {
+async function dispatch(method: string, params: Record<string, unknown>, ctx: Context, cache?: DatasetCache): Promise<unknown> {
   switch (method) {
     case 'boot/status':
       // 装配完成阶段（ready）：宿主据此把 webview 切到「已初始化/在线」。provisioning 阶段由
@@ -193,7 +196,8 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
 
     case 'data-sources/list': {
       // 数据管理页主快照：全部 provider（含逐 dataset 可用性）+ 全部 dataset 声明 + 每 dataset
-      // 当前解析结果（偏好路由）。无候选源 → resolved 为 null（页面据此展示缺源，fail-closed）。
+      // 当前解析结果（偏好路由）+ 覆盖日期快照（S2 覆盖 seam）。
+      // 无候选源 → resolved 为 null（页面据此展示缺源，fail-closed）。
       const providers = await ctx.dataSources.list()
       const datasets = ctx.datasets.list()
       const resolved: Record<string, string | null> = {}
@@ -212,8 +216,69 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
           materialization: d.materialization,
           columns: [...d.columns],
           sync: d.sync,
+          version: d.version,
         })),
         resolved,
+        // 覆盖快照走读透缓存（meta 作用域）：命中复用、写路径 invalidateMeta 后自动失效。
+        coverage: cache
+          ? await cache.read(META_SCOPE, 'coverage', () => listCoverageEntries(ctx))
+          : await listCoverageEntries(ctx),
+      }
+    }
+
+    case 'data-sources/coverage': {
+      // 覆盖日期登记快照（S2 覆盖 seam）：全部已声明数据组覆盖记录；未登记 → covered:false
+      // （fail-closed，不伪造「已覆盖」）。S3 走读透缓存（meta 作用域，写后失效）。
+      return cache
+        ? await cache.read(META_SCOPE, 'coverage', () => listCoverageEntries(ctx))
+        : await listCoverageEntries(ctx)
+    }
+
+    case 'data-sources/coverage-refresh': {
+      // 手动重算覆盖：重扫某 dataset 的实际落库表（min/max/rows）→ 重新登记
+      // （用于数据被外部/旧版本写入后校准）。返回该数据集更新后的覆盖快照。
+      const { dataset } = params
+      if (typeof dataset !== 'string' || dataset === '') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/coverage-refresh requires non-empty string "dataset"')
+      }
+      try {
+        const record = await rescanAndRecordCoverage(ctx, dataset as DatasetId)
+        const d = ctx.datasets.get(dataset as DatasetId)
+        return {
+          dataset: String(record.dataset),
+          label: d?.label ?? String(dataset),
+          covered: true,
+          minDate: record.minDate,
+          maxDate: record.maxDate,
+          tradingDays: record.tradingDays ?? null,
+          rows: record.rows,
+          source: String(record.source),
+          materialization: record.materialization,
+          recordedAt: record.recordedAt,
+          coverageStart: record.coverageStart ?? null,
+          isComplete: record.isComplete ?? null,
+        }
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+    }
+
+    case 'data-sources/coverage-gaps': {
+      // 缺洞自检钩子（最小面）：比对目标窗口与实际覆盖区间，输出缺失区间列表。
+      const { dataset, start, end } = params
+      if (typeof dataset !== 'string' || dataset === '') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/coverage-gaps requires non-empty string "dataset"')
+      }
+      if (start !== undefined && typeof start !== 'string') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/coverage-gaps "start" must be a string when present')
+      }
+      if (end !== undefined && typeof end !== 'string') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/coverage-gaps "end" must be a string when present')
+      }
+      try {
+        return await coverageGapsFor(ctx, dataset as DatasetId, start, end)
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
       }
     }
 
@@ -260,7 +325,7 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
         throw new ProtocolError(ESC.PARAMS, 'data-sources/sync "params" must be an object when present')
       }
       try {
-        return await runDatasetSync(ctx, dataset as DatasetId, (syncParams ?? {}) as Record<string, unknown>)
+        return await runDatasetSync(ctx, dataset as DatasetId, (syncParams ?? {}) as Record<string, unknown>, cache)
       } catch (err) {
         throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
       }
@@ -274,21 +339,57 @@ async function dispatch(method: string, params: Record<string, unknown>, ctx: Co
       }
     }
 
+    case 'data-sources/enriched-indicators': {
+      // Enriched 派生指标**按需现算**（窄表只存基点列、指标不落宽表）：从 enriched 表读某标的
+      // 基点列，用 `ctx.indicators` 现算 MA/EMA/MACD/BOLL/KDJ/ATR/RSI/动量/波动率。数据契约红线
+      // 见 [enriched.ts](./enriched.ts)；无该标的 / 表缺失 → fail-closed 报错。
+      const { symbol, start, end, needed } = params
+      if (typeof symbol !== 'string' || symbol === '') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/enriched-indicators requires non-empty string "symbol"')
+      }
+      if (start !== undefined && typeof start !== 'string') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/enriched-indicators "start" must be a string')
+      }
+      if (end !== undefined && typeof end !== 'string') {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/enriched-indicators "end" must be a string')
+      }
+      if (needed !== undefined && (!Array.isArray(needed) || needed.some((n) => typeof n !== 'string'))) {
+        throw new ProtocolError(ESC.PARAMS, 'data-sources/enriched-indicators "needed" must be a string[]')
+      }
+      const { computeIndicatorsFromDb } = await import('./enriched')
+      try {
+        // 走能力缝：注入 `ctx.indicators.compute`（先内置、再叠加已注册 Provider 的列），杜绝
+        // Consumer 绕开 seam 直用纯函数而丢弃注册列。
+        return await computeIndicatorsFromDb(ctx.database, {
+          symbol,
+          start,
+          end,
+          needed: needed as string[] | undefined,
+        }, cache, (series, needed_) => ctx.indicators.compute(series, needed_))
+      } catch (err) {
+        throw new ProtocolError(ESC.APP, err instanceof Error ? err.message : String(err))
+      }
+    }
+
     default:
       throw new ProtocolError(ESC.METHOD, `unknown method "${method}"`)
   }
 }
 
 export function serializeResult(id: number, result: unknown): string {
-  return JSON.stringify({ id, result })
+  // JSON 安全序列化（bigint→number|string，fail-closed）：`database/tables` 等含 bigint
+  // 的快照不再因 `JSON.stringify` 抛 `Do not know how to serialize a BigInt`。
+  return safeStringify({ id, result })
 }
 
 export function serializeError(error: RpcError): string {
-  return JSON.stringify(error)
+  return safeStringify(error)
 }
 
 export interface HandleLineDeps {
   ctx: Context
+  /** S3 热读缓存（generation-bounded 读透缓存）。缺省则不启用缓存路径（测试/无缓存装配）。 */
+  cache?: DatasetCache
 }
 
 export interface HandleLineResult {
@@ -310,7 +411,7 @@ export async function handleLine(netline: string, deps: HandleLineDeps): Promise
     return { lines: [serializeResult(req.id, null)], shutdown: true }
   }
   try {
-    const result = await dispatch(req.method, req.params, deps.ctx)
+    const result = await dispatch(req.method, req.params, deps.ctx, deps.cache)
     return { lines: [serializeResult(req.id, result)], shutdown: false }
   } catch (err) {
     const code = err instanceof ProtocolError ? err.code : ESC.INTERNAL

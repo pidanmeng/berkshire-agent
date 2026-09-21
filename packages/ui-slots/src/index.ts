@@ -25,6 +25,7 @@ export {
   type DataManagementDatasetDto,
   type DataManagementSyncResultDto,
   type DataManagementTableDto,
+  type DataCoverageEntryDto,
   type DataSourceProviderDto,
   type DataSourceAvailabilityDto,
 } from "./types"

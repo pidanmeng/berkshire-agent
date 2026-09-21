@@ -18,7 +18,7 @@
 | ctx key | 责任 | 说明 |
 | --- | --- | --- |
 | `ctx.database` | DuckDB 访问（能力缝 **Definition，已落地**） | 单写者纪律：一切 DuckDB 写入只经 `exec`（v1 写路径在 sidecar Node 侧 `@duckdb/node-api`；Rust `duckdb-rs` 单写者仍目标态）。返回 `DatabaseProvider`（isReady/query/exec/tables），覆盖 dataset 视图；事件 `database/dataset-updated` |
-| `ctx.datasets` | dataset/schema 注册表（**已落地**） | 声明 dataset_id、列定义、物化策略（v1 `embedded`；分区/parquet-view/generation marker 目标态）、source、同步窗口 |
+| `ctx.datasets` | dataset/schema 注册表（**已落地**） | 声明 `DatasetDeclaration`：**八组基础数据 + 实时快照**（`instruments/daily/adj_factor/enriched/index/minute/financial/calendar`）、显式列类型 `columnSchema`、物化策略 `materialization`（`embedded`/`parquet-view`）、`partition`/`generation`（**契约层已冻结**，运行时物化归 S2/S3）、source、同步窗口（`cadence`/`window`/`fullWindow`）；并冻结**覆盖日期元模型 `DatasetCoverage`**（运行时记录归 `S2-coverage-date-registry`） |
 | `ctx.capabilities` | 能力注册表与矩阵 | `CAPABILITY_REGISTRY` + `build_capability_matrix`；`usable` 是通用门控（继承 TSP） |
 | `ctx.market` | 市场环境 / 交易日历 / symbol 解析 / 行情扇出 | **目标态**；交易日、A 股北京时间、symbol↔asset_type 归属 |
 | `ctx.sessions` / `ctx.log` | 追加式工作/事件日志 | 在途工作耐久记录，跨重载存活 |

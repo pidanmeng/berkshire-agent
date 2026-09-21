@@ -160,6 +160,20 @@
         "cordis": "4.0.0-rc.10",
       },
     },
+    "packages/plugins/datasource-example": {
+      "name": "@berkshire/plugin-datasource-example",
+      "version": "0.1.0",
+      "dependencies": {
+        "@berkshire/boot": "workspace:*",
+        "@berkshire/cordis": "workspace:*",
+        "@berkshire/core": "workspace:*",
+        "cordis": "4.0.0-rc.10",
+        "zod": "^3.23.8",
+      },
+      "peerDependencies": {
+        "cordis": "4.0.0-rc.10",
+      },
+    },
     "packages/plugins/datasource-fuyao": {
       "name": "@berkshire/plugin-datasource-fuyao",
       "version": "0.1.0",
@@ -181,6 +195,7 @@
         "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
         "@berkshire/theme": "workspace:*",
+        "@berkshire/ui": "workspace:*",
         "@berkshire/ui-slots": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "react": "^19.1.0",
@@ -237,6 +252,7 @@
       "dependencies": {
         "clsx": "^2.1.1",
         "react": "^19.1.0",
+        "react-dom": "^19.1.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -246,6 +262,7 @@
       },
       "peerDependencies": {
         "react": "^19.1.0",
+        "react-dom": "^19.1.0",
       },
     },
     "packages/ui-slots": {
@@ -287,6 +304,8 @@
     "@berkshire/plugin-data-manager": ["@berkshire/plugin-data-manager@workspace:packages/plugins/data-manager"],
 
     "@berkshire/plugin-datasource-csv": ["@berkshire/plugin-datasource-csv@workspace:packages/plugins/datasource-csv"],
+
+    "@berkshire/plugin-datasource-example": ["@berkshire/plugin-datasource-example@workspace:packages/plugins/datasource-example"],
 
     "@berkshire/plugin-datasource-fuyao": ["@berkshire/plugin-datasource-fuyao@workspace:packages/plugins/datasource-fuyao"],
 
