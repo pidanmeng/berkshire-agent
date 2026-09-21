@@ -1,4 +1,6 @@
-/* Badge 的 CSS Modules（@berkshire/ui）。 */
+/* Badge 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：soft/solid/outline 三档变体，语义色调板走 var(--bk-*)。
+ * 变体规则置于 kind 规则之后，同凭据下后写者胜出以覆盖 kind 的 soft 底色。 */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -13,7 +15,7 @@
   white-space: nowrap;
 }
 
-/* 统一淡底 + 语义色前景。 */
+/* ── soft（默认）：统一淡底 + 语义色前景。 ─────────────────────── */
 .neutral {
   background: var(--bk-color-neutral-soft);
   color: var(--bk-color-neutral);
@@ -44,5 +46,79 @@
 }
 .bear {
   background: var(--bk-color-bear-soft);
+  color: var(--bk-color-bear);
+}
+
+/* ── solid：语义色实底 + 反色文字。 ────────────────────────────── */
+.solid {
+  border-color: transparent;
+}
+.solid.neutral {
+  background: var(--bk-color-neutral);
+  color: var(--bk-color-fg-invert);
+}
+.solid.info {
+  background: var(--bk-color-info);
+  color: var(--bk-color-fg-invert);
+}
+.solid.success {
+  background: var(--bk-color-success);
+  color: var(--bk-color-fg-invert);
+}
+.solid.warning {
+  background: var(--bk-color-warning);
+  color: var(--bk-color-fg-invert);
+}
+.solid.danger {
+  background: var(--bk-color-danger);
+  color: var(--bk-color-fg-invert);
+}
+.solid.accent {
+  background: var(--bk-color-accent);
+  color: var(--bk-color-fg-invert);
+}
+.solid.bull {
+  background: var(--bk-color-bull);
+  color: var(--bk-color-fg-invert);
+}
+.solid.bear {
+  background: var(--bk-color-bear);
+  color: var(--bk-color-fg-invert);
+}
+
+/* ── outline：透明底 + 语义色描边。 ────────────────────────────── */
+.outline {
+  background: transparent;
+}
+.outline.neutral {
+  border-color: var(--bk-color-neutral);
+  color: var(--bk-color-neutral);
+}
+.outline.info {
+  border-color: var(--bk-color-info);
+  color: var(--bk-color-info);
+}
+.outline.success {
+  border-color: var(--bk-color-success);
+  color: var(--bk-color-success);
+}
+.outline.warning {
+  border-color: var(--bk-color-warning);
+  color: var(--bk-color-warning);
+}
+.outline.danger {
+  border-color: var(--bk-color-danger);
+  color: var(--bk-color-danger);
+}
+.outline.accent {
+  border-color: var(--bk-color-accent);
+  color: var(--bk-color-accent);
+}
+.outline.bull {
+  border-color: var(--bk-color-bull);
+  color: var(--bk-color-bull);
+}
+.outline.bear {
+  border-color: var(--bk-color-bear);
   color: var(--bk-color-bear);
 }

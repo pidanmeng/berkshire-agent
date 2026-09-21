@@ -1,3 +1,6 @@
+/* data-manager 数据管理页（`/data`，插件自声明路由页面内容）。P3：CSS Modules，host 只注入。
+ * S3b：S1 设计语言——区段抬升面 + 边框分层 + 细阴影；徽标/表格复用 @berkshire/ui（Badge/Table），
+ * 本文件只负责布局与语义文本色，只写 var(--bk-*)，禁魔法色值。业务逻辑/单写者/fail-closed 零改动。 */
 .page {
   display: flex;
   flex-direction: column;
@@ -6,10 +9,11 @@
 }
 
 .section {
-  border: 1px solid var(--bk-color-neutral);
+  border: 1px solid var(--bk-border);
   border-radius: var(--bk-radius-lg);
-  background: var(--bk-color-neutral-soft);
-  padding: var(--bk-space-3) var(--bk-space-4);
+  background: var(--bk-color-bg-elevated);
+  box-shadow: var(--bk-shadow-xs);
+  padding: var(--bk-space-4);
   display: flex;
   flex-direction: column;
   gap: var(--bk-space-3);
@@ -19,12 +23,14 @@
   margin: 0;
   font-size: var(--bk-font-size-lg);
   font-weight: 600;
+  line-height: var(--bk-leading-tight);
   color: var(--bk-color-fg);
 }
 
 .sectionHint {
   margin: 0;
   font-size: var(--bk-font-size-sm);
+  line-height: var(--bk-leading-normal);
   color: var(--bk-color-fg-muted);
 }
 
@@ -44,32 +50,8 @@
 .datasetChips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--bk-space-2);
-  align-items: center;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
   gap: var(--bk-space-1);
-  font-size: var(--bk-font-size-sm);
-  padding: var(--bk-space-1) var(--bk-space-2);
-  border-radius: var(--bk-radius-md);
-  border: 1px solid var(--bk-color-neutral);
-  color: var(--bk-color-fg-muted);
-}
-
-.chipOk {
-  border-color: var(--bk-color-success);
-  color: var(--bk-color-success);
-  background: var(--bk-color-success-soft);
-}
-
-.chipBad {
-  border-color: var(--bk-color-danger);
-  color: var(--bk-color-danger);
-  background: var(--bk-color-danger-soft);
-  cursor: help;
+  align-items: center;
 }
 
 .routeRow {
@@ -83,11 +65,6 @@
   min-width: 9rem;
   font-size: var(--bk-font-size-md);
   color: var(--bk-color-fg);
-}
-
-.routeCurrent {
-  font-size: var(--bk-font-size-sm);
-  color: var(--bk-color-fg-muted);
 }
 
 .routeSelect {
@@ -126,20 +103,10 @@
   gap: var(--bk-space-2);
 }
 
-.tableList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--bk-space-1);
-}
-
-.tableItem {
-  display: flex;
-  align-items: baseline;
-  gap: var(--bk-space-2);
-  font-size: var(--bk-font-size-sm);
+.tableWrap {
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  overflow: hidden;
 }
 
 .tableName {

@@ -1,0 +1,42 @@
+/* Card 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：抬升面 + 边框 + 大圆角 + 细阴影，间距走 4 倍数令牌。 */
+.card {
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-lg);
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg);
+  box-shadow: var(--bk-shadow-xs);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+  padding: var(--bk-space-4) var(--bk-space-5);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--bk-font-size-md);
+  font-weight: 600;
+  line-height: var(--bk-leading-tight);
+}
+
+.description {
+  margin: 0;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-muted);
+  line-height: var(--bk-leading-normal);
+}
+
+.content {
+  padding: 0 var(--bk-space-5) var(--bk-space-4);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+  padding: var(--bk-space-3) var(--bk-space-5);
+  border-top: 1px solid var(--bk-border);
+}

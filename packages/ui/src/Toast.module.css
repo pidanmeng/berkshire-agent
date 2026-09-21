@@ -1,4 +1,5 @@
-/* Toast + ToastRegion 的 CSS Modules（@berkshire/ui）。 */
+/* Toast + ToastRegion 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：提示卡片用中阴影、kind 状态令牌。 */
 .region {
   position: fixed;
   top: var(--bk-space-4);
@@ -25,7 +26,8 @@
   background: var(--bk-color-bg-elevated);
   color: var(--bk-color-fg);
   font-size: var(--bk-font-size-md);
-  box-shadow: var(--bk-shadow-sm);
+  line-height: var(--bk-leading-normal);
+  box-shadow: var(--bk-shadow-md);
 }
 
 /* kind 强调圆点 + 边框取对应状态令牌。 */

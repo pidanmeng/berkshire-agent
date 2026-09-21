@@ -5,10 +5,14 @@
  * 三组件分别挂进应用壳新增的布局槽：
  * - `layout.navigation.extra`（DemoNavExtra）：证明侧边栏导航区可被插件追加项；
  * - `layout.statusbar.right`（DemoStatusItem）：证明状态栏右侧可被插件追加状态项；
- * - `settings.cards`（DemoSettingsCard）：证明设置页可被插件追加卡片。
+ * - `settings.cards`（DemoSettingsCard）：证明设置页可被插件追加卡片；
+ * - `settings.section`（DemoSettingsSection）：设置弹窗「插件设置」分组表单面板。
  * 各 context 是对宿主 `slots/types.ts` 对应槽上下文的**结构镜像**（v2 共享类型层）。
+ *
+ * S3b：视觉对齐 S1，复用 `@berkshire/ui`（Badge / Card / Select），样式只写 var(--bk-*)。
  */
 import type { ReactNode } from "react"
+import { Badge, Card, CardDescription, CardHeader, CardTitle, Select } from "@berkshire/ui"
 import { usePersistedField, type StorageHandle, type StorageNamespaceId } from "@berkshire/ui-slots"
 import { navExtra, statusItem, settingsCard, settingsSection } from "./styles.generated"
 
@@ -23,8 +27,11 @@ export const DemoNavExtra = ({ context }: { context: unknown }): ReactNode => {
   const c = context as NavExtraContext
   return (
     <div className={navExtra.classNames.navExtra}>
-      demo 导航追加项 <code>layout.navigation.extra</code>
-      <div>折叠={String(c.collapsed === true)} · 当前路径={c.pathname ?? "?"}</div>
+      <div className={navExtra.classNames.title}>demo 导航追加项</div>
+      <code>layout.navigation.extra</code>
+      <div className={navExtra.classNames.meta}>
+        折叠={String(c.collapsed === true)} · 当前路径={c.pathname ?? "?"}
+      </div>
     </div>
   )
 }
@@ -33,16 +40,22 @@ export const DemoNavExtra = ({ context }: { context: unknown }): ReactNode => {
 export const DemoStatusItem = (_: { context: unknown }): ReactNode => (
   <span className={statusItem.classNames.statusItem}>
     <span className={statusItem.classNames.statusDot} />
-    demo 状态项
+    <Badge kind="info" variant="soft">
+      demo 状态项
+    </Badge>
   </span>
 )
 
 /** `settings.cards`：设置弹窗聚合展示的 demo 设置卡片（旧设置卡片槽）。 */
 export const DemoSettingsCard = (_: { context: unknown }): ReactNode => (
-  <section className={settingsCard.classNames.settingsCard}>
-    <h2 className={settingsCard.classNames.settingsCardTitle}>demo 设置卡片</h2>
-    由 <code>@berkshire/plugin-demo</code> 贡献，挂在 <code>settings.cards</code> 槽（挂点归中枢、内容归插件）。
-  </section>
+  <Card className={settingsCard.classNames.card}>
+    <CardHeader>
+      <CardTitle>demo 设置卡片</CardTitle>
+      <CardDescription>
+        由 <code>@berkshire/plugin-demo</code> 贡献，挂在 <code>settings.cards</code> 槽（挂点归中枢、内容归插件）。
+      </CardDescription>
+    </CardHeader>
+  </Card>
 )
 
 /** `settings.section` 槽的插件侧结构镜像（携带宿主/壳注入的持久化句柄）。 */
@@ -69,30 +82,34 @@ export const DemoSettingsSection = ({ context }: { context: unknown }): ReactNod
       <p className={settingsSection.classNames.hint}>
         挂在 <code>settings.section</code> 槽——字段变更即写入 <code>$BK_HOME/state/demo/…</code>（每项一个 KV）。
       </p>
-      <label className={settingsSection.classNames.row}>
+      <div className={settingsSection.classNames.row}>
         <span>自选上限</span>
-        <select
+        <Select
           className={settingsSection.classNames.select}
+          aria-label="自选上限"
           value={limit.value}
           onChange={(e) => limit.set(e.target.value)}
-        >
-          <option value="50">50</option>
-          <option value="100">100</option>
-          <option value="200">200</option>
-        </select>
-      </label>
-      <label className={settingsSection.classNames.row}>
+          options={[
+            { value: "50", label: "50" },
+            { value: "100", label: "100" },
+            { value: "200", label: "200" },
+          ]}
+        />
+      </div>
+      <div className={settingsSection.classNames.row}>
         <span>默认排序</span>
-        <select
+        <Select
           className={settingsSection.classNames.select}
+          aria-label="默认排序"
           value={sort.value}
           onChange={(e) => sort.set(e.target.value)}
-        >
-          <option value="byCode">按代码</option>
-          <option value="byChange">按涨跌幅</option>
-          <option value="byAmount">按成交额</option>
-        </select>
-      </label>
+          options={[
+            { value: "byCode", label: "按代码" },
+            { value: "byChange", label: "按涨跌幅" },
+            { value: "byAmount", label: "按成交额" },
+          ]}
+        />
+      </div>
       <p className={settingsSection.classNames.note}>
         {limit.error ?? sort.error ??
           "demo 设置项落盘在 demo 命名空间（watchlistLimit / defaultSort），重启后保留。"}

@@ -1,15 +1,33 @@
 /* demo 插件 webview 样式：sidebar 导航追加项（应用壳 layout.navigation.extra，P3：CSS Modules）。
- * 只写 var(--bk-*)（别名层）与结构布局，禁魔法色值/间距/圆角；类名构建期哈希自动唯一。 */
+ * S3b：S1 设计语言——抬升面 + 边框分层 + accent 左边条，只写 var(--bk-*)，禁魔法值。 */
 .navExtra {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
   margin: var(--bk-space-2) 0;
   padding: var(--bk-space-2) var(--bk-space-3);
-  border: 1px dashed var(--bk-color-neutral);
+  border: 1px solid var(--bk-border);
+  border-left: 3px solid var(--bk-color-accent);
   border-radius: var(--bk-radius-md);
-  color: var(--bk-color-fg-muted);
-  background: var(--bk-color-neutral-soft);
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg);
   font-size: var(--bk-font-size-sm);
+  line-height: var(--bk-leading-normal);
+}
+.title {
+  font-weight: 600;
+  color: var(--bk-color-fg);
 }
 .navExtra code {
-  font-weight: 600;
+  align-self: flex-start;
+  font-family: var(--bk-font-mono);
+  font-size: var(--bk-font-size-xs);
+  color: var(--bk-color-fg-muted);
+  background: var(--bk-color-bg-muted);
+  border-radius: var(--bk-radius-xs);
+  padding: 0 var(--bk-space-1);
+}
+.meta {
+  font-size: var(--bk-font-size-xs);
+  color: var(--bk-color-fg-subtle);
 }

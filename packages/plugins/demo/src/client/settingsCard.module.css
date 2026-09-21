@@ -1,17 +1,10 @@
-/* demo 插件 webview 样式：设置卡片（应用壳 settings.cards，P3：CSS Modules）。 */
-.settingsCard {
-  display: block;
-  padding: var(--bk-space-3) var(--bk-space-4);
-  border: 1px solid var(--bk-border);
-  border-radius: var(--bk-radius-lg);
-  color: var(--bk-color-fg);
-  background: var(--bk-color-bg-elevated);
-  font-size: var(--bk-font-size-md);
+/* demo 插件 webview 样式：设置卡片（应用壳 settings.cards，P3：CSS Modules）。
+ * S3b：复用 @berkshire/ui Card（升面+边框+圆角+细阴影），本文件只做外边距节奏与 code 微调。 */
+.card {
+  margin: 0;
 }
-.settingsCardTitle {
-  font-weight: 600;
-  margin: 0 0 var(--bk-space-2);
-}
-.settingsCard code {
-  font-weight: 600;
+.card code {
+  font-family: var(--bk-font-mono);
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-muted);
 }

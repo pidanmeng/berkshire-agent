@@ -4,7 +4,6 @@
  * 扫描介入 webview 的样式源，举报**裸色值**（`#hex` / `rgb(…)` / `rgba(…)` / `hsl(…)` /
  * `hsla(…)` / `oklch(…)` / `oklab(…)` / `hwb(…)`）——凡是**不在取值层令牌注册表
  * `STATIC_TOKENS` 内定义**的色值一律判为魔法值，应改用 `var(--bk-*)`（别名层）引用。
- * 规则出自 `.agents/features/bk-style-governance.prompt.md`
  * §3.1 / §5（令牌优先、禁魔法值、强制 `var()`）。
  *
  * 对齐 dsh 两层令牌：**取值只在 static 层**——故只有 `STATIC_TOKENS` 的 light/dark 是「允许的

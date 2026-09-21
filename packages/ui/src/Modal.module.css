@@ -1,4 +1,5 @@
-/* Modal 的 CSS Modules（@berkshire/ui）。 */
+/* Modal 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：面板用大尺寸阴影多档，弹窗圆角 radius-dialog。 */
 .overlay {
   position: fixed;
   inset: 0;
@@ -21,6 +22,10 @@
   background: var(--bk-color-bg-elevated);
   border: 1px solid var(--bk-border);
   border-radius: var(--bk-radius-dialog);
-  box-shadow: var(--bk-shadow-sm);
+  box-shadow: var(--bk-shadow-xl);
   color: var(--bk-color-fg);
+}
+.dialog:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus), var(--bk-shadow-xl);
 }

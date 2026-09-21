@@ -1,4 +1,4 @@
-/* SettingsDialog（WP-6 设置弹窗，base-ui 壳插件）—— 应用壳，dark-first 终端风。
+/* SettingsDialog（WP-6 设置弹窗，base-ui 壳插件）—— shadcn 克制分层。
  * 只写 var(--bk-*) 与结构，禁魔法值。弹窗两栏 grid（左分组 / 右表单），分层用边框、少阴影。 */
 
 /* 弹窗面板本体尺寸（经 Modal 的 className 追加到 .dialog；对齐 radius-dialog 弹窗圆角）。
@@ -23,7 +23,7 @@
 
 .title {
   margin: 0;
-  font-size: var(--bk-font-size-md);
+  font-size: var(--bk-font-size-lg);
   font-weight: 600;
   color: var(--bk-color-fg);
 }
@@ -35,8 +35,8 @@
 /* 两栏 grid：左分组（固定宽） / 右表单（自适应，独立滚动）。 */
 .body {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: var(--bk-space-4);
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: var(--bk-space-3);
   margin-top: var(--bk-space-3);
   min-height: 0;
   flex: 1;
@@ -48,9 +48,11 @@
   gap: var(--bk-space-1);
   overflow-y: auto;
   min-height: 0;
+  padding: var(--bk-space-1);
 }
 
 .groupItem {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--bk-space-1);
@@ -58,19 +60,21 @@
   text-align: left;
   padding: var(--bk-space-2) var(--bk-space-3);
   border: 1px solid transparent;
-  border-radius: var(--bk-radius-lg);
+  border-radius: var(--bk-radius-md);
   background: transparent;
   color: var(--bk-color-fg-muted);
   cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 .groupItem:hover {
-  background: var(--bk-color-bg-elevated);
+  background: var(--bk-hover);
   color: var(--bk-color-fg);
 }
 .groupItemActive {
   background: var(--bk-color-accent-soft);
-  border-color: var(--bk-border-strong);
+  border-color: transparent;
   color: var(--bk-color-fg);
+  box-shadow: inset 2px 0 0 0 var(--bk-color-accent);
 }
 
 .groupItemLabel {
@@ -91,6 +95,8 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  border-left: 1px solid var(--bk-border);
+  padding-left: var(--bk-space-4);
 }
 
 .panel {
@@ -116,6 +122,7 @@
   margin: 0 0 0 auto;
   font-size: var(--bk-font-size-sm);
   color: var(--bk-color-fg-subtle);
+  line-height: var(--bk-leading-normal);
 }
 
 .form {
@@ -135,6 +142,7 @@
   margin: 0;
   font-size: var(--bk-font-size-sm);
   color: var(--bk-color-fg-subtle);
+  line-height: var(--bk-leading-normal);
 }
 
 .fields {

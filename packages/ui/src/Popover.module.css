@@ -1,0 +1,28 @@
+/* Popover 的 CSS Modules（@berkshire/ui）。
+ * S4 决策：portal 定位的上下文弹层——面板 position:fixed（portal 到 document.body，
+ * 脱离任何 overflow/transform/clip 上下文；top/left 由 JS 依 viewport 钳制注入）。
+ * 全部 `var(--bk-*)`，禁魔法色值。 */
+.anchor {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.panel {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  padding: var(--bk-space-1) var(--bk-space-2);
+  background: var(--bk-color-bg-elevated);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  box-shadow: var(--bk-shadow-lg);
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
+}
+.panel:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus), var(--bk-shadow-lg);
+}

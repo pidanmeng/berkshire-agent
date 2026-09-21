@@ -1,0 +1,42 @@
+/* Tabs 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：list 抬升面底 + 触发器选中以抬升面+细阴影区分，间距走令牌。 */
+.tabs {
+  width: 100%;
+}
+
+.list {
+  display: inline-flex;
+  gap: var(--bk-space-1);
+  padding: var(--bk-space-1);
+  border-radius: var(--bk-radius-md);
+  background: var(--bk-color-bg-muted);
+}
+
+.trigger {
+  padding: var(--bk-space-1) var(--bk-space-3);
+  border: none;
+  border-radius: var(--bk-radius-sm);
+  background: transparent;
+  color: var(--bk-color-fg-muted);
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.trigger:hover {
+  color: var(--bk-color-fg);
+}
+.trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+
+.triggerActive {
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg);
+  box-shadow: var(--bk-shadow-xs);
+}
+
+.content {
+  margin-top: var(--bk-space-3);
+}

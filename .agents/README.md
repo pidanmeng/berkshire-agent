@@ -79,3 +79,8 @@
 - 新增/修改技能：遵循 `bk-doc`/`bk-prose-standard`；技能触发条件写进 frontmatter `name`/`description`（中文）。
 - 某项目标态落地后：更新本表、「状态」列、根 [AGENTS.md](../AGENTS.md) 的诚实标注，以及 [architecture.md §11](../docs/architecture.md#11-关键文件索引现状--目标)。
 - 本目录只承载技能（SKILL.md）；不放置可执行命令集或 subagent（dsh 不加载它们）。
+
+### `.agents/features/` 生命周期（用完即删、不归档）
+
+- `features/` 下的批次文件是**临时工作产品**，只放当前正在开发/规划的需求，**不做归档**。
+- 批次落地后：把需要长期保留的知识写入永久文档（`docs/` 或 `.agents/notes/`），然后删除该批次 feature 文件，避免积累历史快照、也避免永久文档依赖 transient 特性文件导致引用悬空（见 [`bk-generate-plan`](skills/bk-generate-plan/SKILL.md) §0）。

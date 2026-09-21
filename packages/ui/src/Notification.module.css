@@ -7,6 +7,7 @@
   background: var(--bk-color-bg-elevated);
   color: var(--bk-color-fg);
   font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
 }
 
 .title {

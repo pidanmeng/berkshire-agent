@@ -1,9 +1,10 @@
-/* Sidebar（可扩展侧边栏，base-ui 壳插件）—— 应用壳，dark-first 终端风。
- * 只写 var(--bk-*) 与结构，禁魔法值。满高由 AppShell grid 的 sidebar 区域提供（本组件 height:100%）。 */
+/* Sidebar（可扩展侧边栏，base-ui 壳插件）—— shadcn 克制分层布局。
+ * 只写 var(--bk-*) 与结构，禁魔法值。满高由 AppShell grid 的 sidebar 区域提供（本组件 height:100%）。
+ * 结构：品牌固定顶部 → 导航独立滚动（navScroll）→ 底部固定（footer）。 */
 .sidebar {
   display: flex;
   flex-direction: column;
-  width: 220px;
+  width: 224px;
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
@@ -16,11 +17,13 @@
   width: 56px;
 }
 
+/* 品牌区：固定顶部，下缘分隔线收束；折叠时仅 mark + 折叠开关。 */
 .brand {
   display: flex;
   align-items: center;
   gap: var(--bk-space-2);
-  padding: var(--bk-space-1) var(--bk-space-2);
+  padding: var(--bk-space-1) var(--bk-space-1) var(--bk-space-3);
+  border-bottom: 1px solid var(--bk-border);
 }
 
 .collapseToggle {
@@ -50,10 +53,23 @@
 .brandName {
   font-family: var(--bk-font-mono);
   font-variant-numeric: tabular-nums;
+  font-size: var(--bk-font-size-md);
   font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--bk-color-fg);
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 导航滚动区：撑满剩余高度并独立滚动，footer 不随之滚动。 */
+.navScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-3);
+  padding-top: var(--bk-space-3);
 }
 
 .navSection {
@@ -62,34 +78,46 @@
   gap: var(--bk-space-1);
 }
 
+/* 分组标签：小字号大写 + 加宽字距，弱化前景；与上方内容以间隔分层，不额外加重边框。 */
 .sectionLabel {
-  padding: var(--bk-space-1) var(--bk-space-2);
-  font-size: var(--bk-font-size-sm);
+  padding: var(--bk-space-1) var(--bk-space-1);
+  font-size: var(--bk-font-size-xs);
+  font-weight: 600;
   color: var(--bk-color-fg-subtle);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  user-select: none;
 }
 
 .navItem {
+  position: relative;
   display: block;
   padding: var(--bk-space-1) var(--bk-space-2);
   border-radius: var(--bk-radius-md);
   color: var(--bk-color-fg-muted);
   text-decoration: none;
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 .navItem:hover {
   background: var(--bk-hover);
   color: var(--bk-color-fg);
 }
+
+/* 激活项：弱化强调底 + 左侧强调色竖条（::before），作信息层级锚；用 inset box-shadow 保证
+ * 竖条贴左侧而不撑宽布局（禁魔法值，轮询取透明度叠层令牌）。 */
 .navItemActive {
-  background: var(--bk-active);
+  background: var(--bk-color-accent-soft);
   color: var(--bk-color-fg);
   font-weight: 600;
+  box-shadow: inset 2px 0 0 0 var(--bk-color-accent);
 }
 
+/* 底部固定区：插件控制项 + 设置入口；边缘分隔线收束。 */
 .footer {
   margin-top: auto;
   display: flex;
@@ -107,6 +135,7 @@
   border-radius: var(--bk-radius-md);
   color: var(--bk-color-fg-muted);
   text-decoration: none;
+  font-size: var(--bk-font-size-md);
   white-space: nowrap;
 }
 .settingsEntry:hover {
@@ -114,5 +143,6 @@
   color: var(--bk-color-fg);
 }
 .settingsIcon {
-  font-size: var(--bk-font-size-md);
+  font-size: var(--bk-font-size-base);
+  line-height: 1;
 }

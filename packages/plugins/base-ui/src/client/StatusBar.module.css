@@ -1,15 +1,20 @@
-/* StatusBar（右侧路由区顶部状态栏，base-ui 壳插件）—— 应用壳，dark-first 终端风。
+/* StatusBar（右侧路由区顶部状态栏，base-ui 壳插件）—— shadcn 克制分层。
  * 只写 var(--bk-*) 与结构，禁魔法值。桥接态语义经 `@berkshire/ui` Badge 呈现（本文件不复刻徽标样式）。 */
 .statusBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--bk-space-3);
-  padding: var(--bk-space-2) var(--bk-space-4);
-  background: var(--bk-color-bg-muted);
+  height: 44px;
+  padding: var(--bk-space-1) var(--bk-space-4);
+  background: var(--bk-color-bg-elevated);
+  box-sizing: border-box;
+  box-shadow: var(--bk-shadow-xs);
 }
 
+/* 当前上下文：抬升面上作主前景，克制层级；带等宽素、文号。 */
 .context {
+  font-size: var(--bk-font-size-md);
   font-weight: 600;
   color: var(--bk-color-fg);
   white-space: nowrap;

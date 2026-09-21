@@ -1,19 +1,18 @@
-/* demo 插件 webview 样式：watchlist-toolbar 组件（P3：CSS Modules，插件自主编译、host 只注入）。 */
+/* demo 插件 webview 样式：watchlist-toolbar 组件（P3：CSS Modules，插件自主编译、host 只注入）。
+ * S3b：S1 设计语言——胶囊容器 + 边框分层，刷新钮复用 @berkshire/ui Button，本文件不重复造按钮。 */
 .watchlistToolbar {
   display: inline-flex;
-  gap: var(--bk-space-2);
   align-items: center;
+  gap: var(--bk-space-3);
   margin: var(--bk-space-1) var(--bk-space-2);
-  padding: var(--bk-space-1) var(--bk-space-3);
-  border: 1px solid var(--bk-color-neutral);
-  border-radius: var(--bk-radius-xl);
-  color: var(--bk-color-fg);
-  background: var(--bk-color-neutral-soft);
+  padding: var(--bk-space-1) var(--bk-space-2);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-pill);
+  background: var(--bk-color-bg-elevated);
   font-size: var(--bk-font-size-sm);
 }
-.watchlistToolbar button {
-  margin-left: var(--bk-space-2);
-  border: none;
-  background: none;
-  cursor: pointer;
+.meta {
+  color: var(--bk-color-fg-muted);
+  white-space: nowrap;
+  line-height: var(--bk-leading-normal);
 }

@@ -1,0 +1,45 @@
+/* Switch 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：胶囊圆角 + 强调色 on 态 + 细阴影 thumb，禁用走 opacity。 */
+.switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-pill);
+  background: var(--bk-color-bg-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+.switch:active .thumb {
+  width: 16px;
+}
+
+.on {
+  background: var(--bk-color-accent);
+  border-color: var(--bk-color-accent);
+}
+.on .thumb {
+  transform: translateX(16px);
+}
+
+.thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bk-color-fg-invert);
+  box-shadow: var(--bk-shadow-xs);
+  transition: transform 0.15s ease, width 0.15s ease;
+}
+
+.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

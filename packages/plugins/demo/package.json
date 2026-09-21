@@ -28,6 +28,7 @@
     "@berkshire/core": "workspace:*",
     "@berkshire/theme": "workspace:*",
     "@berkshire/ui-slots": "workspace:*",
+    "@berkshire/ui": "workspace:*",
     "react": "^19.1.0"
   },
   "peerDependencies": {

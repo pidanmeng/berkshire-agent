@@ -1,0 +1,18 @@
+/* Divider 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：分隔线用透明叠层边框令牌，间距走令牌。 */
+.divider {
+  border: none;
+  background: var(--bk-border);
+}
+
+.horizontal {
+  width: 100%;
+  height: 1px;
+  margin: var(--bk-space-2) 0;
+}
+
+.vertical {
+  width: 1px;
+  height: 100%;
+  margin: 0 var(--bk-space-2);
+}

@@ -5,7 +5,6 @@
  * - **取值层 `--bk-static-*`**（`STATIC_TOKENS`）：唯一写**实值**的地方（色板/阴影等具体取值）；
  * - **别名层 `--bk-*`**（`THEME_TOKENS`）：组件/插件**只引用**别名层，值为 `var(--bk-static-*)` 引用。
  *
- * 硬规则（见 `.agents/features/bk-style-governance.prompt.md`）：
  * 令牌优先（禁魔法值）；维度对齐（间距/圆角/字号落档位）；单一事实源（import 不抄）；
  * **取值只在 static 层、引用走别名层**——`App.css` 与插件样式一律写 `var(--bk-*)`。
  *
@@ -90,15 +89,18 @@ export const STATIC_TOKENS = [
   { id: "active", group: "color", light: "rgba(24,24,27,0.10)", dark: "rgba(250,250,250,0.16)", label: "按下叠层" },
   { id: "scrim", group: "color", light: "rgba(0,0,0,0.50)", dark: "rgba(0,0,0,0.60)", label: "模态遮罩（backdrop）" },
 
-  // ── spacing（间距 4 的倍数：0.25/0.5/0.75/1/1.5/2rem）────────────────────
+  // ── spacing（间距 4 的倍数：0.25…3rem，扩展至 7/8 档）───────────────────
   { id: "space-1", group: "spacing", light: "0.25rem", dark: "0.25rem", label: "间距 1 (4px)" },
   { id: "space-2", group: "spacing", light: "0.5rem", dark: "0.5rem", label: "间距 2 (8px)" },
   { id: "space-3", group: "spacing", light: "0.75rem", dark: "0.75rem", label: "间距 3 (12px)" },
   { id: "space-4", group: "spacing", light: "1rem", dark: "1rem", label: "间距 4 (16px)" },
   { id: "space-5", group: "spacing", light: "1.5rem", dark: "1.5rem", label: "间距 5 (24px)" },
   { id: "space-6", group: "spacing", light: "2rem", dark: "2rem", label: "间距 6 (32px)" },
+  { id: "space-7", group: "spacing", light: "2.5rem", dark: "2.5rem", label: "间距 7 (40px)" },
+  { id: "space-8", group: "spacing", light: "3rem", dark: "3rem", label: "间距 8 (48px)" },
 
   // ── radius（语义档位）──────────────────────────────────────────────────
+  { id: "radius-xs", group: "radius", light: "2px", dark: "2px", label: "圆角 极细" },
   { id: "radius-sm", group: "radius", light: "4px", dark: "4px", label: "圆角 小" },
   { id: "radius-md", group: "radius", light: "6px", dark: "6px", label: "圆角 中" },
   { id: "radius-lg", group: "radius", light: "8px", dark: "8px", label: "圆角 大" },
@@ -106,15 +108,28 @@ export const STATIC_TOKENS = [
   { id: "radius-pill", group: "radius", light: "999px", dark: "999px", label: "圆角 胶囊" },
   { id: "radius-dialog", group: "radius", light: "12px", dark: "12px", label: "圆角 弹窗面板" },
 
-  // ── font（字号语义档位 + 成对行高；主字体 token）────────────────────────
+  // ── font（字号语义档位 + 成对行高 leading 档位；主字体 token）────────────
   { id: "font-sans", group: "font", light: "Inter, 'HarmonyOS Sans SC', 'PingFang SC', system-ui, sans-serif", dark: "Inter, 'HarmonyOS Sans SC', 'PingFang SC', system-ui, sans-serif", label: "正文字体" },
   { id: "font-mono", group: "font", light: "'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", dark: "'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", label: "等宽数字/代码字体" },
+  { id: "font-size-xs", group: "font", light: "0.75em", dark: "0.75em", label: "字号 极细" },
   { id: "font-size-sm", group: "font", light: "0.85em", dark: "0.85em", label: "字号 小" },
   { id: "font-size-md", group: "font", light: "0.9em", dark: "0.9em", label: "字号 中" },
   { id: "font-size-base", group: "font", light: "1em", dark: "1em", label: "字号 基准" },
+  { id: "font-size-lg", group: "font", light: "1.125em", dark: "1.125em", label: "字号 大" },
+  { id: "font-size-xl", group: "font", light: "1.25em", dark: "1.25em", label: "字号 特大" },
+  { id: "leading-none", group: "font", light: "1", dark: "1", label: "行高 无" },
+  { id: "leading-tight", group: "font", light: "1.25", dark: "1.25", label: "行高 紧凑" },
+  { id: "leading-snug", group: "font", light: "1.375", dark: "1.375", label: "行高 贴近" },
+  { id: "leading-normal", group: "font", light: "1.5", dark: "1.5", label: "行高 常规" },
+  { id: "leading-relaxed", group: "font", light: "1.625", dark: "1.625", label: "行高 宽松" },
+  { id: "leading-loose", group: "font", light: "2", dark: "2", label: "行高 疏松" },
 
-  // ── shadow ──────────────────────────────────────────────────────────────
+  // ── shadow（补齐为多档位；shadow-sm 取值保持兼容）────────────────────
+  { id: "shadow-xs", group: "shadow", light: "0 1px 2px rgba(0,0,0,0.06)", dark: "0 1px 2px rgba(0,0,0,0.35)", label: "阴影 极细" },
   { id: "shadow-sm", group: "shadow", light: "0 2px 2px rgba(0,0,0,0.2)", dark: "0 2px 2px rgba(0,0,0,0.5)", label: "阴影 小" },
+  { id: "shadow-md", group: "shadow", light: "0 4px 10px rgba(0,0,0,0.10)", dark: "0 4px 12px rgba(0,0,0,0.38)", label: "阴影 中" },
+  { id: "shadow-lg", group: "shadow", light: "0 10px 22px rgba(0,0,0,0.13)", dark: "0 10px 26px rgba(0,0,0,0.46)", label: "阴影 大" },
+  { id: "shadow-xl", group: "shadow", light: "0 18px 44px rgba(0,0,0,0.17)", dark: "0 18px 52px rgba(0,0,0,0.56)", label: "阴影 特大" },
 ] as const satisfies readonly StaticToken[]
 
 /** 别名层令牌（`--bk-*`）：组件/插件引用入口。`ref` 指向取值层的 static id。 */
@@ -184,6 +199,9 @@ export const THEME_TOKENS = [
   { id: "space-4", ref: "space-4", group: "spacing", label: "间距 4" },
   { id: "space-5", ref: "space-5", group: "spacing", label: "间距 5" },
   { id: "space-6", ref: "space-6", group: "spacing", label: "间距 6" },
+  { id: "space-7", ref: "space-7", group: "spacing", label: "间距 7" },
+  { id: "space-8", ref: "space-8", group: "spacing", label: "间距 8" },
+  { id: "radius-xs", ref: "radius-xs", group: "radius", label: "圆角 极细" },
   { id: "radius-sm", ref: "radius-sm", group: "radius", label: "圆角 小" },
   { id: "radius-md", ref: "radius-md", group: "radius", label: "圆角 中" },
   { id: "radius-lg", ref: "radius-lg", group: "radius", label: "圆角 大" },
@@ -192,10 +210,23 @@ export const THEME_TOKENS = [
   { id: "radius-dialog", ref: "radius-dialog", group: "radius", label: "圆角 弹窗面板" },
   { id: "font-sans", ref: "font-sans", group: "font", label: "正文字体" },
   { id: "font-mono", ref: "font-mono", group: "font", label: "等宽数字/代码字体" },
+  { id: "font-size-xs", ref: "font-size-xs", group: "font", label: "字号 极细" },
   { id: "font-size-sm", ref: "font-size-sm", group: "font", label: "字号 小" },
   { id: "font-size-md", ref: "font-size-md", group: "font", label: "字号 中" },
   { id: "font-size-base", ref: "font-size-base", group: "font", label: "字号 基准" },
+  { id: "font-size-lg", ref: "font-size-lg", group: "font", label: "字号 大" },
+  { id: "font-size-xl", ref: "font-size-xl", group: "font", label: "字号 特大" },
+  { id: "leading-none", ref: "leading-none", group: "font", label: "行高 无" },
+  { id: "leading-tight", ref: "leading-tight", group: "font", label: "行高 紧凑" },
+  { id: "leading-snug", ref: "leading-snug", group: "font", label: "行高 贴近" },
+  { id: "leading-normal", ref: "leading-normal", group: "font", label: "行高 常规" },
+  { id: "leading-relaxed", ref: "leading-relaxed", group: "font", label: "行高 宽松" },
+  { id: "leading-loose", ref: "leading-loose", group: "font", label: "行高 疏松" },
+  { id: "shadow-xs", ref: "shadow-xs", group: "shadow", label: "阴影 极细" },
   { id: "shadow-sm", ref: "shadow-sm", group: "shadow", label: "阴影 小" },
+  { id: "shadow-md", ref: "shadow-md", group: "shadow", label: "阴影 中" },
+  { id: "shadow-lg", ref: "shadow-lg", group: "shadow", label: "阴影 大" },
+  { id: "shadow-xl", ref: "shadow-xl", group: "shadow", label: "阴影 特大" },
 ] as const satisfies readonly AliasToken[]
 
 /** 别名层令牌 id 联合（类型安全：`cssVar`/组件引用只接受已注册别名）。 */

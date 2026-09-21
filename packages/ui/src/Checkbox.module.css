@@ -1,0 +1,73 @@
+/* Checkbox 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：强调色选中底 + 反色勾 + 焦点环，禁用走 opacity。 */
+.group {
+  display: inline-flex;
+}
+
+.box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+  cursor: pointer;
+}
+
+/* 原生 checkbox 视觉隐藏但可聚焦，铺满 label 命中区。 */
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.input:focus-visible + .indicator {
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+.input:disabled {
+  cursor: not-allowed;
+}
+
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--bk-border-strong);
+  border-radius: var(--bk-radius-sm);
+  background: var(--bk-color-bg-elevated);
+  color: var(--bk-color-fg-invert);
+  transition: background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.check {
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.input:checked + .indicator {
+  background: var(--bk-color-accent);
+  border-color: var(--bk-color-accent);
+}
+.input:checked + .indicator .check {
+  opacity: 1;
+}
+
+.label {
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
+  color: var(--bk-color-fg);
+  user-select: none;
+}
+
+.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.disabled .label {
+  cursor: not-allowed;
+}

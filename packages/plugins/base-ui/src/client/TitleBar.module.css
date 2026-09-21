@@ -1,10 +1,12 @@
-/* TitleBar —— 自绘标题栏（WP-5，base-ui 壳插件）。只写 var(--bk-*) 与结构，禁魔法色值。 */
+/* TitleBar —— 自绘标题栏（WP-5，base-ui 壳插件）。shadcn 克制分层：抬升面 + 下缘边框。
+ * 只写 var(--bk-*) 与结构，禁魔法色值。 */
 .titleBar {
   display: flex;
   align-items: stretch;
   height: 36px;
   background: var(--bk-color-bg-elevated);
   border-bottom: 1px solid var(--bk-border);
+  box-shadow: var(--bk-shadow-xs);
   user-select: none;
 }
 

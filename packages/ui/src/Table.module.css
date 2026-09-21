@@ -1,0 +1,44 @@
+/* Table 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：分隔用 border 叠层、行 hover 用 hover 叠层、字阶 pairing。 */
+.container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
+  color: var(--bk-color-fg);
+}
+
+.header {
+}
+
+.body {
+}
+
+.row {
+  border-bottom: 1px solid var(--bk-border);
+  transition: background-color 0.12s ease;
+}
+.row:last-child {
+  border-bottom: none;
+}
+.body .row:hover {
+  background: var(--bk-hover);
+}
+
+.head {
+  padding: var(--bk-space-2) var(--bk-space-3);
+  text-align: left;
+  font-size: var(--bk-font-size-sm);
+  font-weight: 550;
+  color: var(--bk-color-fg-muted);
+  white-space: nowrap;
+}
+
+.cell {
+  padding: var(--bk-space-2) var(--bk-space-3);
+}

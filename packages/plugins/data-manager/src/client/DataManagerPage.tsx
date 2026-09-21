@@ -12,7 +12,19 @@
  * - 单写者：采集只经 `api.sync`（→ sidecar `ctx.database` exec），页面无任何裸写 DB 路径。
  */
 import { useCallback, useEffect, useState } from "react"
-import { Button, EmptyState, Input, Select } from "@berkshire/ui"
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Input,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@berkshire/ui"
 import type {
   DataManagementApi,
   DataManagementDatasetDto,
@@ -171,13 +183,10 @@ function ProvidersSection({ snap }: { snap: DataManagementSnapshotDto }) {
           <span className={styles.classNames.providerId}>{p.id}</span>
           <span className={styles.classNames.datasetChips}>
             {Object.entries(p.datasets).map(([ds, a]) => (
-              <span
-                key={ds}
-                title={a.available ? undefined : a.reason}
-                className={`${styles.classNames.chip} ${a.available ? styles.classNames.chipOk : styles.classNames.chipBad}`}
-              >
-                {ds}
-                {a.available ? "✓" : "✗"}
+              <span key={ds} title={a.available ? undefined : a.reason}>
+                <Badge kind={a.available ? "success" : "danger"} variant="soft">
+                  {ds} {a.available ? "✓" : "✗"}
+                </Badge>
               </span>
             ))}
           </span>
@@ -342,14 +351,24 @@ function LocalDbSection({
       {snap.tables.length === 0 ? (
         <EmptyState title="本地库为空" description="还没有任何内嵌表，先对某数据集执行一次采集。" />
       ) : (
-        <ul className={styles.classNames.tableList}>
-          {snap.tables.map((t) => (
-            <li key={t.name} className={styles.classNames.tableItem}>
-              <span className={styles.classNames.tableName}>{t.name}</span>
-              <span className={styles.classNames.tableCount}>{t.rowCount} 行</span>
-            </li>
-          ))}
-        </ul>
+        <div className={styles.classNames.tableWrap}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>表名</TableHead>
+                <TableHead>行数</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {snap.tables.map((t) => (
+                <TableRow key={t.name}>
+                  <TableCell className={styles.classNames.tableName}>{t.name}</TableCell>
+                  <TableCell className={styles.classNames.tableCount}>{t.rowCount} 行</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
       <div className={styles.classNames.syncControls}>
         <Input

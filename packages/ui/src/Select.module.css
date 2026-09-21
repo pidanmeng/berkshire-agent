@@ -1,4 +1,5 @@
-/* Select 的 CSS Modules（@berkshire/ui）。 */
+/* Select 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：圆角/间距/字阶/焦点环走 var(--bk-*)，悬停用边框增强令牌。 */
 .field {
   display: flex;
   flex-direction: column;
@@ -8,6 +9,7 @@
 .label {
   font-size: var(--bk-font-size-sm);
   color: var(--bk-color-fg-muted);
+  line-height: var(--bk-leading-normal);
 }
 
 .wrap {
@@ -26,7 +28,11 @@
   color: var(--bk-color-fg);
   font-size: var(--bk-font-size-md);
   font-family: inherit;
+  line-height: var(--bk-leading-normal);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.select:hover:not(:disabled) {
+  border-color: var(--bk-border-strong);
 }
 .select:focus {
   outline: none;
@@ -53,4 +59,5 @@
 .hint {
   font-size: var(--bk-font-size-sm);
   color: var(--bk-color-fg-subtle);
+  line-height: var(--bk-leading-normal);
 }

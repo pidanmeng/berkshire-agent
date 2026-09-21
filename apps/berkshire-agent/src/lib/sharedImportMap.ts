@@ -15,9 +15,14 @@ export interface SharedImportMap {
   imports: Record<string, string>
 }
 
-/** 本仓库插件 client bundle 依赖的共享包裸名（与各插件 `--external` 一致）。 */
+/** 本仓库插件 client bundle 依赖的共享包裸名（与各插件 `--external` 一致）。
+ * `react-dom`/`react-dom/client` 一并注册：`@berkshire/ui` 的 `Popover` 经 `createPortal`
+ * 依赖 `react-dom`，且 `@berkshire/ui` 打包时 `--external react-dom`（见 packages/ui/scripts/build-client.ts），
+ * 故 webview 动态 import 插件/ui bundle 时该裸名必须能在 import-map 解析（与 `react` 同源，宿主注入）。 */
 export const SHARED_IMPORTS = [
   "react",
+  "react-dom",
+  "react-dom/client",
   "react/jsx-runtime",
   "react/jsx-dev-runtime",
   "@berkshire/ui-slots",

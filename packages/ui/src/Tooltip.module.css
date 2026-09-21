@@ -1,4 +1,5 @@
-/* Tooltip 的 CSS Modules（@berkshire/ui）。 */
+/* Tooltip 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：提示用中阴影、圆角档位、间距令牌；纯 CSS 显隐。 */
 .wrap {
   position: relative;
   display: inline-flex;
@@ -18,7 +19,8 @@
   border-radius: var(--bk-radius-sm);
   color: var(--bk-color-fg);
   font-size: var(--bk-font-size-sm);
-  box-shadow: var(--bk-shadow-sm);
+  line-height: var(--bk-leading-normal);
+  box-shadow: var(--bk-shadow-md);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.12s ease;

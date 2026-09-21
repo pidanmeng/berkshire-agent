@@ -1,4 +1,6 @@
-/* Button 的 CSS Modules（@berkshire/ui：构建期哈希、类名自动唯一，camelCase）。 */
+/* Button 的 CSS Modules（@berkshire/ui：构建期哈希、类名自动唯一，camelCase）。
+ * S2 对齐 S1 冻结设计语言：圆角/间距/字阶/阴影一律 var(--bk-*)、焦点环用强调色令牌、
+ * 悬停/按下用透明叠层令牌，禁魔法色值；API/props 不变，只做视觉升级。 */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -8,12 +10,19 @@
   border-radius: var(--bk-radius-md);
   font-size: var(--bk-font-size-md);
   font-weight: 550;
+  line-height: var(--bk-leading-none);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease, opacity 0.15s ease;
 }
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+/* 键盘可达焦点环（强调色弱化环）；点击时的 default focus 由浏览器覆盖。 */
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
 }
 
 /* primary：强调色实底，文字走前景反转令牌。 */
@@ -24,8 +33,12 @@
 .primary:not(:disabled):hover {
   background: var(--bk-color-accent-hover);
 }
+.primary:not(:disabled):active {
+  background: var(--bk-color-accent-hover);
+  box-shadow: inset 0 0 0 999px var(--bk-active);
+}
 
-/* ghost：透明描边，悬停用透明度叠层。 */
+/* ghost：透明描边，悬停/按下用透明度叠层。 */
 .ghost {
   background: transparent;
   color: var(--bk-color-fg);
@@ -33,6 +46,9 @@
 }
 .ghost:not(:disabled):hover {
   background: var(--bk-hover);
+}
+.ghost:not(:disabled):active {
+  background: var(--bk-active);
 }
 
 /* danger：危险实底，文字走前景反转令牌。 */
@@ -43,12 +59,16 @@
 .danger:not(:disabled):hover {
   filter: brightness(0.95);
 }
+.danger:not(:disabled):active {
+  filter: brightness(0.9);
+}
 
-/* size */
+/* size（保持既有档位，只对齐间距令牌）。 */
 .sm {
   height: 26px;
   padding: 0 var(--bk-space-3);
   font-size: var(--bk-font-size-sm);
+  border-radius: var(--bk-radius-sm);
 }
 .md {
   height: 32px;

@@ -1,22 +1,38 @@
 /* demo 插件 webview 样式：money-flow 页（P3：CSS Modules，插件自主编译、host 只注入）。
- * 表格为静态占位（demo），样式只写令牌引用。 */
+ * S3b：S1 设计语言——抬升卡片 + 边框分层 + 细阴影；表格复用 @berkshire/ui Table（本文件只负责外层排布）。 */
 .moneyFlow {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-3);
   margin: var(--bk-space-2) 0;
-  padding: var(--bk-space-3) var(--bk-space-4);
-  border: 1px solid var(--bk-color-success);
+  padding: var(--bk-space-4);
+  border: 1px solid var(--bk-border);
   border-radius: var(--bk-radius-lg);
-  color: var(--bk-color-success);
-  background: var(--bk-color-success-soft);
-  font-size: var(--bk-font-size-md);
+  background: var(--bk-color-bg-elevated);
+  box-shadow: var(--bk-shadow-xs);
+  color: var(--bk-color-fg);
 }
-.moneyFlow table {
-  border-collapse: collapse;
-  margin-top: var(--bk-space-2);
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+  flex-wrap: wrap;
 }
-.moneyFlow th,
-.moneyFlow td {
-  border: 1px solid var(--bk-color-success);
-  padding: var(--bk-space-1) var(--bk-space-3);
-  text-align: left;
+.title {
+  margin: 0;
+  font-size: var(--bk-font-size-lg);
+  font-weight: 600;
+  line-height: var(--bk-leading-tight);
+}
+.hint {
+  margin: 0;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-muted);
+  line-height: var(--bk-leading-normal);
+}
+.tableWrap {
+  margin-top: var(--bk-space-1);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  overflow: hidden;
 }

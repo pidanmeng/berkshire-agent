@@ -6,7 +6,34 @@
  */
 import { describe, expect, test } from "bun:test"
 import { renderToStaticMarkup } from "react-dom/server"
-import { Badge, Button, EmptyState, Input, Notification, Select, Tooltip } from "../src/index"
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  Divider,
+  EmptyState,
+  Input,
+  Notification,
+  Popover,
+  Select,
+  Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Tooltip,
+} from "../src/index"
 
 describe("@berkshire/ui 冒烟", () => {
   test("Button 渲染 label 与 loading spinner", () => {
@@ -50,5 +77,112 @@ describe("@berkshire/ui 冒烟", () => {
 
   test("Tooltip 关联 aria-describedby", () => {
     expect(renderToStaticMarkup(<Tooltip tip="说明">?</Tooltip>)).toContain("aria-describedby")
+  })
+
+  test("Badge 默认 soft 变体 + 可切 outline/solid（API 兼容）", () => {
+    expect(renderToStaticMarkup(<Badge kind="success">通过</Badge>)).toContain("通过")
+    expect(renderToStaticMarkup(<Badge kind="danger" variant="solid">错误</Badge>)).toContain("错误")
+    expect(renderToStaticMarkup(<Badge kind="info" variant="outline">信息</Badge>)).toContain("信息")
+  })
+
+  test("Card 组合渲染 header/title/description/content", () => {
+    const html = renderToStaticMarkup(
+      <Card>
+        <CardHeader>
+          <CardTitle>自选股</CardTitle>
+          <CardDescription>一组关注的标的</CardDescription>
+        </CardHeader>
+        <CardContent>600000</CardContent>
+      </Card>,
+    )
+    expect(html).toContain("自选股")
+    expect(html).toContain("一组关注的标的")
+    expect(html).toContain("600000")
+    expect(html).toContain("<h3")
+  })
+
+  test("Table 组合渲染表头与单元格", () => {
+    const html = renderToStaticMarkup(
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>代码</TableHead>
+            <TableHead>名称</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>600000</TableCell>
+            <TableCell>浦发银行</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    )
+    expect(html).toContain("代码")
+    expect(html).toContain("浦发银行")
+    expect(html).toContain("<thead")
+    expect(html).toContain("<tbody")
+    expect(html).toMatch(/<th[^>]*scope="col"/)
+  })
+
+  test("Tabs 默认激活项渲染对应面板", () => {
+    const html = renderToStaticMarkup(
+      <Tabs defaultValue="a">
+        <TabsList>
+          <TabsTrigger value="a">概览</TabsTrigger>
+          <TabsTrigger value="b">明细</TabsTrigger>
+        </TabsList>
+        <TabsContent value="a">概览内容</TabsContent>
+        <TabsContent value="b">明细内容</TabsContent>
+      </Tabs>,
+    )
+    expect(html).toContain("概览")
+    expect(html).toContain("概览内容")
+    expect(html).not.toContain("明细内容") // 非激活面板不渲染
+    expect(html).toMatch(/role="tablist"/)
+    expect(html).toMatch(/role="tabpanel"/)
+  })
+
+  test("Switch 渲染 role=switch 与 aria-checked", () => {
+    const html = renderToStaticMarkup(<Switch checked label="自动刷新" />)
+    expect(html).toMatch(/role="switch"/)
+    expect(html).toMatch(/aria-checked="true"/)
+    expect(html).toContain("自动刷新")
+  })
+
+  test("Checkbox 渲染原生 input + 可选 label", () => {
+    const html = renderToStaticMarkup(<Checkbox defaultChecked label="记住我" />)
+    expect(html).toContain('type="checkbox"')
+    expect(html).toContain("记住我")
+  })
+
+  test("Popover 渲染 anchor（aria-expanded）且在 SSR（无 portal）下不吐面板内容", () => {
+    const html = renderToStaticMarkup(
+      <Popover trigger={<span>打开</span>} defaultOpen>
+        <div data-panel>面板内容</div>
+      </Popover>,
+    )
+    // trigger 按契约应为非交互内容；SSR 下 document.body 不存在 → portalTarget 为 null → 面板不渲染；
+    // anchor 保留 aria-expanded。
+    expect(html).toContain("打开")
+    expect(html).toMatch(/aria-haspopup="dialog"/)
+    expect(html).toMatch(/aria-expanded="true"/)
+    expect(html).not.toContain("面板内容")
+  })
+
+  test("Popover 关闭态 anchor aria-expanded=false", () => {
+    const html = renderToStaticMarkup(
+      <Popover trigger={<span>打开</span>}>
+        <div>面板内容</div>
+      </Popover>,
+    )
+    expect(html).toMatch(/aria-expanded="false"/)
+    expect(html).not.toContain("面板内容")
+  })
+
+  test("Divider 渲染 role=separator 与朝向", () => {
+    const html = renderToStaticMarkup(<Divider orientation="horizontal" />)
+    expect(html).toMatch(/role="separator"/)
+    expect(html).toMatch(/aria-orientation="horizontal"/)
   })
 })

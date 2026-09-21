@@ -5,11 +5,14 @@
  * `.tsx` 只 import 哈希类名（构建期自动唯一），样式注入代码由 sidecar 经 `client/list` 交给
  * host `loader.ts` 以 `<style data-bk-module>` 注入。host 不参与哈希。
  *
+ * S3b：视觉对齐 S1 设计语言（抬升面 + 边框分层 + 语义 info 边条），徽标经 `@berkshire/ui` Badge。
+ *
  * 诚实标注：下面 `FooterContext` 是对 webview 宿主 `slots/types.ts` 的 `FrontendSlotContextMap`
  * `stock-preview.footer` **结构镜像**（跨包不 import 宿主，避免环形依赖；真正的共享类型层是 v2）。
  * 宿主在挂载时以显式 cast 对齐（见 `ClientModuleHost`），故结构一致即可。
  */
 import type { ReactNode } from "react"
+import { Badge } from "@berkshire/ui"
 import { fundFlow } from "./styles.generated"
 
 /** 言行 `stock-preview.footer` 槽位上下文的插件侧结构（字段取值用 `unknown` 容忍可选/运行时差异）。 */
@@ -23,9 +26,14 @@ interface FooterContext {
 export const DemoFundFlow = ({ context }: { context: unknown }): ReactNode => {
   const c = context as FooterContext
   return (
-    <div className={fundFlow.classNames.fundFlow}>
-      <strong>资金流向（demo）已挂载</strong> — {c.name ?? c.symbol}（{c.symbol} · view={c.view}）。
-      由 <code>@berkshire/plugin-demo</code> 注册，样式 scoped、可整体卸载。
+    <div className={fundFlow.classNames.fundFlow} role="status">
+      <Badge kind="info" variant="soft">
+        资金流向（demo）
+      </Badge>
+      <span>
+        {c.name ?? c.symbol}（{c.symbol} · view={c.view}）
+      </span>
+      <code>@berkshire/plugin-demo</code>
     </div>
   )
 }
