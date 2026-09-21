@@ -1,0 +1,67 @@
+/* AlertDialog 的 CSS Modules（@berkshire/ui）。
+ * S2/S3 对齐 S1 冻结设计语言：遮罩/抬升面/圆角/阴影/间距/字阶一律 var(--bk-*)，禁魔法色值；
+ * 暗色由 static 层单表覆盖，组件零主题选择器。与 Modal 同纪律，但为本件独立书写。 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--bk-space-5);
+  background: var(--bk-scrim);
+  /* 蒙层高斯模糊：遮住背景同时保留通透感；数值非色值，不触碰「禁魔法色值」纪律。 */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* 告警面板比普通弹窗更收敛：更窄宽度 + 更紧凑内边距。 */
+.panel {
+  width: min(400px, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  padding: var(--bk-space-5);
+  background: var(--bk-color-bg-elevated);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-dialog);
+  box-shadow: var(--bk-shadow-xl);
+  color: var(--bk-color-fg);
+}
+.panel:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus), var(--bk-shadow-xl);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-2);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--bk-font-size-base);
+  font-weight: 600;
+  line-height: var(--bk-leading-tight);
+}
+
+.description {
+  margin: 0;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-muted);
+  line-height: var(--bk-leading-normal);
+}
+
+/* 面板内标题/描述之外的附加内容区。 */
+.content {
+  margin-top: var(--bk-space-4);
+}
+
+/* 动作区：右对齐（shadcn new-york alert-dialog-footer 语义），取消 + 确认两键。 */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--bk-space-2);
+  margin-top: var(--bk-space-5);
+}

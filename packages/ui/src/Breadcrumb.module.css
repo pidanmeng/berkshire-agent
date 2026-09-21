@@ -1,0 +1,114 @@
+/* Breadcrumb 的 CSS Modules（@berkshire/ui：构建期哈希、类名自动唯一，camelCase）。
+ * 对齐 S1 冻结设计语言：色/间距/圆角/字阶全 var(--bk-*)、焦点环用强调色令牌、
+ * hover 用透明叠层令牌，禁魔法色值；暗色由 static 层单表覆盖，组件零主题选择器。 */
+.root {
+  margin: 0;
+  padding: 0;
+}
+
+/* 层级列表：横向 flex、可换行，项间以 gap 拉开分隔符间距。 */
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bk-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-none);
+  color: var(--bk-color-fg-muted);
+}
+
+/* 单个路径项。 */
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-1);
+}
+
+/* 父级链接：主色，hover 下划线，键盘焦点环用强调色令牌。 */
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-1);
+  color: var(--bk-color-primary);
+  text-decoration: none;
+  border-radius: var(--bk-radius-sm);
+  padding: var(--bk-space-1);
+}
+.crumb:hover {
+  color: var(--bk-color-primary-hover);
+  text-decoration: underline;
+}
+.crumb:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+
+/* 非链接也非当前页的普通 crumb（数组形态下无 href 的父项）。 */
+.crumbPlain {
+  color: var(--bk-color-fg-muted);
+  cursor: default;
+}
+
+/* 当前页：常规前景 + 略加重，非交互（默认 cursor 继承）。 */
+.page {
+  color: var(--bk-color-fg);
+  font-weight: 550;
+  cursor: default;
+}
+
+/* 当前页链接变体：咬主色但无下划线，hover 主色 hover。 */
+.pageLink {
+  color: var(--bk-color-primary);
+  cursor: pointer;
+}
+.pageLink:hover {
+  color: var(--bk-color-primary-hover);
+  text-decoration: underline;
+}
+.pageLink:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+  border-radius: var(--bk-radius-sm);
+}
+
+/* 装饰性分隔符：弱化前景，禁止选中（aria-hidden，进读屏不宣读）。 */
+.separator {
+  color: var(--bk-color-fg-subtle);
+  user-select: none;
+  margin: 0 var(--bk-space-1);
+}
+
+/* 可点省略按钮（items 形态折叠时展开全部）。 */
+.ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--bk-radius-sm);
+  background: transparent;
+  color: var(--bk-color-fg-muted);
+  font-size: var(--bk-font-size-sm);
+  line-height: 1;
+  cursor: pointer;
+}
+.ellipsis:hover {
+  background: var(--bk-hover);
+}
+.ellipsis:active {
+  background: var(--bk-active);
+}
+.ellipsis:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+
+/* 手动省略项（组合形态用）：静态「…」，无语义。 */
+.ellipsisStatic {
+  color: var(--bk-color-fg-subtle);
+}

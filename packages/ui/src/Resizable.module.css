@@ -1,0 +1,83 @@
+/* Resizable / ResizablePanel / ResizableHandle 的 CSS Modules（@berkshire/ui）。
+ * S3 决策：自实现拖拽（不引 react-resizable-panels，见 S1 依赖政策）——根容器 flex 主/次轴，
+ * 面板 flex-grow 比例表达占比、分隔条 `flex: 0 0 auto` 固定宽。全部 `var(--bk-*)`（别名层令牌），
+ * 禁魔法色值；暗色由 static 层单表覆盖，无主题选择器。 */
+
+/* 根：flex 容器。拖拽态由根 data-dragging（随后续 margin 处理）承载；此处只管轴方向。 */
+.group {
+  box-sizing: border-box;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.groupHorizontal {
+  flex-direction: row;
+  align-items: stretch;
+}
+.groupVertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* 面板：flex 子项，grow 由 JS 注入（flex-grow: <frac>），basis 0 由 JS 在注册 effect 里设置。
+ * overflow hidden + min 尺寸归零，保证占比不被内容撑破。 */
+.panel {
+  box-sizing: border-box;
+  flex-basis: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 分隔条：固定主轴尺寸（水平=8px 宽 / 垂直=8px 高），flex: 0 0 auto 不参与 grow。
+ * touch-action none + user-select none 抑制拖拽时的原生手势与文本选择。 */
+.handle {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+  cursor: default;
+}
+.handleHorizontal {
+  width: var(--bk-space-2);
+  cursor: col-resize;
+}
+.handleVertical {
+  height: var(--bk-space-2);
+  cursor: row-resize;
+}
+
+/* 抓握手感：hover/拖拽用透明叠层令牌（叠加任意背景成立，不造实色）。 */
+.handle:hover {
+  background: var(--bk-hover);
+}
+.handle[data-dragging="true"] {
+  background: var(--bk-active);
+}
+
+/* 键盘焦点环（分隔条 tabIndex=0）。 */
+.handle:focus-visible {
+  outline: 2px solid var(--bk-color-accent-focus);
+  outline-offset: -2px;
+  border-radius: var(--bk-radius-sm);
+}
+
+/* 内侧抓握块：水平分隔条=竖直细条、垂直分隔条=水平细条；半透明中性。 */
+.grip {
+  box-sizing: border-box;
+  border-radius: var(--bk-radius-pill);
+  background: var(--bk-color-neutral-soft);
+  flex: none;
+}
+.handleHorizontal .grip {
+  width: 3px;
+  height: 32px;
+}
+.handleVertical .grip {
+  width: 32px;
+  height: 3px;
+}

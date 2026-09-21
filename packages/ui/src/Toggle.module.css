@@ -1,0 +1,42 @@
+/* Toggle 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 设计语言：描边底 + 开启态强调色实底反色文字 + 透明叠层交互态 + 焦点环，
+ * 间距/圆角/字号一律 var(--bk-*)、禁魔法色值；暗色由 static 层单表覆盖。 */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bk-space-2);
+  padding: var(--bk-space-1) var(--bk-space-3);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  background: transparent;
+  color: var(--bk-color-fg-muted);
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.toggle:hover:not(:disabled) {
+  background: var(--bk-hover);
+  color: var(--bk-color-fg);
+}
+.toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+.toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 开启态：强调色实底 + 反转前景，与悬停态视觉层级区分。 */
+.on {
+  background: var(--bk-color-accent);
+  border-color: var(--bk-color-accent);
+  color: var(--bk-color-fg-invert);
+}
+.on:hover:not(:disabled) {
+  background: var(--bk-color-accent-hover);
+  color: var(--bk-color-fg-invert);
+}

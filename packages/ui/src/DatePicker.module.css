@@ -1,0 +1,162 @@
+/* DatePicker 的 CSS Modules（@berkshire/ui）。
+ * S4 决策：最小核心子集（单日期 + 月格网 + 月导航 + 键盘选中），复用 Popover 的 portal 定位外壳，
+ * 日历格网自实现（不放行 date-fns）。样式一律 `var(--bk-*)`、禁魔法色值、暗色由 static 层单表覆盖，
+ * 组件零主题选择器。 */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-3);
+  padding: var(--bk-space-3);
+}
+
+/* 触发器：非交互展示元素（Popover 的 anchor 接管点击/键盘/aria），置为输入框视觉。 */
+.triggerDisplay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bk-space-2);
+  box-sizing: border-box;
+  min-width: 180px;
+  height: 32px;
+  padding: 0 var(--bk-space-3);
+  background: var(--bk-color-bg-elevated);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.triggerDisplay:hover {
+  border-color: var(--bk-border-strong);
+}
+.triggerDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.triggerText {
+  color: var(--bk-color-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.triggerText:empty {
+  color: var(--bk-color-fg-subtle);
+}
+.chevron {
+  flex: none;
+  color: var(--bk-color-fg-muted);
+}
+
+/* 月导航头部。 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bk-space-2);
+}
+.headerTitle {
+  font-size: var(--bk-font-size-md);
+  font-weight: 550;
+  line-height: var(--bk-leading-none);
+  color: var(--bk-color-fg);
+}
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--bk-space-6);
+  height: var(--bk-space-6);
+  border: 1px solid transparent;
+  border-radius: var(--bk-radius-sm);
+  background: transparent;
+  color: var(--bk-color-fg-muted);
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-none);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.navBtn:hover:not(:disabled) {
+  background: var(--bk-hover);
+}
+.navBtn:active:not(:disabled) {
+  background: var(--bk-active);
+}
+.navBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.navBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+
+/* 日历格网。 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--bk-space-1);
+}
+.weekRow {
+  display: contents;
+}
+.weekday {
+  box-sizing: border-box;
+  width: var(--bk-space-6);
+  height: var(--bk-space-5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--bk-font-size-xs);
+  color: var(--bk-color-fg-subtle);
+  line-height: var(--bk-leading-none);
+}
+
+.cellBtn {
+  box-sizing: border-box;
+  width: var(--bk-space-6);
+  height: var(--bk-space-6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--bk-radius-md);
+  background: transparent;
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-sm);
+  line-height: var(--bk-leading-none);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.cellBtn:hover:not(:disabled) {
+  background: var(--bk-hover);
+}
+.cellBtn:active:not(:disabled) {
+  background: var(--bk-active);
+}
+.cellBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+.cellOut {
+  color: var(--bk-color-fg-subtle);
+}
+.cellToday {
+  color: var(--bk-color-accent);
+  font-weight: 650;
+}
+.cellSelected {
+  background: var(--bk-color-accent);
+  color: var(--bk-color-fg-invert);
+  font-weight: 650;
+}
+.cellSelected:hover:not(:disabled) {
+  background: var(--bk-color-accent-hover);
+}
+.cellDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

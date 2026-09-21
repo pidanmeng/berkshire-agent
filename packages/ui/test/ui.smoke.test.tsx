@@ -33,6 +33,9 @@ import {
   TabsList,
   TabsTrigger,
   Tooltip,
+  Resizable,
+  ResizablePanel,
+  ResizableHandle,
 } from "../src/index"
 
 describe("@berkshire/ui 冒烟", () => {
@@ -184,5 +187,34 @@ describe("@berkshire/ui 冒烟", () => {
     const html = renderToStaticMarkup(<Divider orientation="horizontal" />)
     expect(html).toMatch(/role="separator"/)
     expect(html).toMatch(/aria-orientation="horizontal"/)
+  })
+
+  test("Resizable 渲染面板与分隔条", () => {
+    const html = renderToStaticMarkup(
+      <Resizable direction="horizontal">
+        <ResizablePanel defaultSize={60}>左面板</ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel defaultSize={40}>右面板</ResizablePanel>
+      </Resizable>,
+    )
+    expect(html).toContain("左面板")
+    expect(html).toContain("右面板")
+    expect(html).toMatch(/role="separator"/)
+    expect(html).toMatch(/aria-orientation="horizontal"/)
+    expect(html).toMatch(/data-resizable-panel/)
+    expect(html).toMatch(/data-resizable-handle/)
+  })
+
+  test("Resizable vertical 分隔条 aria-orientation=vertical", () => {
+    const html = renderToStaticMarkup(
+      <Resizable direction="vertical">
+        <ResizablePanel>上</ResizablePanel>
+        <ResizableHandle ariaLabel="纵向分隔条" />
+        <ResizablePanel>下</ResizablePanel>
+      </Resizable>,
+    )
+    expect(html).toMatch(/aria-orientation="vertical"/)
+    expect(html).toContain("纵向分隔条")
+    expect(html).toMatch(/tabindex="0"/)
   })
 })

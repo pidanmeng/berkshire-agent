@@ -1,0 +1,109 @@
+/* ScrollArea / Scrollbar 的 CSS Modules（@berkshire/ui）。
+ * S2 决策：自实现滚动条（不引 scroll/Radix 类库，见 S1 依赖政策）——
+ * 底层滚动容器 `overflow:auto` 保留原生滚轮/触控板，本样式只负责隐藏原生滚动条 + 绘制自绘
+ * 轨道/滑块。全部 `var(--bk-*)`（别名层令牌），禁魔法色值；暗色由 static 层单表覆盖，无主题选择器。 */
+
+.root {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 滚动视口：保留原生滚动能力，隐藏浏览器自绘滚动条。 */
+.viewport {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* 隐藏原生滚动条（webview 常见 Chromium/WebKit + Firefox）： */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 旧版 IE/Edge */
+}
+.viewport::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.viewport:focus-visible {
+  outline: 2px solid var(--bk-color-accent-focus);
+  outline-offset: -2px;
+  border-radius: var(--bk-radius-sm);
+}
+
+/* 内容包装层：inline-block + min-width 承载「垂直可高、水平可宽」的双向溢出，
+ * 供 Scrollbar 的 ResizeObserver 观察内容尺寸变化以防 stale。 */
+.content {
+  box-sizing: border-box;
+  display: inline-block;
+  min-width: 100%;
+  vertical-align: top;
+}
+
+/* 轨道：贴视口边缘，占 8px 宽/高热点区。 */
+.track {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  border-radius: var(--bk-radius-pill);
+  touch-action: none;
+  user-select: none;
+}
+.trackVertical {
+  top: 2px;
+  right: 2px;
+  bottom: 2px;
+  width: 8px;
+}
+.trackHorizontal {
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 8px;
+}
+.track:hover {
+  background: var(--bk-color-bg-muted);
+}
+
+/* 滑块：尺寸/偏移由 JS 注入（translate 沿主轴）。 */
+.thumb {
+  position: relative;
+  box-sizing: border-box;
+  border-radius: var(--bk-radius-pill);
+  background: var(--bk-color-neutral-soft);
+  will-change: transform;
+}
+.thumbVertical {
+  width: 100%;
+}
+.thumbHorizontal {
+  height: 100%;
+}
+.thumb:hover,
+.thumbActive {
+  background: var(--bk-color-neutral);
+}
+
+/* 显隐形态：
+ * - always：可滚时常显（默认 opacity:1）。
+ * - auto：可滚时半透明浮现，root hover 或拖拽时全显。
+ * - hover：默认隐藏，仅 root hover 或拖拽时显现。 */
+.trackAlways {
+  opacity: 1;
+}
+.trackAuto {
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+}
+.trackAuto[data-active="true"],
+.root:hover .trackAuto {
+  opacity: 1;
+}
+.trackHover {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.trackHover[data-active="true"],
+.root:hover .trackHover {
+  opacity: 1;
+}

@@ -1,0 +1,69 @@
+/* Drawer 的 CSS Modules（@berkshire/ui）。
+ * 底部抽屉面板：overlay 靠底对齐，panel 整宽 + max-height，顶部圆角 + 手柄 + 底部滑入动画。
+ * 全部 `var(--bk-*)`，禁魔法色值（这里只 transform/opacity/border-radius 等结构值）。
+ * 诚实：拖拽收放未实现（手柄为纯装饰）；只做入场动画，离场为「目标态」。
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: stretch;
+  overflow: hidden;
+  /* 半透明遮罩：`--bk-scrim` 即 rgba 半透明叠层，叠加任意背景成立。 */
+  background: var(--bk-scrim);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: overlayFade 160ms ease-out;
+}
+
+.panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: min(80vh, 36rem);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  background: var(--bk-color-bg-elevated);
+  box-shadow: var(--bk-shadow-xl);
+  color: var(--bk-color-fg);
+  outline: none;
+  border-top-left-radius: var(--bk-radius-dialog);
+  border-top-right-radius: var(--bk-radius-dialog);
+  animation: slideFromBottom 240ms ease-out;
+  /* 面板自身预留顶部空间给手柄。 */
+  padding-top: var(--bk-space-2);
+}
+.panel:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus), var(--bk-shadow-xl);
+}
+
+/* 纯装饰手柄（拖拽收放是「目标态」，此处仅视觉 affordance，不可交互）。 */
+.handle {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 2.5rem;
+  height: 4px;
+  margin: var(--bk-space-1) auto var(--bk-space-2);
+  border-radius: var(--bk-radius-pill);
+  background: var(--bk-border-strong);
+}
+
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

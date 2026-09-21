@@ -1,0 +1,6 @@
+/* HoverCard 的 CSS Modules（@berkshire/ui）。
+ * S3 决策：复用 Popover 的 portal + 定位/面板样式（见 Popover.module.css），本文件只承载
+ * HoverCard 的触发包装容器样式；全部 `var(--bk-*)`，禁魔法色值。 */
+.wrap {
+  display: inline-block;
+}

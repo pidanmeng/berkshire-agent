@@ -1,0 +1,28 @@
+/* Pagination 的 CSS Modules（@berkshire/ui）。
+ * S2 对齐 S1 冻结设计语言：容器间距/省略号弱化前景一律 var(--bk-*)，禁魔法色值；
+ * 页钮复用 Button 基础态（ghost/primary），暗色由 static 层单表覆盖、组件零主题选择器。 */
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+}
+
+/* 方向钮与页钮等宽居中的方形钮（Button sm 高度 26px）。 */
+.dir {
+  min-width: 26px;
+  padding: 0 var(--bk-space-1);
+}
+
+.page {
+  min-width: 26px;
+  padding: 0 var(--bk-space-1);
+}
+
+/* 非交互省略号：更弱前景；不参与键盘焦点。 */
+.ellipsis {
+  min-width: 26px;
+  padding: 0 var(--bk-space-1);
+  text-align: center;
+  color: var(--bk-color-fg-subtle);
+  user-select: none;
+}

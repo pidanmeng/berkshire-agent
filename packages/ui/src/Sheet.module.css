@@ -1,0 +1,126 @@
+/* Sheet 的 CSS Modules（@berkshire/ui）。
+ * 屏幕边缘滑出面板。overlay 为全屏 flex 容器，按 `side` 把 panel 对齐到对应边缘；
+ * panel 尺寸/圆角/入场动画按所在边缘用 `panelLeft/Right/Top/Bottom` 控制。
+ * 全部 `var(--bk-*)`，禁魔法色值（此处只动画 transform/opacity，无裸色值）。
+ * 诚实：只做入场动画，离场动画为「目标态」——关闭即卸载。 */
+
+/* ── overlay：全屏遮罩（flex 容器，定位交给 side 类）──────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  overflow: hidden;
+  background: var(--bk-scrim);
+  /* 遮罩高斯模糊：保留通透感；数值非色值，不触碰「禁魔法色值」纪律。 */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: overlayFade 160ms ease-out;
+}
+
+/* 边缘对齐：只决定 panel 落在 flex 容器的哪一侧，不定义 panel 几何。 */
+.overlayLeft {
+  justify-content: flex-start;
+  align-items: stretch;
+}
+.overlayRight {
+  justify-content: flex-end;
+  align-items: stretch;
+}
+.overlayTop {
+  align-items: flex-start;
+  justify-content: stretch;
+}
+.overlayBottom {
+  align-items: flex-end;
+  justify-content: stretch;
+}
+
+/* ── panel：基础（尺寸/圆角/动画由 side 类补充）────────────────────── */
+.panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  background: var(--bk-color-bg-elevated);
+  box-shadow: var(--bk-shadow-xl);
+  color: var(--bk-color-fg);
+  outline: none;
+}
+.panel:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus), var(--bk-shadow-xl);
+}
+
+/* 左/右：固定宽度、整高，从对应边缘滑入；圆角只做靠内侧的两个角。 */
+.panelLeft {
+  height: 100%;
+  width: min(28rem, 88vw);
+  border-top-right-radius: var(--bk-radius-dialog);
+  border-bottom-right-radius: var(--bk-radius-dialog);
+  animation: slideFromLeft 240ms ease-out;
+}
+.panelRight {
+  height: 100%;
+  width: min(28rem, 88vw);
+  border-top-left-radius: var(--bk-radius-dialog);
+  border-bottom-left-radius: var(--bk-radius-dialog);
+  animation: slideFromRight 240ms ease-out;
+}
+/* 顶/底：固定高度、整宽，从对应边缘滑入；圆角只做靠内侧的两个角。 */
+.panelTop {
+  width: 100%;
+  height: min(22rem, 70vh);
+  border-bottom-left-radius: var(--bk-radius-dialog);
+  border-bottom-right-radius: var(--bk-radius-dialog);
+  animation: slideFromTop 240ms ease-out;
+}
+.panelBottom {
+  width: 100%;
+  height: min(22rem, 70vh);
+  border-top-left-radius: var(--bk-radius-dialog);
+  border-top-right-radius: var(--bk-radius-dialog);
+  animation: slideFromBottom 240ms ease-out;
+}
+
+/* ── 入场动画 ─────────────────────────────────────────────────────── */
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes slideFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes slideFromTop {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes slideFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

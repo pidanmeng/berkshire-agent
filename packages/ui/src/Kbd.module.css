@@ -1,0 +1,19 @@
+/* Kbd 的 CSS Modules（@berkshire/ui）。
+ * 键盘键帽：小圆角 + 浅底 + 细微阴影（shadow-xs）。颜色/字体/间距一律 var(--bk-*)，零魔法值。 */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4em;
+  height: 1.4em;
+  padding: 0 0.35em;
+  font-family: var(--bk-font-mono);
+  font-size: var(--bk-font-size-xs);
+  line-height: var(--bk-leading-none);
+  color: var(--bk-color-fg-muted);
+  background: var(--bk-color-bg-muted);
+  border: 1px solid var(--bk-color-border-strong);
+  border-radius: var(--bk-radius-xs);
+  box-shadow: var(--bk-shadow-xs);
+  white-space: nowrap;
+}

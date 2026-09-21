@@ -1,0 +1,24 @@
+/* ToggleGroup 的 CSS Modules（@berkshire/ui）。
+ * 容器为内联分段：子项（Toggle）间用相邻选择器裁切圆角并去重描边，形成连成一体的分段视觉。 */
+.group {
+  display: inline-flex;
+  border-radius: var(--bk-radius-md);
+}
+
+/* 相邻子项合并：去掉左侧圆角 + 用 -1px 负边距叠合描边，视觉连成一段。 */
+.group > * + * {
+  margin-left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.group > *:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* 聚焦/悬停项提层到前，避免被相邻项叠盖（分段中焦点环清晰可见）。 */
+.group > *:focus-visible,
+.group > *:hover {
+  position: relative;
+  z-index: 1;
+}

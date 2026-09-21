@@ -1,0 +1,64 @@
+/* DataTable 的 CSS Modules（@berkshire/ui）。
+ * S4 加在既有 Table 之上的组合容器样式：全 var(--bk-*)（别名层），零魔法色值；
+ * 排序按钮 hover 用 hover 叠层、箭头前景用更弱/主色令牌，暗色由 static 层单表覆盖、
+ * 组件零主题选择器（对齐 S1 冻结档位清单 docs/ui-design-language.md）。 */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-3);
+  width: 100%;
+}
+
+/* 全局面板筛选：右置的单输入条。 */
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.filterInput {
+  width: 15rem;
+}
+
+/* 可排序列头按钮：重置原生气 button 样式、继承表头字阶，hover 给叠层。 */
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bk-space-1);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--bk-radius-xs);
+}
+.sortButton:hover {
+  background: var(--bk-hover);
+}
+
+/* 排序箭头：未激活弱化前景，激活用主色强调。 */
+.sortIndicator {
+  display: inline-flex;
+  flex: none;
+  color: var(--bk-color-fg-subtle);
+}
+.sortActive {
+  color: var(--bk-color-primary);
+}
+
+/* 空数据占位行。 */
+.emptyRow {
+  border-bottom: none;
+}
+.emptyCell {
+  padding: var(--bk-space-5) var(--bk-space-3);
+  text-align: center;
+  color: var(--bk-color-fg-subtle);
+}
+
+/* 分页条：右置。 */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+}
