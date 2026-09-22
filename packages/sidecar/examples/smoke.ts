@@ -132,7 +132,12 @@ async function main(): Promise<void> {
   if (clients.error) fail(`client/list error: ${clients.error.message}`)
   const carr = clients.result as Array<{ id: string; slot: string; url: string; exportName?: string }>
   const byId = new Map(carr.map((c) => [c.id, c]))
-  if (carr.length !== 7) fail(`T3 demo 插件应注册 7 个 client 模块，got ${JSON.stringify(carr)}`)
+  // S1 升权后：数据基座（data-manager 数据管理页）随 sidecar 常驻 → 7 个 demo 模块 + 1 个基座模块。
+  if (carr.length !== 8) fail(`应 7 个 demo 模块 + 1 个数据基座模块（data-manager），got ${JSON.stringify(carr)}`)
+  const dm = byId.get('data-manager')
+  if (!dm || dm.slot !== 'data.management' || !dm.url) {
+    fail(`client/list 应含数据基座 data-manager → data.management(url)，got ${JSON.stringify(carr)}`)
+  }
   const footer = byId.get('demo-fund-flow')
   if (!footer || footer.slot !== 'stock-preview.footer' || !footer.url || footer.exportName !== 'DemoFundFlow') {
     fail(`client/list 应含 demo-fund-flow → stock-preview.footer(url/exportName)，got ${JSON.stringify(carr)}`)

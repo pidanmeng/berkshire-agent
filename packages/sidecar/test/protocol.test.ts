@@ -384,3 +384,45 @@ describe('handleLine · routes/list（动态路由/导航，路由契约化）',
     await boot.dispose()
   })
 })
+
+describe('data-sources/enriched-indicators（协议分发，S2-enriched-ohlev-indicator）', () => {
+  function errorCode(line: { lines: string[] }): number {
+    return (JSON.parse(line.lines[0]!) as { error: { code: number } }).error.code
+  }
+
+  test('参数校验：缺 symbol / 非 string symbol / needed 非 string[] → PARAMS（-32602）', async () => {
+    const boot = await mount(false)
+    expect(
+      errorCode(
+        await handleLine('{"id":1,"method":"data-sources/enriched-indicators","params":{}}', { ctx: boot.ctx }),
+      ),
+    ).toBe(ESC.PARAMS)
+    expect(
+      errorCode(
+        await handleLine('{"id":2,"method":"data-sources/enriched-indicators","params":{"symbol":42}}', {
+          ctx: boot.ctx,
+        }),
+      ),
+    ).toBe(ESC.PARAMS)
+    expect(
+      errorCode(
+        await handleLine('{"id":3,"method":"data-sources/enriched-indicators","params":{"symbol":"A","needed":"ma5"}}', {
+          ctx: boot.ctx,
+        }),
+      ),
+    ).toBe(ESC.PARAMS)
+    await boot.dispose()
+  })
+
+  test('合法 symbol 但无 database provider → APP（-32000）fail-closed，绝不返回空结果', async () => {
+    const boot = await mount(false) // core-only：`ctx.database` 无 provider
+    const res = await handleLine(
+      '{"id":1,"method":"data-sources/enriched-indicators","params":{"symbol":"A"}}',
+      { ctx: boot.ctx },
+    )
+    const msg = JSON.parse(res.lines[0]!) as { error: { code: number; message: string } }
+    expect(msg.error.code).toBe(ESC.APP)
+    expect(msg.error.message).toMatch(/provider/)
+    await boot.dispose()
+  })
+})

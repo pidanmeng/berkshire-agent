@@ -20,6 +20,7 @@
 import { DuckDBInstance, type DuckDBConnection } from '@duckdb/node-api'
 import { join } from 'node:path'
 import type { DatabaseProvider, DatabaseTableInfo } from '@berkshire/core'
+import { toSafeJsonValue } from './json-safe'
 
 /** DuckDB 文件名（固定于 `$BK_HOME` 下，不越界）。 */
 export const DB_FILE = 'berkshire.duckdb'
@@ -87,7 +88,9 @@ export function createDuckDbProvider(bkHome: string): DatabaseProvider {
       await open()
       return enqueue(async () => {
         const result = await connection!.runAndReadAll(sql)
-        return result.getRowObjects() as T[]
+        // Provider 出口即归一（bigint→number|string，与协议层双保险）：BIGINT/UINT/HUGEINT
+        // 列不再让下游 `JSON.stringify` 抛 `Do not know how to serialize a BigInt`。
+        return toSafeJsonValue(result.getRowObjects()) as T[]
       })
     },
 
@@ -103,7 +106,11 @@ export function createDuckDbProvider(bkHome: string): DatabaseProvider {
           const count = await connection!.runAndReadAll(
             `SELECT count(*) AS n FROM "main"."${name.replaceAll('"', '""')}"`,
           )
-          const n = (count.getRowObjects() as Array<{ n: number }>)[0]?.n ?? 0
+          // count(*) 在 DuckDB 返回 BIGINT→JS `bigint`；此处归一为 number（safe 范围），
+          // 避免 `database/tables` 快照因 bigint 序列化失败（S1 修复）。
+          const n = (toSafeJsonValue((count.getRowObjects() as Array<Record<string, unknown>>)[0]) as {
+            n: number
+          } | undefined)?.n ?? 0
           out.push({ name, rowCount: n })
         }
         return out

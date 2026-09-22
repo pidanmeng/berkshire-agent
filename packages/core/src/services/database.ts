@@ -1,8 +1,14 @@
 import { Service } from '@berkshire/cordis'
 import type { Context } from '@berkshire/cordis'
 import type { DatasetId } from '../brand'
+import type { DatasetMaterialization, DatasetPartition } from './datasets'
 
 // ctx.database + 其自有事件 —— 服务/事件类型增强 co-locate（@mode emit）
+//
+// 分层说明：本事件归 **core 耐久数据层**（描述 DuckDB 持久化写完成），由**写路径派发**——
+// sidecar 的同步编排 `runDatasetSync`（packages/sidecar/src/sync.ts，单写者）在落库成功后
+// `ctx.emit('database/dataset-updated', …)`。属有意设计（与 sidecar 侧「在途」的 `sync/*`
+// 事件分层不同），非声明/派发错位；故类型在此声明、派发在 sidecar。
 declare module '@berkshire/cordis' {
   interface Context {
     database: DatabaseService
@@ -14,8 +20,14 @@ declare module '@berkshire/cordis' {
      * @param payload.dataset 已更新的 dataset id
      * @param payload.rows 本次写入的行数
      * @param payload.at 落库完成时间戳（ms）
+     * @param payload.generation 本次写后的热缓存 generation（S3 缓存失效判据；未维护缓存 → 缺省）
      */
-    'database/dataset-updated'(payload: { dataset: DatasetId; rows: number; at: number }): void
+    'database/dataset-updated'(payload: {
+      dataset: DatasetId
+      rows: number
+      at: number
+      generation?: number
+    }): void
   }
 }
 
@@ -23,6 +35,12 @@ declare module '@berkshire/cordis' {
 export interface DatabaseTableInfo {
   name: string
   rowCount: number
+  /** 对应 dataset 的物化策略（`embedded`/`parquet-view`）；与 `ctx.datasets` 声明对照。 */
+  materialization?: DatasetMaterialization
+  /** 分区信息（`parquet-view` 物化的大历史数据集；`embedded` 缺省）。 */
+  partition?: DatasetPartition
+  /** 最近一次 generation 原子发布标记（未维护 → null）。 */
+  generation?: string | null
 }
 
 /**

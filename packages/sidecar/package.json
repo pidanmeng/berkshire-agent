@@ -16,6 +16,7 @@
     "build": "bunx tsc -p tsconfig.build.json",
     "start": "bun run src/index.ts",
     "smoke": "bun run examples/smoke.ts",
+    "bench": "bun run bench/cache-performance.ts",
     "test": "bun test"
   },
   "dependencies": {

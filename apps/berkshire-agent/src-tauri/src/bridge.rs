@@ -43,7 +43,8 @@ pub struct ClientModuleDto {
 }
 
 /// 动态路由/导航项（`routes/list` 结果，能力块 B/页面，路由契约化）：所有带 `route` 声明的已排序导航项
-///（任意 slot，含 `slot` 归属——webview 按它渲染页面内容槽，不再写死 analysis.menu）。
+///（任意 slot，含 `slot` 归属——webview 按它渲染页面内容槽，不再写死 analysis.menu）；`section` 供
+/// 侧边栏按组展示（如 demo 声明 `分析`、data-manager 声明 `数据`），缺省无分组。
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub struct RouteDto {
     pub id: String,
@@ -51,6 +52,8 @@ pub struct RouteDto {
     pub title: String,
     pub path: String,
     pub slot: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub section: Option<String>,
 }
 
 /// 把插件自报的绝对 client 入口（file URL 或绝对路径）映射成 webview 可 `import()` 的 `bk://` URL。
@@ -403,6 +406,43 @@ impl Bridge {
     /// 页面据此刷新展示）。
     pub fn database_tables(&self) -> Result<Value, String> {
         self.call("database/tables", Value::Object(Default::default()))
+            .map_err(|e| e.message)
+    }
+
+    /// 覆盖日期登记快照（`data-sources/coverage`）：全部已声明数据组的覆盖记录
+    /// （未登记 → covered:false，fail-closed 不伪造「已覆盖」）。
+    pub fn data_sources_coverage(&self) -> Result<Value, String> {
+        self.call("data-sources/coverage", Value::Object(Default::default()))
+            .map_err(|e| e.message)
+    }
+
+    /// 手动重算某数据集的覆盖（`data-sources/coverage-refresh { dataset }`）：重扫实际落库表
+    /// 并重新登记（数据被外部/旧版本写入后校准）。返回更新后的该数据集覆盖快照。
+    pub fn data_sources_coverage_refresh(&self, dataset: String) -> Result<Value, String> {
+        self.call(
+            "data-sources/coverage-refresh",
+            serde_json::json!({ "dataset": dataset }),
+        )
+        .map_err(|e| e.message)
+    }
+
+    /// 覆盖缺洞自检（`data-sources/coverage-gaps { dataset, start?, end? }`，最小面）：
+    /// 比对目标窗口与实际覆盖区间，输出缺失区间列表。
+    pub fn data_sources_coverage_gaps(
+        &self,
+        dataset: String,
+        start: Option<String>,
+        end: Option<String>,
+    ) -> Result<Value, String> {
+        let mut p = serde_json::Map::new();
+        p.insert("dataset".into(), dataset.into());
+        if let Some(s) = start {
+            p.insert("start".into(), s.into());
+        }
+        if let Some(e) = end {
+            p.insert("end".into(), e.into());
+        }
+        self.call("data-sources/coverage-gaps", Value::Object(p))
             .map_err(|e| e.message)
     }
 }

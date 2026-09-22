@@ -1,5 +1,13 @@
-# base bundle 补丁：在最简 headless 树干上装上 核心脊 + 通知 + 数据源（fuyao/csv）+ 数据管理页。
+# base bundle 补丁：在最简 headless 树干上装上 核心脊 + 通知。
 # 语义见 docs/config.md §4：`insert` 追加行；上层可再用 `{ id, config }` 按 id 整体覆盖。
+#
+# 诚实标注（数据插件升权为基座，S1-data-base-elevation）：
+# 数据 provider（@berkshire/plugin-datasource-fuyao / @berkshire/plugin-datasource-csv）与数据管理页
+# （@berkshire/plugin-data-manager）已升为宿主数据平台的**基座**——对齐 base-ui 的「宿主绑定基座」：
+# base-ui 不入本插件表（它是宿主静态 import 的 webview 半身）；数据基座的 sidecar half 由侧边 sidecar
+# boot **无条件常驻装配**（见 packages/sidecar/src/index.ts 的 BASE_DATA_PLUGINS），其 webview 半身
+# 经常驻 sidecar 的 client/list·routes/list 自动出现。故这里**不再把它们列为插件行**（不再作为
+# 用户可勾选/裁剪项），与 base-ui 一致。仅 core（核心脊）与 notify-console（可裁剪插件）作为插件行。
 - insert:
     - id: core
       name: '@berkshire/core'
@@ -8,9 +16,3 @@
       config:
         channel: console
         echo: true
-    - id: datasource-fuyao
-      name: '@berkshire/plugin-datasource-fuyao'
-    - id: datasource-csv
-      name: '@berkshire/plugin-datasource-csv'
-    - id: data-manager
-      name: '@berkshire/plugin-data-manager'

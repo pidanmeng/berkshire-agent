@@ -37,10 +37,40 @@ import { attachEventPusher } from './events'
 import { attachDevWatcher } from './dev_watch'
 import { createFileStorageProvider } from './storage-provider'
 import { duckDbPath } from './duckdb-provider'
+import { createCoverageProvider } from './coverage-provider'
+import { createEnrichedProvider } from './enriched'
+import { createDatasetCache } from './cache'
+import { attachAutopilot } from './autopilot'
 import type { LineWriter } from './writer'
 
 /** 仓库根（dev 态插件热更 watcher 用）：packages/sidecar/src → ../../../。 */
 const REPO = resolve(import.meta.dir, '../../..')
+
+/**
+ * **数据基座（升权对齐 base-ui 的「宿主绑定基座」）**。
+ *
+ * base-ui 作为应用壳是宿主**静态 import 的 webview 半身**（不入 cordis.yml 插件表、始终存在）；
+ * 数据 provider / 数据管理页同理升为宿主数据平台的基座。但其 provider 必须跑在 Cordis runtime
+ * （`ctx.dataSources` 依赖 DuckDB / `ctx.log` 能力缝），故**基座在 sidecar boot 装配层以 always-on
+ * 常驻实现**：无论用户 `$BK_HOME/cordis.yml` 是否声明、是否勾选，sidecar 装配时都无条件常驻装配，
+ * 首启/升级不因数据插件缺省而崩。webview 半身（数据管理页）经常驻 sidecar 的 `client/list`/`routes/list`
+ * 自动出现（宿主不 static import 插件 client，见 M3 纪律）。
+ *
+ * 升级路径：老 cordis.yml 里已有的数据插件行会被这里**承接去重**（见 main() 的 BASE_DATA_NAMES 剔除），
+ * 不重复装配、不崩。
+ *
+ * **S3 新数据能力的装配落点（已落地）**：Enriched derived provider（`createEnrichedProvider`）、
+ * 覆盖日期登记 Provider（`createCoverageProvider`）、默认定时任务（`attachAutopilot`）已在本进程
+ * 常驻装配（见下文对应段）；后续新数据能力进入基座时继续扩展本列表（或新增一个 `data-base`
+ * 基座插件在 core 之后常驻装配）。
+ */
+const BASE_DATA_PLUGINS: ReadonlyArray<{ id: string; name: string }> = [
+  { id: 'datasource-fuyao', name: '@berkshire/plugin-datasource-fuyao' },
+  { id: 'datasource-csv', name: '@berkshire/plugin-datasource-csv' },
+  { id: 'data-manager', name: '@berkshire/plugin-data-manager' },
+]
+/** 数据基座插件名（用于从用户 cordis.yml 行里剔除、承接老配置的去重）。 */
+const BASE_DATA_NAMES = new Set(BASE_DATA_PLUGINS.map((p) => p.name))
 
 /** 逐行串行的 ndjson 读循环（两阶段共享）：处理一行 → 写响应；shutdown 走 onShutdown。 */
 async function runLoop(
@@ -116,7 +146,10 @@ async function main(): Promise<void> {
   // 再附加文件 Provider（读写 $BK_HOME/state/<ns>），随后装配其余插件——保证 Consumer 插件
   // （如 demo 挂载时读写配置）挂上时已有 provider。core 缺声明则 storage 不可用，消费者 fail-closed。
   const coreRows = rows.filter((r) => r.name === '@berkshire/core')
-  const rest = rows.filter((r) => r.name !== '@berkshire/core')
+  // 数据基座已由本进程常驻装配（对齐 base-ui 的宿主绑定基座），故把用户 cordis.yml 里可能存在的
+  // 数据插件行剔除出 `rest`，避免重复装配；老配置里的这些行被基座**承接去重**（记日志留痕）。
+  const rest = rows.filter((r) => r.name !== '@berkshire/core' && !(r.name && BASE_DATA_NAMES.has(r.name)))
+  const baseDataDeduped = rows.filter((r) => !!r.name && BASE_DATA_NAMES.has(r.name))
   for (const row of coreRows) {
     await boot.install(row, resolver)
   }
@@ -139,6 +172,38 @@ async function main(): Promise<void> {
       )
     }
   }
+  // Enriched（复权 OHLCV + 派生现算）derived provider（S2）：声明服务 `enriched`，fetch 时读
+  // 已落库 daily/adj_factor 变换出窄表基点列，经 runDatasetSync 事务落库。随数据基座常驻。
+  let detachEnriched: (() => void) | undefined
+  if (coreRows.length > 0) {
+    detachEnriched = boot.ctx.dataSources.register(createEnrichedProvider())
+  }
+  // 覆盖日期登记 provider（S2 覆盖 seam）：经 `ctx.datasets.recordCoverage` 写 `dataset_coverage`
+  // 元表。依赖 DuckDB → 与 database provider 同纪律（core 缺声明 / DuckDB 装载失败时 fail-closed 跳过）。
+  let detachCoverage: (() => void) | undefined
+  if (coreRows.length > 0 && boot.ctx.database.available) {
+    try {
+      detachCoverage = boot.ctx.datasets.registerCoverage(createCoverageProvider(boot.ctx))
+    } catch (err) {
+      process.stderr.write(
+        `[sidecar][warn] coverage provider 装载失败: ${err instanceof Error ? err.message : String(err)}\n`,
+      )
+    }
+  }
+  // —— 数据基座常驻装配（升权对齐 base-ui：始终存在、不可剥离）——
+  // 数据 provider（fuyao/csv）+ 数据管理页随宿主数据平台基座常驻，不依赖用户勾选。core 缺声明时
+  // 数据基座无能力缝可用，fail-closed 跳过（与 storage/DuckDB provider 同纪律）。
+  if (coreRows.length > 0) {
+    if (baseDataDeduped.length > 0) {
+      process.stderr.write(
+        `[sidecar] 数据基座常驻：老 cordis.yml 中 ${baseDataDeduped.map((r) => r.id).join(',')} 行` +
+          `由基座承接（不再按用户行重复装配）\n`,
+      )
+    }
+    for (const plug of BASE_DATA_PLUGINS) {
+      await boot.install({ id: plug.id, name: plug.name }, resolver)
+    }
+  }
   for (const row of rest) {
     await boot.install(row, resolver)
   }
@@ -147,6 +212,18 @@ async function main(): Promise<void> {
   const writer = createLineWriter(process.stdout)
   // 事件订阅在装配完成后挂上：装配期间的能力注册不推送，host 用 capabilities/list 拉首次快照。
   const detachEvents = attachEventPusher(boot.ctx, (line) => writer.write(line))
+
+  // S3 热读缓存层（generation-bounded）：创建于装配期，串进同步编排（写后 bump generation 失效）
+  // 与协议读路径（coverage 快照等命中复用）。随 sidecar 进程生命周期。
+  const cache = createDatasetCache()
+
+  // S3 默认定时任务（autopilot：启动同步 + 收盘同步）：ready 后装配，就近同步 + 收盘后同步
+  // 各基础数据组。依赖 `ctx.marketTime`/`ctx.datasets`/`ctx.dataSources`/`ctx.database`——core
+  // 缺声明时无可用的编排能力，fail-closed 跳过（与 storage/DuckDB provider 同纪律）。
+  let detachAutopilot: (() => void) | undefined
+  if (coreRows.length > 0) {
+    detachAutopilot = attachAutopilot(boot.ctx)
+  }
 
   // dev 态插件热更（宿主在 dev 启动时注入 BK_DEV_HOTRELOAD=1）：sidecar 半身文件变更 →
   // 推 `dev/reload-requested`，宿主收到后重启本进程以加载新声明/样式，并推 `client/changed`
@@ -160,12 +237,15 @@ async function main(): Promise<void> {
     })
   }
 
-  const deps: HandleLineDeps = { ctx: boot.ctx }
+  const deps: HandleLineDeps = { ctx: boot.ctx, cache }
 
   const teardown = async () => {
     detachDevReload?.()
+    detachAutopilot?.() // 摘默认定时任务（清除 tick，逆序在 boot.dispose 之前）
     detachStorage?.() // 摘文件 Provider（root ctx effect；boot.dispose 亦会兜底清理）
     detachDatabase?.() // 摘 DuckDB Provider（连接随进程退出，无需显式 closeSync）
+    detachEnriched?.() // 摘 Enriched derived provider（root ctx effect）
+    detachCoverage?.() // 摘覆盖登记 Provider（root ctx effect）
     detachEvents()
     const order = await boot.dispose() // 逆序清理：后装先卸（v1 §8 已验证语义）。
     process.stderr.write(`[sidecar] shutdown: dispose order = ${order.join(' -> ')}\n`)

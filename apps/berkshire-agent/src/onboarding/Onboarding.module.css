@@ -39,6 +39,15 @@
   margin: 0 0 var(--bk-space-4);
 }
 
+.groupTitle {
+  font-size: var(--bk-font-size-sm);
+  font-weight: 600;
+  color: var(--bk-color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: var(--bk-space-4) 0 var(--bk-space-2);
+}
+
 .option {
   display: flex;
   gap: var(--bk-space-3);

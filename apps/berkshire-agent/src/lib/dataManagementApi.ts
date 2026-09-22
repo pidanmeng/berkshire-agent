@@ -12,6 +12,7 @@
 import type { DataManagementApi, DataManagementSnapshotDto } from "@berkshire/ui-slots";
 import {
   databaseTables,
+  dataSourcesCoverageRefresh,
   dataSourcesList,
   dataSourcesProbe,
   dataSourcesSetPreference,
@@ -36,6 +37,7 @@ export function createDataManagementApi(): DataManagementApi {
         datasets: snap.datasets,
         resolved: snap.resolved,
         tables,
+        coverage: snap.coverage,
         apiKeyConfigured,
       };
     },
@@ -54,6 +56,10 @@ export function createDataManagementApi(): DataManagementApi {
 
     async tables() {
       return databaseTables();
+    },
+
+    async refreshCoverage(dataset) {
+      return dataSourcesCoverageRefresh(dataset);
     },
 
     onDatabaseUpdated(cb) {

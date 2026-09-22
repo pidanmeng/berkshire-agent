@@ -73,6 +73,55 @@ export function apply(ctx: Context, config: Config) {
 
 ---
 
+## 1.5 加一个新数据组（扩展缝，S2）
+
+目标：让**一个 Cordis 插件新增一组自己的数据集**（不依赖内置八组），并能走 `data-sources/sync`
+同步、被 `ctx.datasets.list()` 列出、在数据管理页展示、被覆盖登记捕获。这是 S2 扩展缝
+（[docs/data-model.md §2](data-model.md#2-datasetschema-注册表meta-表ctxdatasets)）的最小落地，
+参考插件 `@berkshire/plugin-datasource-example`（[packages/plugins/datasource-example](../packages/plugins/datasource-example/)）。
+
+1. **声明数据组**：经 `ctx.datasets.register(decl)`，`decl` 为 `DatasetDeclaration`（id 品牌化 +
+   `materialization`/`columns`/`columnSchema`/可选 `partition`（parquet-view 必带）/可选 `version`/`sync`）：
+
+```ts
+export const inject = ['datasets', 'dataSources', 'log']
+export async function apply(ctx: Context, config: Config) {
+  const disposers: Array<() => void> = []
+  disposers.push(
+    ctx.datasets.register({
+      id: 'sector_momentum' as DatasetId,        // 品牌化，绝不用裸 string
+      label: '板块动量（样例）',
+      materialization: 'embedded',              // 或 'parquet-view'（需 partition）
+      columns: ['date', 'sector', 'symbol_count', 'avg_change_pct', 'turnover'],
+      columnSchema: [
+        { name: 'date', type: 'VARCHAR' },        // 标识/日期列
+        { name: 'sector', type: 'VARCHAR' },      // 分类字符串列：**必须显式 VARCHAR**
+        { name: 'symbol_count', type: 'DOUBLE' }, // 数值列
+        { name: 'avg_change_pct', type: 'DOUBLE' },
+        { name: 'turnover', type: 'DOUBLE' },
+      ],
+      sync: { cadence: 'daily', window: '示例：日更' },
+      version: '1.0.0',
+    }),
+  )
+  disposers.push(ctx.dataSources.register(provider)) // provider：ctx.dataSources 的 DataSourceProvider，fetch 返回显式列的行
+  return () => { for (let i = disposers.length - 1; i >= 0; i--) disposers[i]!() } // 可逆：卸载即撤
+}
+```
+
+2. **类型显式声明（红线）**：`columnSchema` 是落库类型的**单一事实源**（`columnSqlType` 只认识内置
+   标识/日期列）。`sector`/`factor` 这类**不在内置白名单的分类字符串列必须显式标 `VARCHAR`**，
+   否则 `datasetColumnSchema` 助手会按命名约定误判成 `DOUBLE`，同步时字符串进数值列即 fail-closed。
+
+3. **staged 校验（自动）**：`register` 全量校验（重复 id / 非法/保留字列名 / 非法物化 / 版本不匹配），
+   任一失败**响亮抛错且不留半注册残留**；通过后返回可撤销 disposer，插件卸载连数据组一起撤销。
+
+4. **物化策略通用接入（自动）**：`embedded` → 按 `columnSchema` 建内嵌表 + 事务化整表替换；
+   `parquet-view` → `COPY` 出 parquet 快照 + `CREATE OR REPLACE VIEW ... read_parquet`。同步编排
+   （sidecar `sync.ts`）与覆盖登记 seam 都按声明自动处理，插件**零接线**。
+
+---
+
 ## 2. 加一个指标
 
 目标：注册一个可被选股/图表调用的新指标 `vwap_20`。指标是**纯函数**：输入窄表 + 依赖闭包，输出派生列；**只存基点，指标现算**（继承 TSP [pipeline.py](reference/tick-stock-panel-contracts.md#4-indicator-pipeline)）。

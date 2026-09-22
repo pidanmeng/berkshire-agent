@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createFuyaoProvider, type FuyaoProviderDeps } from '../src/provider'
+import { createFuyaoProvider, createCalendarProbe, calendarRow, calendarDate, type FuyaoProviderDeps } from '../src/provider'
 import type { FetchLike } from '../src/client'
 import type { DatasetId } from '@berkshire/core'
 
@@ -8,6 +8,7 @@ const DAILY = 'daily' as DatasetId
 const ADJ_FACTOR = 'adj_factor' as DatasetId
 const FINANCIAL = 'financial' as DatasetId
 const MINUTE = 'minute' as DatasetId
+const CALENDAR = 'calendar' as DatasetId
 
 function jsonResponse(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), { status, headers: { 'content-type': 'application/json' } })
@@ -180,11 +181,145 @@ describe('扶摇 provider financial', () => {
     const roe = rows.find((r) => r['table'] === 'metrics' && r['key'] === 'roe')
     expect(roe!['value']).toBe(12.5)
   })
+
+  test('PIT：多期保留——每期按自己的 period_end/announce_date 各落 EAV 行，不丢历史、不预填', async () => {
+    // 利润表返回两期（近一期在前，早一期在后），两期 operating_income 不同、公告日不同。
+    const p = makeProvider({
+      fetchImpl: routeFetch({
+        '/api/a-share/financials/income-statements': () => ({
+          item: [
+            {
+              fiscal_year: 2026,
+              fiscal_period: 'Q1',
+              period_end_ms: 1_713_000_000_000, // 北京 2024-04-13
+              report_date_ms: 1_714_000_000_000, // 北京 2024-04-25（公告）
+              operating_income: 2_000_000,
+            },
+            {
+              fiscal_year: 2025,
+              fiscal_period: 'Q4',
+              period_end_ms: 1_706_000_000_000, // 北京 2024-01-23
+              report_date_ms: 1_707_000_000_000, // 北京 2024-02-04（公告）
+              operating_income: 1_500_000,
+            },
+          ],
+        }),
+        '/api/a-share/financials/balance-sheets': () => ({ item: [] }),
+        '/api/a-share/financials/cash-flow-statements': () => ({ item: [] }),
+        '/api/a-share/financials/indicators': () => ({
+          abilities: [{ indicators: [{ index_id: 'index_weighted_avg_roe', value: 12.5 }] }],
+        }),
+      }),
+    })
+    const rows = (await p.fetch(FINANCIAL, { symbols: ['600000.SH'] })) as Array<Record<string, unknown>>
+    const revenue = rows.filter((r) => r['table'] === 'income' && r['key'] === 'revenue')
+    // 两期都被保留（不丢历史）→ 2 行，各带自己的 period_end/announce_date。
+    expect(revenue).toHaveLength(2)
+    const byValue = new Map(revenue.map((r) => [Number(r['value']), r]))
+    const earlier = byValue.get(1_500_000)
+    expect(earlier).toBeTruthy()
+    expect(earlier!['period_end']).toBe('2024-01-23')
+    expect(earlier!['announce_date']).toBe('2024-02-04')
+    const latest = byValue.get(2_000_000)
+    expect(latest).toBeTruthy()
+    expect(latest!['period_end']).toBe('2024-04-13')
+    // 指标取最新期（第 0 行 = 近一期）→ 其 period_end 与最新一期一致。
+    const roe = rows.find((r) => r['table'] === 'metrics' && r['key'] === 'roe')
+    expect(roe!['period_end']).toBe('2024-04-13')
+  })
 })
 
 describe('扶摇 provider minute 未落地', () => {
   test('fetch(minute) fail-closed 抛错', async () => {
     const p = makeProvider()
     await expect(p.fetch(MINUTE, {})).rejects.toThrow(/minute/)
+  })
+})
+
+describe('扶摇 provider calendar（交易日历）', () => {
+  test('配置 Key → calendar 可用', async () => {
+    const p = makeProvider()
+    expect((await p.getAvailability!(CALENDAR)).available).toBe(true)
+  })
+
+  test('calendarRow：防御性归一为 trade_date/open/close/status', () => {
+    expect(calendarRow({ trade_date: '2026-01-05', is_open: 1, close_time: '15:00' })).toEqual({
+      trade_date: '2026-01-05',
+      open: true,
+      close: '15:00',
+      status: 'open',
+    })
+    // 半天市标记 → status 带 half-day
+    expect(calendarRow({ date: '2026-02-16', is_open: true, is_half_day: true })!['status']).toBe('half-day')
+    // 容错字段名（cal_date + *_ms 北京零点）
+    expect(calendarDate({ cal_date: '2026-01-05' })).toBe('2026-01-05')
+    expect(calendarDate({ date_ms: 1_730_000_000_000 })).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    // 休市行：open=false → status closed
+    expect(calendarRow({ date: '2026-01-05', open: '0', status: 'holiday' })).toEqual({
+      trade_date: '2026-01-05',
+      open: false,
+      close: null,
+      status: 'holiday',
+    })
+    // 无合法日期 → null（跳过不伪造）
+    expect(calendarRow({ foo: 'bar' })).toBeNull()
+  })
+
+  test('fetch(calendar) 走 trading-days 接口并归一为 calendar 行', async () => {
+    const p = makeProvider({
+      fetchImpl: routeFetch({
+        '/api/a-share/calendar/trading-days': () => ({
+          item: [
+            { date: '2026-01-05', is_open: true },
+            { date: '2026-01-06', is_open: true },
+            { date: '2026-02-16', is_open: true, is_half_day: true },
+          ],
+        }),
+      }),
+    })
+    const rows = (await p.fetch(CALENDAR, {})) as Array<Record<string, unknown>>
+    expect(rows).toHaveLength(3)
+    expect(rows[0]).toEqual({ trade_date: '2026-01-05', open: true, close: null, status: 'open' })
+    expect(rows[2]!['status']).toBe('half-day')
+  })
+})
+
+describe('扶摇日历探针 createCalendarProbe（market-time 降档链）', () => {
+  test('窗口内：交易日 true（长 TTL）/ 非交易日 false（短 TTL）', async () => {
+    const probe = createCalendarProbe({
+      getApiKey: async () => 'test-key',
+      fetchImpl: routeFetch({
+        '/api/a-share/calendar/trading-days': () => ({
+          item: [{ date: '2026-01-05' }, { date: '2026-01-06' }, { date: '2026-01-09' }],
+        }),
+      }),
+    })
+    expect(await probe.probe('2026-01-05')).toEqual({ trading: true, ttlMs: 6 * 3_600_000 })
+    // 07 在窗口（05~09）内但非交易日（休市）→ 短 TTL
+    const closed = await probe.probe('2026-01-07')
+    expect(closed.trading).toBe(false)
+    expect(closed.ttlMs).toBe(10 * 60_000)
+  })
+
+  test('窗口外 / 缺 Key / 空数据 → 抛错（触发 market-time 降档）', async () => {
+    const probe = createCalendarProbe({
+      getApiKey: async () => 'test-key',
+      fetchImpl: routeFetch({
+        '/api/a-share/calendar/trading-days': () => ({ item: [{ date: '2026-01-05' }] }),
+      }),
+    })
+    await expect(probe.probe('2025-12-01')).rejects.toThrow(/超出扶摇交易日窗口/)
+
+    const noKey = createCalendarProbe({
+      getApiKey: async () => '',
+      fetchImpl: routeFetch({}),
+    })
+    await expect(noKey.probe('2026-01-05')).rejects.toThrow(/FUYAO_API_KEY/)
+
+    const empty = createCalendarProbe({
+      getApiKey: async () => 'test-key',
+      fetchImpl: routeFetch({ '/api/a-share/calendar/trading-days': () => ({ item: [] }) }),
+    })
+    await expect(empty.probe('2026-01-05')).rejects.toThrow(/无可用交易日/)
   })
 })

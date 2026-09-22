@@ -6,10 +6,32 @@
  * （含组件的多步向导），v1 只有这一步。
  */
 import { useCallback } from "react";
-import { DEFAULT_PLUGIN_OPTIONS, REQUIRED_PLUGIN } from "./defaultOptions";
+import { BASE_DATA_PLUGINS, DEFAULT_PLUGIN_OPTIONS, REQUIRED_PLUGIN } from "./defaultOptions";
 import { buildCordisYml } from "./buildCordisYml";
 import type { OnboardingStep, OnboardingStepProps } from "./types";
 import styles from "./Onboarding.module.css";
+
+/** 锁定项渲染（readOnly 展示当前的必装/基座项，不进入用户勾选态）。 */
+function LockedOption({
+  label,
+  name,
+  description,
+}: {
+  label: string;
+  name: string;
+  description: string;
+}) {
+  return (
+    <label className={`${styles.option} ${styles.optionDisabled}`}>
+      <input type="checkbox" checked readOnly disabled />
+      <span className={styles.optionBody}>
+        <strong>{label}</strong>
+        <small>{description}</small>
+        <code>{name}</code>
+      </span>
+    </label>
+  );
+}
 
 /** 默认步骤：勾选默认插件，提交时生成默认 cordis.yml 并写盘+重启。 */
 function DefaultCordisStep({
@@ -38,15 +60,25 @@ function DefaultCordisStep({
       </p>
 
       {/* 必装：core 核心脊（锁定不可关）。 */}
-      <label className={`${styles.option} ${styles.optionDisabled}`}>
-        <input type="checkbox" checked readOnly disabled />
-        <span className={styles.optionBody}>
-          <strong>{REQUIRED_PLUGIN.name}</strong>
-          <small>核心脊（能力缝 Definition 与事件桩）——必装，提供 ctx 能力面。</small>
-        </span>
-      </label>
+      <LockedOption
+        label={REQUIRED_PLUGIN.name}
+        name={REQUIRED_PLUGIN.name}
+        description="核心脊（能力缝 Definition 与事件桩）——必装，提供 ctx 能力面。"
+      />
+
+      {/* 数据基座（always-on，升权对齐 base-ui）：sidecar 无条件常驻，锁死不可裁剪。 */}
+      <h4 className={styles.groupTitle}>数据基座（宿主常驻，不可裁剪）</h4>
+      {BASE_DATA_PLUGINS.map((opt) => (
+        <LockedOption
+          key={opt.id}
+          label={opt.label}
+          name={opt.name}
+          description={opt.description}
+        />
+      ))}
 
       {/* 可选项。 */}
+      <h4 className={styles.groupTitle}>可装配插件</h4>
       {DEFAULT_PLUGIN_OPTIONS.map((opt) => (
         <label key={opt.id} className={styles.option}>
           <input

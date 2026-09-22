@@ -3,7 +3,8 @@
   "include": [
     "./**/src/**/*.ts",
     "./**/examples/**/*.ts",
-    "./**/test/**/*.ts"
+    "./**/test/**/*.ts",
+    "./**/bench/**/*.ts"
   ],
   "compilerOptions": {
     "composite": false,
@@ -22,7 +23,9 @@
       "@berkshire/plugin-notify-console": ["./plugins/notify-console/src/index.ts"],
       "@berkshire/plugin-demo": ["./plugins/demo/src/index.ts"],
       "@berkshire/plugin-demo/client": ["./plugins/demo/src/client/index.tsx"],
-      "@berkshire/base-ui/client": ["./plugins/base-ui/src/client/index.tsx"]
+      "@berkshire/base-ui/client": ["./plugins/base-ui/src/client/index.tsx"],
+      "@berkshire/plugin-datasource-example": ["./plugins/datasource-example/src/index.ts"],
+      "@berkshire/plugin-datasource-example/datasets": ["./plugins/datasource-example/src/datasets.ts"]
     }
   }
 }

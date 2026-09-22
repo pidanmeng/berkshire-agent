@@ -138,6 +138,29 @@ async fn database_tables(state: BridgeState<'_>) -> Result<serde_json::Value, St
     bridge_call(state, Bridge::database_tables).await
 }
 
+#[tauri::command]
+async fn data_sources_coverage(state: BridgeState<'_>) -> Result<serde_json::Value, String> {
+    bridge_call(state, Bridge::data_sources_coverage).await
+}
+
+#[tauri::command]
+async fn data_sources_coverage_refresh(
+    dataset: String,
+    state: BridgeState<'_>,
+) -> Result<serde_json::Value, String> {
+    bridge_call(state, move |b| b.data_sources_coverage_refresh(dataset)).await
+}
+
+#[tauri::command]
+async fn data_sources_coverage_gaps(
+    dataset: String,
+    start: Option<String>,
+    end: Option<String>,
+    state: BridgeState<'_>,
+) -> Result<serde_json::Value, String> {
+    bridge_call(state, move |b| b.data_sources_coverage_gaps(dataset, start, end)).await
+}
+
 /// 首启供给：sidecar 是否处于「待供给」阶段（无 cordis.yml）→ webview 显示首启引导。
 #[tauri::command]
 async fn provisioning_status(state: BridgeState<'_>) -> Result<bool, String> {
@@ -231,6 +254,9 @@ pub fn run() {
             data_sources_probe,
             data_sources_sync,
             database_tables,
+            data_sources_coverage,
+            data_sources_coverage_refresh,
+            data_sources_coverage_gaps,
             provisioning_status,
             provision_bk_home,
             window_minimize,

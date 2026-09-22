@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@berkshire/ui"
 import type {
+  DataCoverageEntryDto,
   DataManagementApi,
   DataManagementDatasetDto,
   DataManagementSnapshotDto,
@@ -158,6 +159,7 @@ export default function DataManagerPage({ context }: DataManagerPageProps) {
             onSync={onSync}
             onRefresh={refresh}
           />
+          <CoverageSection snap={snap} api={api} onRefresh={refresh} />
         </>
       ) : (
         <EmptyState title="加载中…" description="正在拉取数据源快照" />
@@ -401,5 +403,129 @@ function LocalDbSection({
         </span>
       )}
     </section>
+  )
+}
+
+function CoverageSection({
+  snap,
+  api,
+  onRefresh,
+}: {
+  snap: DataManagementSnapshotDto
+  api: DataManagementApi
+  onRefresh: () => Promise<void>
+}) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function onRescan(dataset: string, label: string) {
+    setBusy(dataset)
+    try {
+      const r = await api.refreshCoverage(dataset)
+      setMsg({ ok: true, text: `「${label}」覆盖已重算：${r.minDate ?? "未覆盖"} ~ ${r.maxDate ?? "—"}，${r.rows} 行` })
+      await onRefresh()
+    } catch (e) {
+      setMsg({ ok: false, text: `「${label}」覆盖重算失败：${errText(e)}` })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  function fmtDate(v: string | null): string {
+    return v ?? "—"
+  }
+
+  function fmtTime(ms: number | null): string {
+    return ms === null ? "从未" : new Date(ms).toLocaleString()
+  }
+
+  return (
+    <section className={styles.classNames.section}>
+      <div className={styles.classNames.tablesRow}>
+        <h3 className={styles.classNames.sectionTitle}>覆盖日期（S2）</h3>
+        <Button variant="ghost" size="sm" onClick={() => void onRefresh()}>
+          刷新
+        </Button>
+      </div>
+      <p className={styles.classNames.sectionHint}>
+        每组数据已覆盖到哪天（min~max）与最近登记时刻；「重算」= 重扫实际落库表重新登记（校准外部/旧版本写入）。
+      </p>
+      {snap.coverage.length === 0 ? (
+        <EmptyState title="无覆盖登记" description="还没有任何数据组的覆盖记录（未同步任何数据）。" />
+      ) : (
+        <div className={styles.classNames.tableWrap}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>数据集</TableHead>
+                <TableHead>覆盖</TableHead>
+                <TableHead>区间</TableHead>
+                <TableHead>行数 / 去重日期</TableHead>
+                <TableHead>来源</TableHead>
+                <TableHead>最近登记</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {snap.coverage.map((c) => (
+                <CoverageRow key={c.dataset} c={c} busy={busy} onRescan={onRescan} fmtDate={fmtDate} fmtTime={fmtTime} />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      {msg && (
+        <span className={`${styles.classNames.syncMsg} ${msg.ok ? styles.classNames.syncOk : styles.classNames.syncBad}`}>
+          {msg.text}
+        </span>
+      )}
+    </section>
+  )
+}
+
+function CoverageRow({
+  c,
+  busy,
+  onRescan,
+  fmtDate,
+  fmtTime,
+}: {
+  c: DataCoverageEntryDto
+  busy: string | null
+  onRescan: (dataset: string, label: string) => Promise<void>
+  fmtDate: (v: string | null) => string
+  fmtTime: (ms: number | null) => string
+}) {
+  return (
+    <TableRow>
+      <TableCell className={styles.classNames.tableName}>
+        {c.label}
+        <span className={styles.classNames.tableCount}>{c.dataset}</span>
+      </TableCell>
+      <TableCell>
+        {c.covered ? (
+          <Badge kind="success" variant="soft">
+            已覆盖
+          </Badge>
+        ) : (
+          <Badge kind="danger" variant="soft">
+            未覆盖
+          </Badge>
+        )}
+      </TableCell>
+      <TableCell className={styles.classNames.tableCount}>
+        {c.covered ? `${fmtDate(c.minDate)} ~ ${fmtDate(c.maxDate)}` : "—"}
+      </TableCell>
+      <TableCell className={styles.classNames.tableCount}>
+        {c.covered ? `${c.rows} 行 / ${c.tradingDays ?? "?"} 日` : "—"}
+      </TableCell>
+      <TableCell className={styles.classNames.tableCount}>{c.covered ? (c.source ?? "—") : "—"}</TableCell>
+      <TableCell className={styles.classNames.tableCount}>{c.covered ? fmtTime(c.recordedAt) : "从未"}</TableCell>
+      <TableCell>
+        <Button size="sm" variant="ghost" loading={busy === c.dataset} onClick={() => void onRescan(c.dataset, c.label)}>
+          重算
+        </Button>
+      </TableCell>
+    </TableRow>
   )
 }
