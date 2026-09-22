@@ -20,7 +20,7 @@ const CLIENT_ENTRY_URL = (() => {
 })()
 
 /**
- * 数据管理插件（数据源能力缝落地）：注册「数据管理」页（侧边栏「数据」分组，路由 `/data`）。
+ * 数据管理插件（数据源能力缝落地）：注册「数据管理」页（路由 `/data`，侧边栏与首页同权）。
  *
  * - 声明依赖：`inject: ['slots', 'clientModules', 'log']`（解析而非手工排序）；
  * - 提供：`data.management` 槽的一个注册件（`id: 'data-manager'`）+ 对应 client 模块
@@ -44,13 +44,12 @@ export async function apply(ctx: Context, config: Config): Promise<() => void> {
   const reg = ctx.effect(() => {
     const disposers: Array<() => void> = []
 
-    // 数据管理页（能力块 B）：侧边栏「数据」分组 + 路由 /data + 页面 client 模块 + scoped 样式。
+    // 数据管理页（能力块 B）：路由 /data + 页面 client 模块 + scoped 样式（侧边栏扁平排布、与首页同权）。
     disposers.push(
       ctx.slots.register('data.management', {
         id: 'data-manager',
         order: 10,
         title: '数据管理',
-        section: '数据',
         route: { path: DATA_MANAGER_PATH },
       }),
     )

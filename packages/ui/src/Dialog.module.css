@@ -1,0 +1,146 @@
+/* Dialog 复合家族 的 CSS Modules（@berkshire/ui）。
+ * shadcn Dialog 迁移；自实现模态遮罩/面板（portal），只写 var(--bk-*)，禁魔法色值。
+ * 入场动画沿用 Sheet/Drawer 的 overlayFade + panelZoom 思路（只做入场，离场即卸载 → 目标态）。 */
+
+/* DialogTrigger / DialogClose：默认无样式透明按钮（消费方可覆盖；GetRoot 无 asChild，
+ * 触发元素通常由消费方自写 onClick 或复用 Button，此处仅为可组合的兜底语义件）。 */
+.trigger {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--bk-scrim);
+  /* 蒙层高斯模糊：保留通透感；数值非色值，不触碰「禁魔法色值」纪律。 */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* overlay 包裹容器：flex 居中面板，覆盖遮罩之上。 */
+.overlayWrap {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--bk-space-5);
+}
+
+/* 面板：居中模态框。 */
+.panel {
+  position: relative;
+  box-sizing: border-box;
+  width: min(480px, 100%);
+  max-height: 85vh;
+  overflow: auto;
+  padding: var(--bk-space-5);
+  background: var(--bk-color-bg-elevated);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-dialog);
+  box-shadow: var(--bk-shadow-xl);
+  color: var(--bk-color-fg);
+  pointer-events: auto;
+  outline: none;
+  animation: panelZoom 160ms ease-out;
+  z-index: 1001;
+}
+.panel:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus), var(--bk-shadow-xl);
+}
+
+/* 内建绝对定位关闭按钮（右上）。 */
+.closeButton {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--bk-color-fg-muted);
+  cursor: pointer;
+  position: absolute;
+  top: var(--bk-space-3);
+  right: var(--bk-space-3);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--bk-radius-sm);
+  font-size: var(--bk-font-size-base);
+  line-height: 1;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.closeButton:hover {
+  background: var(--bk-hover);
+  color: var(--bk-color-fg);
+}
+
+/* 头部：标题/描述竖排。 */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+  margin-bottom: var(--bk-space-4);
+  padding-right: var(--bk-space-6);
+}
+
+/* 标题。 */
+.title {
+  margin: 0;
+  font-size: var(--bk-font-size-lg);
+  font-weight: 600;
+  color: var(--bk-color-fg);
+}
+
+/* 描述。 */
+.description {
+  margin: 0;
+  font-size: var(--bk-font-size-sm);
+  color: var(--bk-color-fg-subtle);
+  line-height: var(--bk-leading-normal);
+}
+
+/* 底部动作区：右对齐，与上方内容以间距分开。 */
+.footer {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--bk-space-2);
+  margin-top: var(--bk-space-4);
+}
+
+/* 入场动画：只做遮罩淡入 + 面板缩放（离场即卸载，离场动画为「目标态」）。 */
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes panelZoom {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

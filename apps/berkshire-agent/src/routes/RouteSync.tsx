@@ -21,7 +21,7 @@ export default function RouteSync() {
             title: r.title,
             path: r.path,
             slot: r.slot,
-            section: r.section,
+            order: r.order,
           })),
         )
       } catch (e) {

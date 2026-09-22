@@ -13,6 +13,23 @@
  */
 export { AppShell, type AppShellProps, type ShellRouteInfo } from "./AppShell"
 export { Sidebar } from "./Sidebar"
+export {
+  CORE_NAV,
+  DEFAULT_SIDEBAR_PRESET_ID,
+  SIDEBAR_PRESETS,
+  SIDEBAR_NS,
+  SIDEBAR_ITEMS_KEY,
+  SIDEBAR_PRESET_KEY,
+  buildBaseItems,
+  resolveSidebarItems,
+  useSidebarItems,
+} from "./sidebarItems"
+export type {
+  SidebarItem,
+  SidebarItemOverride,
+  SidebarPreset,
+  SidebarPresetId,
+} from "./sidebarItems"
 export { StatusBar } from "./StatusBar"
 export { TitleBar } from "./TitleBar"
 export type { TitleBarController } from "@berkshire/ui-slots"

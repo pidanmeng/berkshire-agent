@@ -4,7 +4,7 @@
  * shadcn `Sheet` 移植；共享滑出面板机制见 `overlay.ts`（焦点陷阱/关闭还原焦点/ESC/
  * body 滚动锁），本组件只负责 portal + 定位对齐（side）+ 滑出入场动效。
  *
- * 行为与可访问性（对齐 `Modal` 契约，见 `.agents/notes/implemented/architecture/2026-09-21-overlay-primitives.md`）：
+ * 行为与可访问性（对齐 `Dialog` 契约，见 `.agents/notes/implemented/architecture/2026-09-21-overlay-primitives.md`）：
  * - 受控 `open`/`onOpenChange`；`side` 决定从哪条边滑出（`left`/`right`/`top`/`bottom`，右默认）；
  * - 遮罩点击、ESC 关闭；`closeOnBackdrop` / `closeOnEsc` 可关；`disableScroll` 锁定背景滚动；
  * - 焦点陷阱（Tab 圈定）+ 关闭时还原焦点到先前聚焦元素；

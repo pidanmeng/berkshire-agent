@@ -11,8 +11,8 @@ export interface ResolvedRouteEntry {
   path: string
   /** 页面内容挂进哪个槽位（webview 按它渲染，不再写死 analysis.menu）。 */
   slot: string
-  /** 侧边栏分组键（应用壳 v1）：缺省走单一默认组。 */
-  section?: string
+  /** 声明序（sidecar `ctx.slots.routes()` 已按 `order ?? 100` 排好，这里原样收下）；用户覆盖/未来排序的基准。 */
+  order: number
 }
 
 class RoutesStore {

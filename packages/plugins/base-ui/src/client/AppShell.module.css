@@ -22,15 +22,17 @@
 .titlebarRegion {
   grid-area: titlebar;
   min-width: 0;
+  /* 自绘标题栏须恒在模态遮罩（@berkshire/ui Dialog/Sheet overlay，z-index 1000）之上：
+   * 窗口控制（最小化/最大化/关闭）是原生窗口语义，任何弹层都不应盖住它。数值高于弹层族，
+   * 属刻意分层而非魔法值。 */
+  z-index: 10000;
 }
 
-/* 左导航：跨两行满高，独立滚动。抬升面 + 右缘边框与右侧文档区分层。 */
+/* 左导航：跨两行满高，独立滚动。抬升面与右缘边框由库 Sidebar 根自携（AppShell 区域不再重复）。 */
 .sidebarRegion {
   grid-area: sidebar;
   min-height: 0;
   overflow: hidden;
-  background: var(--bk-color-bg-elevated);
-  border-right: 1px solid var(--bk-border);
 }
 
 /* 右顶栏：抬升面，铺满顶部一行，下缘边框收束。 */

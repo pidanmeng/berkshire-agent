@@ -1,9 +1,11 @@
 /**
  * AlertDialog —— `@berkshire/ui` 确认/告警式模态对话框（shadcn new-york 结构参照）。
  *
- * 与既有 `Modal` 的关系（对齐 S1 决策 `.agents/notes/implemented/architecture/2026-09-21-shadcn-import-decision.md`）：
- * 普通模态用 `Modal`；本件是「模态 + 告警语义 + 动作区」的独立组合，**不改、不别名 `Modal`**。
- * 复用 `Modal` 的自实现 focus-trap / 遮罩 / body scroll lock 思路但就地独立书写，不侵入既有组件源码。
+ * 与既有 `Dialog` 的关系（对齐 S1 决策 `.agents/notes/implemented/architecture/2026-09-21-shadcn-import-decision.md`
+ * 与 `…-dialog-replaces-modal-and-sidebar-completion.md`）：普通模态用 `Dialog` 家族；本件是
+ * 「模态 + 告警语义 + 动作区」的独立组合，**不改、不别名 `Dialog`**。
+ * 复用 `Dialog` 同款自实现 focus-trap / 遮罩 / body scroll lock 思路（`overlay.ts` hooks）但就地独立书写，
+ * 不侵入既有组件源码。
  *
  * 可访问性（对齐 shadcn AlertDialog）：
  * - `role="alertdialog"` + `aria-modal`；

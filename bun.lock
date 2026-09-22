@@ -181,6 +181,7 @@
         "@berkshire/cordis": "workspace:*",
         "@berkshire/core": "workspace:*",
         "@berkshire/theme": "workspace:*",
+        "@berkshire/ui": "workspace:*",
         "@berkshire/ui-slots": "workspace:*",
         "cordis": "4.0.0-rc.10",
         "react": "^19.1.0",
@@ -237,6 +238,7 @@
       "dependencies": {
         "clsx": "^2.1.1",
         "react": "^19.1.0",
+        "react-dom": "^19.1.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -246,6 +248,7 @@
       },
       "peerDependencies": {
         "react": "^19.1.0",
+        "react-dom": "^19.1.0",
       },
     },
     "packages/ui-slots": {

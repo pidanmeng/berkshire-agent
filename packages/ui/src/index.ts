@@ -8,10 +8,12 @@
  *
  * 诚实：S4 已落地 portal 定位的 `Popover`（复杂弹层首件，方案 1 自实现，见
  * `.agents/notes/implemented/architecture/2026-09-21-overlay-primitives.md`）；S3 已落地
- * `AlertDialog`（确认/告警式模态，不改 `Modal`）、`HoverCard`（hover/focus 触发的上下文卡片）
+ * `AlertDialog`（确认/告警式模态）、`HoverCard`（hover/focus 触发的上下文卡片）
  * 与屏幕边缘滑出面板 `Sheet`/`Drawer`（共享 `overlay.ts` 的焦点陷阱/ESC/滚动锁机制 + 入场动画，
- * 拖拽收放/离场动画为「目标态」），以及通用可折叠导航原语 `Sidebar`（折叠/展开 + 菜单项 + 页脚，
- * 与 base-ui 壳业务侧栏是两物、不做响应式抽屉/路由联动，见 `Sidebar.tsx`），
+ * 拖拽收放/离场动画为「目标态」）、通用可折叠导航原语 `Sidebar`（折叠/展开 + 分组 + 菜单族，
+ * 与 base-ui 壳业务侧栏是两物、不做响应式抽屉/路由联动，见 `Sidebar.tsx`）以及 **`Dialog` 复合家族
+ * （`Dialog`/`Trigger`/`Portal`/`Close`/`Overlay`/`Content`/`Header`/`Footer`/`Title`/`Description`，
+ * **取代既有 `Modal`**，普通模态对话框用它），
  * S4 已落地 `Command`（命令/搜索面板，单组件 props 形态，自实现过滤 + 键盘导航，可内嵌亦可复用
  * `Popover` 组合成命令 palette 弹层）与 `DataTable`（数据表格组合容器：在既有 `Table` 之上加
  * 自实现排序 + 复用 `Pagination` 分页 + 可选全局面板筛选/行选择，零新增运行时依赖，不改 `Table`
@@ -37,8 +39,19 @@ export type { DropdownProps, DropdownItem } from "./Dropdown"
 export { Popover } from "./Popover"
 export type { PopoverProps, PopoverPlacement, PopoverAlign } from "./Popover"
 
-export { Modal } from "./Modal"
-export type { ModalProps } from "./Modal"
+export { Dialog, DialogTrigger, DialogPortal, DialogClose, DialogOverlay, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "./Dialog"
+export type {
+  DialogProps,
+  DialogTriggerProps,
+  DialogPortalProps,
+  DialogCloseProps,
+  DialogOverlayProps,
+  DialogContentProps,
+  DialogHeaderProps,
+  DialogFooterProps,
+  DialogTitleProps,
+  DialogDescriptionProps,
+} from "./Dialog"
 
 export { AlertDialog } from "./AlertDialog"
 export type { AlertDialogProps } from "./AlertDialog"
@@ -157,22 +170,52 @@ export type { DatePickerProps } from "./DatePicker"
 
 export {
   Sidebar,
+  SidebarProvider,
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupAction,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuAction,
+  SidebarMenuBadge,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
+  SidebarInput,
+  SidebarSeparator,
+  SidebarRail,
+  SidebarInset,
+  SidebarTrigger,
   SidebarCollapseTrigger,
   useSidebar,
 } from "./Sidebar"
 export type {
   SidebarProps,
+  SidebarProviderProps,
   SidebarHeaderProps,
   SidebarContentProps,
   SidebarFooterProps,
+  SidebarGroupProps,
+  SidebarGroupLabelProps,
+  SidebarGroupActionProps,
+  SidebarGroupContentProps,
   SidebarMenuProps,
   SidebarMenuItemProps,
   SidebarMenuButtonProps,
+  SidebarMenuActionProps,
+  SidebarMenuBadgeProps,
+  SidebarMenuSubProps,
+  SidebarMenuSubItemProps,
+  SidebarMenuSubButtonProps,
+  SidebarInputProps,
+  SidebarSeparatorProps,
+  SidebarRailProps,
+  SidebarInsetProps,
+  SidebarTriggerProps,
   SidebarCollapseTriggerProps,
 } from "./Sidebar"

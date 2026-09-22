@@ -50,15 +50,14 @@ export interface ClientChangedEvent {
   kind: "slots" | "clientModules";
 }
 
-/** 动态路由/导航项（路由契约化：插件自声明，任意 slot 的 `route`；含 slot 归属 → 页面渲染槽）。 */
+/** 动态路由/导航项（路由契约化：插件自声明，任意 slot 的 `route`；含 slot 归属 → 页面渲染槽）。
+ *  `order` 为 sidecar 已按 `order ?? 100` 排好的声明序（base-ui 侧边栏据此排布，用户覆盖待 v-next）。 */
 export interface RouteEntry {
   id: string;
   order: number;
   title: string;
   path: string;
   slot: string;
-  /** 侧边栏分组键（应用壳 v1）：缺省单组。 */
-  section?: string;
 }
 
 const DEFAULT_TIMEOUT_MS = 4000;

@@ -48,7 +48,7 @@ export interface FrontendSlotContextMap {
   }
   /** 分析菜单（页面注入载体，能力块 B/路由契约化的挂点）：插件自声明路由的页面内容经此槽渲染；宿主暂无上下文。 */
   "analysis.menu": Record<string, never>
-  /** 侧边栏导航区（应用壳）：插件在导航区追加项/分组。宿主给出折叠态与当前路径。 */
+  /** 侧边栏导航区（应用壳）：插件在导航区追加项。宿主给出折叠态与当前路径。 */
   "layout.navigation.extra": {
     /** 侧边栏是否处于折叠（icon 栏）态。 */
     collapsed: boolean
@@ -100,7 +100,7 @@ export interface FrontendSlotContextMap {
    * 具体内容（路由/页面）由 `renderApp` 提供的宿主内容填充，子槽内容归各插件。
    */
   root: {
-    /** 插件自声明路由（宿主 routesStore 快照的子集），供壳内分组导航与上下文标题。 */
+    /** 插件自声明路由（宿主 routesStore 快照的子集），供壳内导航与上下文标题。 */
     routes: readonly ShellRouteInfo[]
     /** 桥接连通态（宿主经 `lib/api` 探测注入）；`null`=检测中。 */
     bridgeOnline: boolean | null
@@ -119,11 +119,13 @@ export interface FrontendSlotContextMap {
   }
 }
 
-/** 给壳帧的一种路由最小信息（base-ui `AppShell`/`Sidebar`/`StatusBar` 亦复用该形状）。 */
+/** 给壳帧的一种路由最小信息（base-ui `AppShell`/`Sidebar`/`StatusBar` 亦复用该形状）。
+ *  `id` 为侧边栏项稳定身份（跨声明与用户覆盖的合并键），`order` 为声明序（sidecar 已排好）。 */
 export interface ShellRouteInfo {
+  id: string
   path: string
   title: string
-  section?: string
+  order: number
 }
 
 /**

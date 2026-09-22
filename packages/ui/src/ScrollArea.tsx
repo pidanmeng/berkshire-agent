@@ -22,7 +22,7 @@
  * 显隐形态 `type`：`auto`（可滚时半透明浮现、hover/拖拽时全显）／`always`（可滚时常显）／`hover`
  * （仅 hover/拖拽时显）。仅在可滚动（`scrollHeight/scrollWidth` 超出视口）时绘制。
  *
- * 诚实边界：**不做列表虚拟化**（大列表优化是目标态/另包）；不接管背景滚动锁（`Modal` 已管）；
+ * 诚实边界：**不做列表虚拟化**（大列表优化是目标态/另包）；不接管背景滚动锁（`Dialog` 已管）；
  * 不支持「点轨道空白跳转」（目标态，可后续在此文件叠加）。
  *
  * 依赖纪律：只 import `react`（宿主注入）+ `clsx`（内联）；不引 Tailwind/CVA/tailwind-merge/Radix。

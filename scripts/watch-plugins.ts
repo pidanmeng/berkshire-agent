@@ -11,6 +11,10 @@
  *   - webview half（`src/client` 下组件源码）变更 → 重构建包后 Vite dev server 从磁盘重读新
  *     `dist/client` 产物并热更新。
  *
+ * 监听清单**由 `scripts/modules.ts` 的 `MODULES` 派生**（与 build/publish 同一事实源，不再各自维护
+ * 硬编码数组——此前硬编码曾漏掉 `ui`/`data-manager` 等包，导致改它们的 CSS/源码不触发重建、HMR
+ * 永远吃旧 dist）。新增可发布包只需改 `modules.ts`，本脚本自动跟随。
+ *
  * 与 `bun run dev` 分进程运行：开一个终端跑 `dev:plugins`（构建 watcher），另一个跑 `bun run dev`
  * （Vite + 可选 tauri:dev）。本脚本不替代 sidecar 的 dev_watch——那是「通知宿主重装配」半身；
  * 本脚本补「把源码变更编译成 dist」这前半段。
@@ -18,29 +22,30 @@
 import { existsSync, watch, type FSWatcher } from "node:fs";
 import { relative, resolve, sep } from "node:path";
 import { $ } from "bun";
+// 包拓扑单一事实源（`dir` 即 `packages/` 相对路径，覆盖 lib 与插件；含 pluginChain=false 的 sidecar——
+// 它的 `src/index.ts` 变更同样要重建，供 BK_DEV_HOTRELOAD 重装配路径消费）。
+import { MODULES } from "./modules";
 
 const REPO = resolve(import.meta.dir, "..");
 
-/** 监听根（各自递归）：lib 源码 + 插件源码。 */
-const PACKAGES: Array<{ name: string; rel: string; src: string }> = [
-  ...["cordis-vendor", "core", "boot", "sidecar", "theme", "ui-slots"].map((n) => ({
-    name: n,
-    rel: n,
-    src: resolve(REPO, "packages", n, "src"),
-  })),
-  ...["notify-console", "demo", "base-ui"].map((n) => ({
-    name: n,
-    rel: `plugins/${n}`,
-    src: resolve(REPO, "packages", "plugins", n, "src"),
-  })),
-].filter((p) => existsSync(p.src));
+/** 监听根（各自递归）：全部可发布包的 src 源码。 */
+const PACKAGES: Array<{ name: string; rel: string; src: string }> = MODULES.map((m) => ({
+  name: m.name,
+  rel: m.dir,
+  src: resolve(REPO, "packages", m.dir, "src"),
+})).filter((p) => existsSync(p.src));
 
-/** 把监听根下的文件路径归到属主包 rel；不是源码（dist/测试/示例）→ null，避免 dist 写回造成死循环。 */
+/** 把监听根下的文件路径归到属主包 rel；不是源码（dist/测试/示例/编辑器临时文件）→ null，避免 dist 写回与保存瞬间造成死循环/无谓重建。 */
 function ownerOf(full: string): string | null {
   const norm = full.replace(/\\/g, "/");
   if (/\/dist\//.test(norm)) return null; // 构建产物写回，不触发
   if (/\.test\.[cm]?ts$/.test(norm)) return null;
   if (/\/examples\//.test(norm)) return null;
+  // 编辑器/IDE 原子保存的临时文件（Windows 上尤其常见）不是源码：`X~RF*.TMP`（rename 临时）、
+  // `*.tmp`、以及 `.X.<pid>.<uuid>.tmpdir/`（atomic-save 临时目录，如 DSH/WebStorm 保存瞬间）。
+  // 不忽略会在每次保存时触发一串无意义重建。
+  if (/\.tmp$/i.test(norm)) return null;
+  if (/\.tmpdir/.test(norm)) return null;
   for (const p of PACKAGES) {
     const prefix = `${p.src.replace(/\\/g, "/")}/`;
     if (norm.startsWith(prefix)) return p.rel;

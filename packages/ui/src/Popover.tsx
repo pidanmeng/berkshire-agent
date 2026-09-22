@@ -9,7 +9,7 @@
  *
  * 可访问性：anchor 带 `aria-haspopup`/`aria-expanded`/`aria-controls`；Enter/Space 切换；
  * ESC 或点击外部（anchor/面板之外）关闭。focus-trap 不适用（popover 是非模态上下文面板，
- * 聚焦陷阱归 `Modal`/`Dialog`）。
+ * 聚焦陷阱归 `Dialog`）。
  *
  * 依赖纪律：只 import `react`（宿主注入）+ `react-dom` 的 `createPortal`（也是宿主注入的
  * React 宿主运行时，非新增 UI 库）+ `clsx`（内联）。不加 Tailwind/CVA/tailwind-merge/Radix。

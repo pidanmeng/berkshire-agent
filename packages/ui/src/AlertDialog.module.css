@@ -1,6 +1,6 @@
 /* AlertDialog 的 CSS Modules（@berkshire/ui）。
  * S2/S3 对齐 S1 冻结设计语言：遮罩/抬升面/圆角/阴影/间距/字阶一律 var(--bk-*)，禁魔法色值；
- * 暗色由 static 层单表覆盖，组件零主题选择器。与 Modal 同纪律，但为本件独立书写。 */
+ * 暗色由 static 层单表覆盖，组件零主题选择器。与 Dialog 同纪律，但为本件独立书写。 */
 .overlay {
   position: fixed;
   inset: 0;

@@ -104,14 +104,13 @@ export async function apply(ctx: Context, config: Config): Promise<() => void> {
     }
 
     // B+A+C：`analysis.menu` 资金流向页（菜单项 + 分析页 client 模块 + scoped 样式）。
-    // 应用壳：路由带 `section: '分析'` 分组展示在侧边栏。
+    // 应用壳：插件页面与首页同权，扁平排布在侧边栏（无分组，见 base-ui Sidebar/sidebarItems）。
     if (config.enableMenu) {
       disposers.push(
         ctx.slots.register('analysis.menu', {
           id: 'demo-money-flow',
           order: 30,
           title: '资金流向（demo）',
-          section: '分析',
           route: { path: MONEY_FLOW_PATH },
         }),
       )

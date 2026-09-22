@@ -2,7 +2,7 @@
  * `@berkshire/ui` 冒烟测试 —— 服务端渲染原子组件（无需浏览器/DOM）。
  *
  * 用 `react-dom/server` 的 `renderToStaticMarkup` 静态断言：组件能独立渲染、props 生效。
- * 只测无交互副作用的可 SRR 组件；Modal/Toast/Dropdown 依赖 hooks 运行期行为，不在侧抽样。
+ * 只测无交互副作用的可 SRR 组件；Dialog/Toast/Dropdown 依赖 hooks 运行期行为，不在侧抽样。
  */
 import { describe, expect, test } from "bun:test"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -15,12 +15,32 @@ import {
   CardHeader,
   CardTitle,
   Checkbox,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
   Divider,
   EmptyState,
   Input,
   Notification,
   Popover,
   Select,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarSeparator,
+  SidebarRail,
+  SidebarInset,
+  SidebarCollapseTrigger,
   Switch,
   Table,
   TableBody,
@@ -216,5 +236,84 @@ describe("@berkshire/ui 冒烟", () => {
     expect(html).toMatch(/aria-orientation="vertical"/)
     expect(html).toContain("纵向分隔条")
     expect(html).toMatch(/tabindex="0"/)
+  })
+
+  test("Dialog 关闭态经 DialogContent 不渲染面板（SSR 下无 body，palette 不吐内容）", () => {
+    const closed = renderToStaticMarkup(
+      <Dialog open={false} onOpenChange={() => {}}>
+        <DialogContent ariaLabel="测试">
+          <DialogHeader>
+            <DialogTitle>标题</DialogTitle>
+            <DialogDescription>描述</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>footer</DialogFooter>
+        </DialogContent>
+      </Dialog>,
+    )
+    // 关闭态：Key 组件不在 SSR 输出（portal 在 open=false 直接 return null）。
+    expect(closed).not.toContain("标题")
+    expect(closed).not.toContain("footer")
+  })
+
+  test("Sidebar 原语家属 SSR：根 nav + 分组 + 菜单项渲染", () => {
+    const html = renderToStaticMarkup(
+      <Sidebar ariaLabel="主导航" width={224} collapsedWidth={56}>
+        <SidebarHeader>Header</SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>核心</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton label="首页" active>
+                    首页
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarSeparator />
+        </SidebarContent>
+        <SidebarFooter>
+          <SidebarCollapseTrigger aria-label="切换折叠" />
+        </SidebarFooter>
+      </Sidebar>,
+    )
+    expect(html).toContain("主导航")
+    expect(html).toContain("核心")
+    expect(html).toContain("首页")
+    expect(html).toContain("Header")
+    expect(html).toMatch(/aria-current="page"/)
+    expect(html).toMatch(/aria-expanded="true"/)
+    expect(html).toMatch(/role="separator"/)
+  })
+
+  test("Sidebar 折叠态（受控 collapsed）MenuButton 不吐文本、仅 label aria", () => {
+    const html = renderToStaticMarkup(
+      <Sidebar collapsed ariaLabel="主导航">
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton label="首页">首页</SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>,
+    )
+    expect(html).not.toContain("&gt;首页&lt;")
+    expect(html).toMatch(/aria-label="首页"/)
+  })
+
+  test("SidebarRail（无 children）渲染存在性窄条 + SidebarInset 主内容容器", () => {
+    const html = renderToStaticMarkup(
+      <div>
+        <SidebarRail />
+        <SidebarInset>内容区</SidebarInset>
+      </div>,
+    )
+    expect(html).toContain("内容区")
+    expect(html).toContain("<main")
   })
 })

@@ -19,21 +19,18 @@
  * `bk://` 远程 bundle、经 sidecar/root 槽装配（可 disable）仍目标态。
  */
 import type { ReactNode } from "react"
-import type { StorageHandle, TitleBarController } from "@berkshire/ui-slots"
+import type { ShellRouteInfo, StorageHandle, TitleBarController } from "@berkshire/ui-slots"
 import { Sidebar } from "./Sidebar"
 import { StatusBar } from "./StatusBar"
 import { TitleBar } from "./TitleBar"
 import styles from "./AppShell.module.css"
 
-/** 给壳的插件路由最小信息（宿主 routesStore 快照的子集，供侧边栏分组 + 状态栏标题）。 */
-export interface ShellRouteInfo {
-  path: string
-  title: string
-  section?: string
-}
+// `ShellRouteInfo`（id/path/title/order）契约单源在共享缝 `@berkshire/ui-slots`，此处直接复用再导出，
+// 不再本地重复定义（避免两侧形状漂移，见 ui-slots types.ts）。
+export type { ShellRouteInfo } from "@berkshire/ui-slots"
 
 export interface AppShellProps {
-  /** 插件自声明路由（宿主 routesStore 快照），供侧边栏分组导航 + 状态栏标题。 */
+  /** 插件自声明路由（宿主 routesStore 快照），供侧边栏导航 + 状态栏标题。 */
   routes: readonly ShellRouteInfo[]
   /** 桥接连通态（宿主经 `lib/api` 探测注入）；`null`=检测中。 */
   bridgeOnline?: boolean | null

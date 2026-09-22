@@ -40,7 +40,7 @@ function App() {
   // 首启供给阶段：checking=探测中，provisioning=$BK_HOME/cordis.yml 未落盘（显示首启引导），
   // ready=已装配（显示正常应用）。在 routes/bridgeOnline 之后取值，保证 hook 顺序稳定。
   const [phase, refreshPhase] = useAppPhase();
-  // 动态路由（路由契约化）：从 routesStore 反应式读取 sidecar 的插件自声明路由（含 slot/section）。
+  // 动态路由（路由契约化）：从 routesStore 反应式读取 sidecar 的插件自声明路由（含 slot/order）。
   const routes = useSyncExternalStore(
     routesStore.subscribe,
     routesStore.getSnapshot,

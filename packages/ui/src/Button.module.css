@@ -42,7 +42,7 @@
 .ghost {
   background: transparent;
   color: var(--bk-color-fg);
-  border-color: var(--bk-border);
+  border-color: transparent;
 }
 .ghost:not(:disabled):hover {
   background: var(--bk-hover);

@@ -128,13 +128,13 @@ declare module '@berkshire/cordis' {
 
 | 槽（布局挂点） | 位置 | context | 说明 |
 | --- | --- | --- | --- |
-| `layout.navigation.extra` | 侧边栏导航区 | `{ collapsed: boolean; pathname: string }` | 插件在导航区追加项/分组 |
+| `layout.navigation.extra` | 侧边栏导航区 | `{ collapsed: boolean; pathname: string }` | 插件在导航区追加项 |
 | `layout.sidebar.footer` | 侧边栏底部（设置入口上方） | `{ collapsed: boolean }` | 插件追加控制项 |
 | `layout.statusbar.right` | 状态栏右侧 | `Record<string, never>` | 插件追加状态项（插件自持响应式） |
 | `settings.cards` | 设置弹窗「插件设置」分组（WP-6 起为弹窗） | `{ settingsGroups: SettingsGroup[] }` | 插件追加设置卡片/分组 |
 | `settings.section` | 设置弹窗「插件设置」分组（WP-6 设置 Seam） | `Record<string, never>` | 插件贡献自己的**设置表单面板**（装上即出现、卸下即消失；每槽包 `ExtensionBoundary`） |
 
-- **三角色**：Definition 挂点（共享缝 `@berkshire/ui-slots` `FrontendSlotContextMap` + core `SLOT_NAMES`，两端同一契约）；Provider（插件经 `ctx.slots`/`ctx.clientModules` 挂载组件 + scoped 样式）；Consumer（`AppShell`/`Sidebar`/`StatusBar`/`SettingsDialog` 内的 `ExtensionSlot`，每槽包 `ExtensionBoundary`）。`settings.section` 的消费者即 base-ui `SettingsDialog` 的「插件设置」分组——通用/模型设置是壳自有表单（`GeneralSettingsForm`/`ModelSettingsForm`，字段用 `@berkshire/ui`，持久化接线待 v-next 挂 storage 缝；模型密钥字段只存 env 引用名、不落明文）。
+- **三角色**：Definition 挂点（共享缝 `@berkshire/ui-slots` `FrontendSlotContextMap` + core `SLOT_NAMES`，两端同一契约）；Provider（插件经 `ctx.slots`/`ctx.clientModules` 挂载组件 + scoped 样式）；Consumer（`AppShell`/`Sidebar`/`StatusBar`/`SettingsDialog` 内的 `ExtensionSlot`，每槽包 `ExtensionBoundary`）。`settings.section` 的消费者即 base-ui `SettingsDialog` 的「插件设置」分组——通用/模型设置是壳自有表单（`GeneralSettingsForm`/`ModelSettingsForm`，字段用 `@berkshire/ui`，持久化已接 storage 缝（WP-7：逐字段落 `settings` 命名空间 KV）；模型密钥字段只存 env 引用名、不落明文）。
 - **共享 `root` 单例槽**：应用壳帧经 `@berkshire/ui-slots` 内置 `root` 槽（`SlotKind='single'`）挂载——`@berkshire/base-ui` 的 `RootShell` 是唯一 single 项（重复注册 fail-closed 拒绝），宿主 `App.tsx` 从 root 槽取壳帧。`root` 是 **webview 本地槽**、不在 core `SLOT_NAMES`（sidecar 不可注册壳帧），两端集合因此**有意不同**。
-- **侧边栏路由分组**：`RouteDescriptor.section?`（core `slots.ts`）使插件路由在侧边栏按组展示；缺省单组（兼容既有声明）。
+- **侧边栏导航模型（`SidebarItem`，已实现）**：base-ui `Sidebar` 把壳自有核心（`/` 首页）与全部插件自声明页面**同权扁平**排布成一条导航列表（无「扩展」分组、无 section 分组键）；排布顺序 = sidecar `routes/list` 已按 `order ?? 100` 排好的声明序。**v-next 出口**：`settings/sidebar.items`（单项 `order`/`hidden` 覆盖）+ `settings/sidebar.preset`（`SIDEBAR_PRESETS` 注册表，v1 仅 `default`）持久化契约，经 `useSidebarItems` 反应式合并——设置弹窗的**排序/隐藏/切换预设** UI 直接写这两个键即可生效（见 base-ui `sidebarItems.ts`）。
 - **诚实边界**：紧凑 `page.header` 每页头槽、折叠态持久化（storage）、store 作用域、`bk://` 远程 bundle、壳经 sidecar 装配可 disable（note「host-to-base-ui」step 3b 余下）均 v-next。

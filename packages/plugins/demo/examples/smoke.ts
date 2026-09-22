@@ -2,8 +2,9 @@
  * demo 插件冒烟（T3 复现开关）：验证「装上即出现、卸下即消失且样式不残留」。
  *
  * 直接走 boot 的 `composeEntries`（与 sidecar 同一装配路径）：
- *  - layers = [base, demo]          → demo 启用：clientModules 6 条、routes 1 项（money-flow，section=分析）。
- *  - layers = [base, demo, demo-off]→ demo 禁用：clientModules 0 条、routes 0 项。
+ *  - layers = [base, demo]          → demo 启用：clientModules 8 条（demo 7 + data-manager 1）、
+ *                                    routes 2 项（money-flow + /data）。
+ *  - layers = [base, demo, demo-off]→ demo 禁用：clientModules 1 条（data-manager）、routes 1 项（/data）。
  *
  * 运行：`bun run packages/plugins/demo/examples/smoke.ts`
  * 诚实：只验证 sidecar 侧注册表/快照的「装上/卸下」，webview 挂载由 ClientModuleHost 接
@@ -19,6 +20,10 @@ import { composeEntries } from '@berkshire/boot'
 import * as core from '@berkshire/core'
 import type { StorageProvider, StorageNamespaceId } from '@berkshire/core'
 import * as notify from '@berkshire/plugin-notify-console'
+// base bundle 其余插件按「与 sidecar 同一装配路径」相对源码 import（避免在本冒烟里给 demo 包加运行时依赖）。
+import * as fuyao from '../../datasource-fuyao/src/index'
+import * as csv from '../../datasource-csv/src/index'
+import * as dataManager from '../../data-manager/src/index'
 import * as demo from '../src/index'
 
 const REPO = resolve(import.meta.dir, '../../../..')
@@ -27,6 +32,9 @@ const resolver = (name: string) =>
   ({
     '@berkshire/core': core,
     '@berkshire/plugin-notify-console': notify,
+    '@berkshire/plugin-datasource-fuyao': fuyao,
+    '@berkshire/plugin-datasource-csv': csv,
+    '@berkshire/plugin-data-manager': dataManager,
     '@berkshire/plugin-demo': demo,
   })[name]
 
@@ -96,11 +104,12 @@ async function main(): Promise<void> {
   const demoOn = patch('packages/bundle/demo/cordis.patch.yml')
   const demoOff = patch('packages/bundle/demo-off/cordis.patch.yml')
 
-  // 装上：demo 贡献 footer + toolbar + money-flow 页 + 应用壳三布局组件。
-  await verifyCounts('装上（[base, demo]）', [base, demoOn], 6, 1, '/analysis/money-flow')
+  // 装上：demo 贡献 footer + toolbar + money-flow 页 + 应用壳四布局组件（settings-section 计入 7 个 client 模块）；
+  // base bundle 另含 data-manager（1 模块 + /data 路由），故合计 8 模块 / 2 路由。
+  await verifyCounts('装上（[base, demo]）', [base, demoOn], 8, 2, '/analysis/money-flow')
 
-  // 卸下：叠加 demo-off（整行 disabled:true）→ 全部消失。
-  await verifyCounts('卸下（[base, demo, demo-off]）', [base, demoOn, demoOff], 0, 0)
+  // 卸下：叠加 demo-off（整行 disabled:true）→ demo 全部消失（data-manager 仍在 base，剩 1 模块 / 1 路由）。
+  await verifyCounts('卸下（[base, demo, demo-off]）', [base, demoOn, demoOff], 1, 1)
 
   console.log('✔ demo 插件冒烟通过')
 }

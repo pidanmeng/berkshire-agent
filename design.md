@@ -2,7 +2,7 @@
 
 > **诚实标注（遵循仓库纪律）**：本文档描述的是 **BK 的前端设计语言（目标态/设计契约）**，**不是「当前已实现」的清单**。
 >
-> **已落地的载体**：样式令牌层 `--bk-*`（**取值层 `--bk-static-*` + 别名层 `--bk-*`**，单一事实源在 [`packages/theme`](packages/theme)，含 `accent`/`bull`/`bear`/`radius-dialog`/`font-mono`/`scrim`/`color-fg-invert` 等语义令牌）；React 原子组件库起步 [`packages/ui`](packages/ui)（`@berkshire/ui`：Button/Input/Select/Dropdown/Modal/Toast/ToastRegion/Notification/Badge/Tooltip/EmptyState，全部 CSS Modules + `var(--bk-*)`）；应用壳 [`packages/plugins/base-ui/src/client/`](packages/plugins/base-ui/src/client/)；宿主前端 [`apps/berkshire-agent/src/`](apps/berkshire-agent/src/)。
+> **已落地的载体**：样式令牌层 `--bk-*`（**取值层 `--bk-static-*` + 别名层 `--bk-*`**，单一事实源在 [`packages/theme`](packages/theme)，含 `accent`/`bull`/`bear`/`radius-dialog`/`font-mono`/`scrim`/`color-fg-invert` 等语义令牌）；React 原子组件库起步 [`packages/ui`](packages/ui)（`@berkshire/ui`：Button/Input/Select/Dropdown/Dialog/Toast/ToastRegion/Notification/Badge/Tooltip/EmptyState，全部 CSS Modules + `var(--bk-*)`）；应用壳 [`packages/plugins/base-ui/src/client/`](packages/plugins/base-ui/src/client/)；宿主前端 [`apps/berkshire-agent/src/`](apps/berkshire-agent/src/)。
 >
 > **仍为目标态/未落地（本文只作契约，不得当作已存在而 `import` / 直接引用路径）**：图表系统（ECharts / lightweight-charts）、查询与状态数据层（TanStack Query / SSE / `fmt*` / `cn()` 工具集）、诸多命名组件（`PageHeader`/`StockPanel`/`StockInfoBar`/`Logo`/`Chart*` 等）尚不存在。落地任一能力后，须同步更新下方「已落地」标注与本仓库 docs 诚实锚点（`architecture.md §11` / `secondary-development.md §6/§8`）。
 >
@@ -65,7 +65,7 @@ BK 前端采用**暗色优先**的专业交易终端风格，走**近黑基底 +
 
 - 过渡：按钮/链接 hover 标配 150ms 的 color/background 过渡。
 - 缓动：`cubic-bezier(0.16, 1, 0.3, 1)`（Linear/Vercel 同款）。
-- 复杂动画库与 CSS 进出场（如 toast）**仍为目标态**，落地时复用 `@berkshire/ui` 的 Toast/Modal 原语，不自建动画系统。
+- 复杂动画库与 CSS 进出场（如 toast）**仍为目标态**，落地时复用 `@berkshire/ui` 的 Toast/Dialog 原语，不自建动画系统。
 
 ### 2.5 全局滚动条
 
@@ -93,9 +93,9 @@ BK 前端采用**暗色优先**的专业交易终端风格，走**近黑基底 +
 
 ## 5. 组件库约定
 
-**已落地**：`@berkshire/ui`（`packages/ui`）提供 Button/Input/Select/Dropdown/Modal/Toast/ToastRegion/Notification/Badge/Tooltip/EmptyState——全部 CSS Modules + `var(--bk-*)`、基础可访问性内置（Modal 含焦点陷阱/ESC/restore，Dropdown 含 `aria-haspopup`/外部点击关闭），T0 可 SSR 冒烟。验收：`bun run --cwd packages/ui build && test`。
+**已落地**：`@berkshire/ui`（`packages/ui`）提供 Button/Input/Select/Dropdown/Dialog/Toast/ToastRegion/Notification/Badge/Tooltip/EmptyState——全部 CSS Modules + `var(--bk-*)`、基础可访问性内置（Dialog 复合家族含焦点陷阱/ESC/restore 与遮罩，Dropdown 含 `aria-haspopup`/外部点击关闭），T0 可 SSR 冒烟。验收：`bun run --cwd packages/ui build && test`。
 
-**目标态（设计契约，未实现）**：下述命名组件（PageHeader/StockPanel/StockInfoBar/Logo/Chart*）与「Modal 复用」等约定，落地时优先复用 `@berkshire/ui` 组件，**不要自建平行组件库/弹窗**。弹窗复用 `Modal`，空态用 `EmptyState`（图示 + 引导，而非一句「暂无数据」）。
+**目标态（设计契约，未实现）**：下述命名组件（PageHeader/StockPanel/StockInfoBar/Logo/Chart*）与「Dialog 复用」等约定，落地时优先复用 `@berkshire/ui` 组件，**不要自建平行组件库/弹窗**。弹窗复用 `Dialog` 家族，空态用 `EmptyState`（图示 + 引导，而非一句「暂无数据」）。
 
 ### 5.1 图标
 
@@ -109,7 +109,7 @@ BK 前端采用**暗色优先**的专业交易终端风格，走**近黑基底 +
 ## 7. 页面与布局结构
 
 - 路由：宿主 `apps/berkshire-agent/src` 用 `react-router-dom` `HashRouter`，核心路由 `/`、`/theme` + 插件自声明动态路由（`src/routes/*`，路由契约化）；**设置是弹窗（WP-6），不是路由页**。
-- 外壳：`@berkshire/ui-slots` 共享 `root` 槽挂 `@berkshire/base-ui` 壳帧（**grid 三区域骨架**：可扩展侧边栏 + 右顶栏 + 内容区；状态栏 + 设置弹窗 + 布局挂点；复用 `@berkshire/ui` Button/Badge/Modal）。设置弹窗（WP-6）左分组〔通用/模型/插件设置〕右表单：通用/模型表单骨架用 `@berkshire/ui` Input/Select，模型 Key 字段只存 env 引用名（不落明文）；「插件设置」分组承接 `settings.section` 设置 Seam（插件贡献设置表单面板，每槽包 `ExtensionBoundary`），分组 id/label/order 契约 `DEFAULT_SETTINGS_GROUPS` 在 `@berkshire/base-ui` `settingsGroups.ts`。
+- 外壳：`@berkshire/ui-slots` 共享 `root` 槽挂 `@berkshire/base-ui` 壳帧（**grid 三区域骨架**：可扩展侧边栏 + 右顶栏 + 内容区；状态栏 + 设置弹窗 + 布局挂点；复用 `@berkshire/ui` Button/Badge/Dialog）。设置弹窗（WP-6）左分组〔通用/模型/插件设置〕右表单：通用/模型表单骨架用 `@berkshire/ui` Input/Select，模型 Key 字段只存 env 引用名（不落明文）；「插件设置」分组承接 `settings.section` 设置 Seam（插件贡献设置表单面板，每槽包 `ExtensionBoundary`），分组 id/label/order 契约 `DEFAULT_SETTINGS_GROUPS` 在 `@berkshire/base-ui` `settingsGroups.ts`。
 - 页面结构惯例：标题栏 → 内容区（卡片/表格/图表）。
 - 内核 k线/行情列表等深色图表区遵循 §1 的近黑基底与边框分层；虚拟滚动表格、列自定义等仍是**目标态**。
 
@@ -125,7 +125,7 @@ BK 前端采用**暗色优先**的专业交易终端风格，走**近黑基底 +
 2. **数字**：价格/涨跌/成交量用 `--bk-font-mono` + `tabular-nums`，格式化走共享工具。
 3. **语义色**：`bull`/`bear` 只用于价格涨跌；UI 状态用 `success`/`danger`/`warning`/`accent`。
 4. **主题**：画布类颜色走调色板工具；纯 DOM 用 CSS variable token 自动跟随。
-5. **弹窗**：复用 `@berkshire/ui` 的 `Modal`，不手写遮罩/焦点逻辑。
+5. **弹窗**：复用 `@berkshire/ui` 的 `Dialog`，不手写遮罩/焦点逻辑。
 6. **空/加载态**：用 `EmptyState`（图示 + 引导）；加载态预留高度避免布局抖动。
 7. **数据层**：走宿主 `api.ts` 薄客户端 + 单写者桥，不新建平行工具。
 8. **扩展接入**：新功能若属二次开发，遵循 [secondary-development.md](docs/secondary-development.md) 的插槽/注册规范（`slots`/`clientModules`/布局挂点），UI 风格保持一致。

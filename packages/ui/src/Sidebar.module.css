@@ -49,7 +49,59 @@
   border-top: 1px solid var(--bk-border);
 }
 
-/* 菜单列表（nav 语义）：去除列表默认样式。 */
+/* ── 分组（SidebarGroup） ─────────────────────────────────────────────── */
+
+/* 分组容器：一组导航（label + content）。 */
+.group {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bk-space-1);
+  padding: var(--bk-space-2) 0;
+}
+
+/* 分组标签：小字号大写 + 加宽字距，弱化前景。 */
+.groupLabel {
+  padding: var(--bk-space-1);
+  font-size: var(--bk-font-size-xs);
+  font-weight: 600;
+  color: var(--bk-color-fg-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  user-select: none;
+}
+.groupLabelCollapsed {
+  /* 折叠态隐藏文本（草率隐藏，避免挤占收窄宽）；如必须在折叠态读分组名，消费方另用 title。 */
+  display: none;
+}
+
+/* 分组内容：容纳 SidebarMenu。 */
+.groupContent {
+  width: 100%;
+}
+
+/* 分组右上动作按钮：常显（hover 显现为「目标态」）。 */
+.groupAction {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--bk-color-fg-muted);
+  cursor: pointer;
+  border-radius: var(--bk-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+.groupAction:hover {
+  background: var(--bk-hover);
+  color: var(--bk-color-fg);
+}
+
+/* ── 菜单列表（nav 语义） ────────────────────────────────────────────── */
+
+/* 菜单列表（<ul>）：去除列表默认样式。 */
 .menu {
   list-style: none;
   margin: 0;
@@ -59,6 +111,7 @@
   gap: 2px;
 }
 
+/* 菜单项（<li>）。 */
 .menuItem {
   margin: 0;
   padding: 0;
@@ -67,6 +120,7 @@
 /* 菜单按钮：ghost 底、透明边框；激活态以强调色弱化底 + 左强调竖条作信息层级锚。 */
 .menuButton {
   box-sizing: border-box;
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--bk-space-3);
@@ -93,6 +147,26 @@
 .menuButton:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+
+/* 变体：outline 透明描边。 */
+.menuButton.outline {
+  border: 1px solid var(--bk-border);
+}
+.menuButton.outline:hover {
+  border-color: var(--bk-color-accent);
+}
+
+/* 尺寸档位。 */
+.menuButton.sm {
+  height: 28px;
+  font-size: var(--bk-font-size-sm);
+  padding: var(--bk-space-1) var(--bk-space-2);
+}
+.menuButton.lg {
+  height: 44px;
+  font-size: var(--bk-font-size-base);
+  padding: var(--bk-space-2) var(--bk-space-3);
 }
 
 /* 激活态：强调色弱化底 + 强调前景 + 左强调竖条（::before）。 */
@@ -145,6 +219,145 @@
   width: 20px;
   height: 20px;
   flex: none;
+}
+
+/* 菜单右侧动作按钮：折叠态隐藏。 */
+.menuAction {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--bk-color-fg-muted);
+  cursor: pointer;
+  border-radius: var(--bk-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: var(--bk-space-1);
+}
+.menuAction:hover {
+  background: var(--bk-hover);
+  color: var(--bk-color-fg);
+}
+
+/* 菜单右侧徽标。 */
+.menuBadge {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--bk-space-1);
+  border-radius: var(--bk-radius-sm);
+  font-size: var(--bk-font-size-xs);
+  font-weight: 600;
+  color: var(--bk-color-fg-muted);
+  background: var(--bk-color-bg-muted);
+}
+
+/* ── 子菜单（SidebarMenuSub） ────────────────────────────────────────── */
+
+/* 子菜单：缩进 + 左缘竖线（折叠态由组件直接不渲染）。 */
+.menuSub {
+  list-style: none;
+  margin: 0 0 0 var(--bk-space-3);
+  padding: 0 0 0 var(--bk-space-3);
+  border-left: 1px solid var(--bk-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menuSubItem {
+  margin: 0;
+  padding: 0;
+}
+
+/* 子菜单按钮：链接样式。 */
+.menuSubButton {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--bk-space-2);
+  padding: var(--bk-space-1) var(--bk-space-2);
+  border-radius: var(--bk-radius-sm);
+  color: var(--bk-color-fg-muted);
+  text-decoration: none;
+  font-size: var(--bk-font-size-md);
+  line-height: var(--bk-leading-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.menuSubButton:hover {
+  background: var(--bk-hover);
+  color: var(--bk-color-fg);
+}
+.menuSubButton.sm {
+  font-size: var(--bk-font-size-sm);
+}
+/* 激活态子菜单按钮。 */
+.menuSubButtonActive {
+  color: var(--bk-color-accent);
+  font-weight: 600;
+}
+
+/* ── 其它件（Input / Separator） ─────────────────────────────────────── */
+
+/* 侧栏内输入框：宽度自适应、小巧。 */
+.sidebarInput {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--bk-space-3);
+  border: 1px solid var(--bk-border);
+  border-radius: var(--bk-radius-md);
+  background: var(--bk-color-bg);
+  color: var(--bk-color-fg);
+  font-size: var(--bk-font-size-md);
+  outline: none;
+}
+.sidebarInput::placeholder {
+  color: var(--bk-color-fg-subtle);
+}
+.sidebarInput:focus-visible {
+  box-shadow: 0 0 0 2px var(--bk-color-accent-focus);
+}
+
+/* 侧栏分隔线。 */
+.separator {
+  height: 1px;
+  width: 100%;
+  background: var(--bk-border);
+  margin: var(--bk-space-2) 0;
+}
+
+/* 侧栏轨道（SidebarRail）：无内容的窄分隔条；宽度由 JS 内联注入。 */
+.rail {
+  flex: none;
+  align-self: stretch;
+  border-left: 1px solid var(--bk-border);
+}
+/* 交互轨道条（有 children）：窄细条，放折叠触发等；无额外视觉。 */
+.railInteract {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 内容内嵌区（SidebarInset）：与侧栏并排的主内容容器，横向铺满余量。 */
+.inset {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* 折叠/展开开关：ghost 图标按钮。 */

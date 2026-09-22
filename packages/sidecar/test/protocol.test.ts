@@ -306,17 +306,16 @@ describe('handleLine · routes/list（动态路由/导航，路由契约化）',
       id: 'demo',
       order: 30,
       title: 'Demo',
-      section: '分析',
       route: { path: '/analysis/demo' },
     })
     const res = await handleLine('{"id":2,"method":"routes/list","params":{}}', { ctx: boot.ctx })
     const arr = (
       JSON.parse(res.lines[0]!) as {
-        result: Array<{ id: string; order: number; title: string; path: string; slot: string; section?: string }>
+        result: Array<{ id: string; order: number; title: string; path: string; slot: string }>
       }
     ).result
     expect(arr).toEqual([
-      { id: 'demo', order: 30, title: 'Demo', path: '/analysis/demo', slot: 'analysis.menu', section: '分析' },
+      { id: 'demo', order: 30, title: 'Demo', path: '/analysis/demo', slot: 'analysis.menu' },
     ])
     await boot.dispose()
   })

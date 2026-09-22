@@ -22,7 +22,7 @@ export const SLOT_NAMES = [
   'watchlist.toolbar',
   'analysis.menu',
   // 应用壳（Vercel 黑白风）布局挂点：挂点归中枢，内容归插件。
-  'layout.navigation.extra', // 侧边栏导航区追加项/分组
+  'layout.navigation.extra', // 侧边栏导航区追加项（导航列表下方）
   'layout.sidebar.footer', // 侧边栏底部（设置入口上方）追加控制项
   'layout.statusbar.right', // 状态栏右侧追加状态项
   'settings.cards', // 设置弹窗追加设置卡片/分组
@@ -56,8 +56,6 @@ export interface RouteDescriptor {
   path: string
   /** 该页内容挂进哪个固定槽位。 */
   slot: SlotName
-  /** 侧边栏分组键（应用壳 v1）：缺省走单一默认组（兼容既有声明）。 */
-  section?: string
 }
 
 /** `ctx.slots` 的一条 slot 占用声明（Definition：某插件声明挂进某固定槽位）。 */
@@ -68,8 +66,6 @@ export interface FrontendSlotRegistration {
   order?: number
   /** 菜单标题（能力块 B/动态菜单，T2 才接，T1 只透传不消费）。 */
   title?: string
-  /** 侧边栏分组键（应用壳 v1）：缺省单组。 */
-  section?: string
   /** 静态路由声明（能力块 B/页面，路由契约化）：带上即声明该槽可作一个可导航页面（路径必须静态，见校验）。 */
   route?: { path: string }
 }
@@ -132,7 +128,6 @@ export class Slots extends Service {
           title: r.title ?? r.id,
           path: r.route.path,
           slot: name,
-          section: r.section,
         })
       }
     }
